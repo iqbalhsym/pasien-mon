@@ -8,7 +8,8 @@
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="shortcut icon" href="{{ asset('favicon.ico') }}" />
 
     <style>
@@ -237,7 +238,7 @@
             outline: none;
         }
 
-        .form-control-custom:focus + .input-icon-custom {
+        .form-control-custom:focus+.input-icon-custom {
             color: var(--primary);
         }
 
@@ -284,7 +285,7 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.25s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
         }
 
         .captcha-btn-refresh:hover {
@@ -424,6 +425,7 @@
                 opacity: 0;
                 transform: translateY(30px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -435,7 +437,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
@@ -445,7 +449,8 @@
         <!-- Left Side: Form Panel -->
         <div class="form-pane">
             <div class="brand-logo-wrapper">
-                <img src="{{ asset('images/logo-rsui-nyamping.png') }}" alt="Logo RSUI" style="max-height: 52px;" class="img-fluid">
+                <img src="{{ asset('images/logo-rsui-nyamping.png') }}" alt="Logo RSUI" style="max-height: 52px;"
+                    class="img-fluid">
             </div>
 
             <div class="mb-4">
@@ -469,7 +474,8 @@
                     <i class="mdi mdi-alert-circle-outline alert-icon-custom text-danger"></i>
                     <div>
                         <div class="alert-title-custom">Autentikasi Gagal</div>
-                        <div class="alert-body-custom">Username, Kata Sandi, atau Verifikasi Captcha Anda salah. Silakan coba kembali.</div>
+                        <div class="alert-body-custom">Username, Kata Sandi, atau Verifikasi Captcha Anda salah. Silakan
+                            coba kembali.</div>
                     </div>
                 </div>
             @endif
@@ -482,7 +488,8 @@
                 <div class="mb-3">
                     <label for="username" class="form-label-custom">Username</label>
                     <div class="input-group-custom">
-                        <input type="text" id="username" name="username" class="form-control-custom" placeholder="username" value="{{ old('username') }}" required autofocus>
+                        <input type="text" id="username" name="username" class="form-control-custom"
+                            placeholder="username" value="{{ old('username') }}" required autofocus>
                         <i class="mdi mdi-account-outline input-icon-custom"></i>
                     </div>
                     @error('username')
@@ -496,7 +503,8 @@
                 <div class="mb-4">
                     <label for="password" class="form-label-custom">Kata Sandi</label>
                     <div class="input-group-custom">
-                        <input type="password" id="password" name="password" class="form-control-custom" placeholder="kata sandi" required>
+                        <input type="password" id="password" name="password" class="form-control-custom"
+                            placeholder="kata sandi" required>
                         <i class="mdi mdi-lock-outline input-icon-custom"></i>
                     </div>
                 </div>
@@ -506,15 +514,18 @@
                     <label class="form-label-custom">Verifikasi Captcha</label>
                     <div class="captcha-flex-wrapper">
                         <div class="captcha-img-container">
-                            <img id="captcha-img" src="{{ $captcha_image }}" alt="Captcha" style="height: 100%; width: auto; object-fit: contain;">
+                            <img id="captcha-img" src="{{ $captcha_image }}" alt="Captcha"
+                                style="height: 100%; width: auto; object-fit: contain;">
                         </div>
-                        <button type="button" class="captcha-btn-refresh" onclick="refreshCaptcha()" title="Ganti Kode Soal">
+                        <button type="button" class="captcha-btn-refresh" onclick="refreshCaptcha()"
+                            title="Ganti Kode Soal">
                             <i class="mdi mdi-refresh fs-3"></i>
                         </button>
                     </div>
-                    
+
                     <div class="input-group-custom mb-0">
-                        <input type="number" name="captcha" class="form-control-custom" placeholder="Masukkan jawaban" required>
+                        <input type="number" name="captcha" class="form-control-custom" placeholder="Masukkan jawaban"
+                            required>
                         <i class="mdi mdi-calculator input-icon-custom"></i>
                     </div>
                     @error('captcha')
@@ -527,7 +538,8 @@
                 <!-- Remember Me Checkbox -->
                 <div class="mb-4 d-flex align-items-center">
                     <div class="form-check-custom">
-                        <input type="checkbox" name="remember" class="form-check-input form-check-input-custom" id="remember">
+                        <input type="checkbox" name="remember" class="form-check-input form-check-input-custom"
+                            id="remember">
                         <label class="form-check-label-custom" for="remember">Ingat sesi saya</label>
                     </div>
                 </div>
@@ -550,17 +562,19 @@
         <div class="visual-pane">
             <div class="visual-content">
                 <div class="glass-widget">
-                    <span class="glass-badge">
+                    {{-- <span class="glass-badge">
                         <i class="mdi mdi-shield-check-outline"></i> Active Directory Secured
-                    </span>
-                    <h2 class="fw-extrabold mb-3" style="font-size: 2.2rem; font-weight: 800; line-height: 1.25;">PASIEN JOURNEY</h2>
+                    </span> --}}
+                    <h2 class="fw-extrabold mb-3" style="font-size: 2.2rem; font-weight: 800; line-height: 1.25;">PASIEN
+                        JOURNEY</h2>
                     <p class="mb-4" style="font-size: 1.05rem; opacity: 0.9; line-height: 1.6; font-weight: 500;">
-                        Portal pemantauan internal RS Universitas Indonesia untuk merekam, memelihara, dan meninjau seluruh data riwayat medis pasien secara terintegrasi, aman, dan efisien.
+                        Portal pemantauan internal RS Universitas Indonesia untuk merekam, memelihara, dan meninjau
+                        seluruh data riwayat medis pasien secara terintegrasi, aman, dan efisien.
                     </p>
 
-                    <hr style="border-top: 1px solid rgba(255,255,255,0.25); margin: 2rem 0;">
+                    {{-- <hr style="border-top: 1px solid rgba(255,255,255,0.25); margin: 2rem 0;"> --}}
 
-                    <div class="features-list">
+                    {{-- <div class="features-list">
                         <div class="feature-item">
                             <div class="feature-icon-wrapper">
                                 <i class="mdi mdi-file-clock-outline"></i>
@@ -590,7 +604,7 @@
                                 <p class="mb-0" style="font-size: 0.85rem; opacity: 0.8;">Scan instan pada alat medis untuk mengunggah rekam medis dan data kalibrasi.</p>
                             </div>
                         </div>
-                    </div>
+                    </div> --}}
                 </div>
             </div>
         </div>
@@ -601,7 +615,7 @@
         function refreshCaptcha() {
             const btn = document.querySelector('.captcha-btn-refresh i');
             btn.classList.add('mdi-spin-custom');
-            
+
             fetch('{{ route('captcha.refresh') }}')
                 .then(response => response.json())
                 .then(data => {
