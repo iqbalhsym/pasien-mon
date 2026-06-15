@@ -85,13 +85,23 @@ class BedController extends Controller
 
     public function sync()
     {
+        $cacheKey = 'last_sync_api_trigger';
+        if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Sinkronisasi dilewati karena baru saja disinkronkan.'
+            ]);
+        }
+
         try {
+            \Illuminate\Support\Facades\Cache::put($cacheKey, true, 30);
             Artisan::call('sync:beds');
             return response()->json([
                 'success' => true,
                 'message' => 'Sinkronisasi data tempat tidur berhasil diselesaikan!'
             ]);
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Cache::forget($cacheKey);
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal melakukan sinkronisasi: ' . $e->getMessage()

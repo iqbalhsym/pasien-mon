@@ -9,4 +9,4 @@ Artisan::command('inspire', function () {
 
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command('sync:beds')->everyFiveMinutes();
+Schedule::command('sync:beds')->everyMinute();

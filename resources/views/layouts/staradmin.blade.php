@@ -876,6 +876,69 @@
           }
         });
       });
+
+      // Auto-Sync & Navigation Sync trigger (Runs silently in the background)
+      @auth
+      setTimeout(function() {
+        fetch("{{ route('beds.sync') }}", {
+          method: 'POST',
+          headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }).then(response => {
+          if (response.ok) {
+            return response.json();
+          }
+        }).then(data => {
+          // If sync finished and data actually updated (not skipped), and we are on a list view, we can reload to show latest data
+          if (data && data.success && data.message && !data.message.includes('dilewati')) {
+            const isIndexPage = window.location.pathname.includes('/beds') || 
+                               window.location.pathname.includes('/pasien') || 
+                               window.location.pathname.includes('/rekam-medis');
+            const isModalOpen = document.querySelector('.modal.show') !== null;
+            const isUserTyping = document.activeElement && 
+                                (document.activeElement.tagName === 'INPUT' || 
+                                 document.activeElement.tagName === 'TEXTAREA');
+
+            if (isIndexPage && !isModalOpen && !isUserTyping) {
+              window.location.reload();
+            }
+          }
+        }).catch(err => console.error('Silent sync error:', err));
+      }, 1500);
+
+      // Interval auto-sync every 1 minute
+      setInterval(function() {
+        fetch("{{ route('beds.sync') }}", {
+          method: 'POST',
+          headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }).then(response => {
+          if (response.ok) {
+            return response.json();
+          }
+        }).then(data => {
+          if (data && data.success && data.message && !data.message.includes('dilewati')) {
+            const isIndexPage = window.location.pathname.includes('/beds') || 
+                               window.location.pathname.includes('/pasien') || 
+                               window.location.pathname.includes('/rekam-medis');
+            const isModalOpen = document.querySelector('.modal.show') !== null;
+            const isUserTyping = document.activeElement && 
+                                (document.activeElement.tagName === 'INPUT' || 
+                                 document.activeElement.tagName === 'TEXTAREA');
+
+            if (isIndexPage && !isModalOpen && !isUserTyping) {
+              window.location.reload();
+            }
+          }
+        }).catch(err => console.error('Interval sync error:', err));
+      }, 60000);
+      @endauth
     });
   </script>
 </body>
