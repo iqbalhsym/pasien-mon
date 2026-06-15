@@ -20,7 +20,11 @@ class MaintenanceController extends Controller
             ->orderBy('merk');
 
         if ($request->filled('lantai')) {
-            $query->where('lantai', $request->input('lantai'));
+            $lantaiVal = $request->input('lantai');
+            if (preg_match('/Lantai\s+(\d+)/i', $lantaiVal, $matches)) {
+                $lantaiVal = $matches[1];
+            }
+            $query->where('lantai', $lantaiVal);
         }
 
         if ($request->filled('wing')) {

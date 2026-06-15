@@ -15,7 +15,11 @@ class EquipmentController extends Controller
         $query = Equipment::query();
 
         if ($request->filled('lantai')) {
-            $query->where('lantai', $request->input('lantai'));
+            $lantaiVal = $request->input('lantai');
+            if (preg_match('/Lantai\s+(\d+)/i', $lantaiVal, $matches)) {
+                $lantaiVal = $matches[1];
+            }
+            $query->where('lantai', $lantaiVal);
         }
 
         if ($request->filled('wing')) {
@@ -67,6 +71,11 @@ class EquipmentController extends Controller
         ]);
 
         $data = $request->except('gambar');
+        if (isset($data['lantai'])) {
+            if (preg_match('/Lantai\s+(\d+)/i', $data['lantai'], $matches)) {
+                $data['lantai'] = $matches[1];
+            }
+        }
         $equipment = Equipment::create($data);
 
         if ($request->hasFile('gambar')) {
@@ -99,6 +108,11 @@ class EquipmentController extends Controller
         $newLokasi = $request->input('lokasi');
 
         $data = $request->except('gambar');
+        if (isset($data['lantai'])) {
+            if (preg_match('/Lantai\s+(\d+)/i', $data['lantai'], $matches)) {
+                $data['lantai'] = $matches[1];
+            }
+        }
         $equipment->update($data);
 
         if ($oldLokasi !== $newLokasi) {

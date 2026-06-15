@@ -23,6 +23,14 @@ class BedController extends Controller
 
         // Get selected floor, default to first floor if not provided
         $selectedFloorName = $request->input('floor');
+        if ($selectedFloorName) {
+            $matchedFloor = Floor::where('name', $selectedFloorName)
+                ->orWhere('name', 'Lantai ' . $selectedFloorName)
+                ->first();
+            if ($matchedFloor) {
+                $selectedFloorName = $matchedFloor->name;
+            }
+        }
         if (!$selectedFloorName && $floors->isNotEmpty()) {
             $selectedFloorName = $floors->first()->name;
         }
