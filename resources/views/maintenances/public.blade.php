@@ -115,9 +115,41 @@
                         <div class="col-md-7">
                             <h2 class="h4 fw-bold text-primary mb-1">{{ $equipment->merk }}</h2>
                             <p class="text-muted mb-3">{{ $equipment->type }}</p>
-                            <div class="d-flex flex-wrap gap-2">
+                             <div class="d-flex flex-wrap gap-2">
                                 <span class="badge bg-light text-dark border"><i class="mdi mdi-map-marker text-danger me-1"></i> {{ $equipment->lokasi ?: '-' }}</span>
-                                <span class="badge bg-light text-dark border"><i class="mdi mdi-check-circle text-success me-1"></i> Kondisi: {{ $equipment->kondisi ?: 'Baik' }}</span>
+                                @if($equipment->lantai)
+                                    <span class="badge bg-light text-dark border"><i class="mdi mdi-layers-outline text-info me-1"></i> Lantai: {{ $equipment->lantai }}</span>
+                                @endif
+                                @php
+                                    $eqKondisiClass = [
+                                        'Baik' => 'badge bg-success-subtle text-success fw-bold border',
+                                        'Stabil EWS' => 'badge bg-success-subtle text-success fw-bold border',
+                                        'Rusak Ringan' => 'badge bg-warning-subtle text-warning-emphasis fw-bold border',
+                                        'Stabil perlu observasi rutin EWS' => 'badge bg-warning-subtle text-warning-emphasis fw-bold border',
+                                        'Perlu pemantauan khusus EWS' => 'badge bg-warning-subtle text-warning-emphasis fw-bold border',
+                                        'Perlu pemantauan ketat EWS' => 'badge text-white fw-bold border',
+                                        'Rusak Berat' => 'badge bg-danger-subtle text-danger fw-bold border',
+                                        'Intensif ESW' => 'badge bg-danger-subtle text-danger fw-bold border',
+                                        'Intensif EWS' => 'badge bg-danger-subtle text-danger fw-bold border',
+                                    ];
+                                    $eqKondisiStyle = [
+                                        'Perlu pemantauan ketat EWS' => 'background-color: #fd7e14;',
+                                    ];
+                                    $eqKondisiLabel = [
+                                        'Baik' => 'STABIL',
+                                        'Stabil EWS' => 'STABIL EWS',
+                                        'Rusak Ringan' => 'GEJALA RINGAN',
+                                        'Stabil perlu observasi rutin EWS' => 'STABIL PERLU OBSERVASI RUTIN EWS',
+                                        'Perlu pemantauan khusus EWS' => 'PERLU PEMANTAUAN KHUSUS EWS',
+                                        'Perlu pemantauan ketat EWS' => 'PERLU PEMANTAUAN KETAT EWS',
+                                        'Rusak Berat' => 'RAWAT INTENSIF',
+                                        'Intensif ESW' => 'INTENSIF EWS',
+                                        'Intensif EWS' => 'INTENSIF EWS',
+                                    ];
+                                @endphp
+                                <span class="{{ $eqKondisiClass[$equipment->kondisi] ?? 'badge bg-light text-dark border' }}" style="{{ $eqKondisiStyle[$equipment->kondisi] ?? '' }}">
+                                    <i class="mdi mdi-check-circle text-success me-1"></i> Kondisi: {{ $eqKondisiLabel[$equipment->kondisi] ?? ($equipment->kondisi ?: 'Baik') }}
+                                </span>
                             </div>
                         </div>
                         <div class="col-md-5 text-md-end mt-3 mt-md-0">
@@ -174,14 +206,16 @@
                             <div class="col-6 col-md-3 border-end">
                                 <div class="small text-muted mb-1"><i class="mdi mdi-heart-pulse text-success me-1"></i> Kondisi Klinis</div>
                                 <div>
-                                    @if($mnt->kondisi_klinis == 'Baik')
-                                        <span class="badge bg-success-subtle text-success fw-bold">STABIL</span>
-                                    @elseif($mnt->kondisi_klinis == 'Rusak Ringan')
-                                        <span class="badge bg-warning-subtle text-warning-emphasis fw-bold">GEJALA RINGAN</span>
-                                    @elseif($mnt->kondisi_klinis == 'Rusak Berat')
-                                        <span class="badge bg-danger-subtle text-danger fw-bold">RAWAT INTENSIF</span>
+                                    @if($mnt->kondisi_klinis == 'Baik' || $mnt->kondisi_klinis == 'Stabil EWS')
+                                        <span class="badge bg-success-subtle text-success fw-bold">STABIL EWS</span>
+                                    @elseif($mnt->kondisi_klinis == 'Rusak Ringan' || $mnt->kondisi_klinis == 'Stabil perlu observasi rutin EWS' || $mnt->kondisi_klinis == 'Perlu pemantauan khusus EWS')
+                                        <span class="badge bg-warning-subtle text-warning-emphasis fw-bold">OBSERVASI EWS</span>
+                                    @elseif($mnt->kondisi_klinis == 'Perlu pemantauan ketat EWS')
+                                        <span class="badge fw-bold text-white" style="background-color: #fd7e14;">PEMANTAUAN KETAT EWS</span>
+                                    @elseif($mnt->kondisi_klinis == 'Rusak Berat' || $mnt->kondisi_klinis == 'Intensif ESW' || $mnt->kondisi_klinis == 'Intensif EWS')
+                                        <span class="badge bg-danger-subtle text-danger fw-bold">INTENSIF EWS</span>
                                     @else
-                                        <span class="text-dark fw-bold">-</span>
+                                        <span class="text-dark fw-bold">{{ $mnt->kondisi_klinis ?: '-' }}</span>
                                     @endif
                                 </div>
                             </div>

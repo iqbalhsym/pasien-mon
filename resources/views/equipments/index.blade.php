@@ -152,7 +152,15 @@
                             </td>
                             <td>
                                 <div class="mb-1 fw-bold text-dark"><i class="mdi mdi-map-marker text-danger fs-5 me-1"></i> {{ $eq->lokasi }}</div>
-                                <div class="mb-1 text-muted" style="font-size: 0.92rem;"><i class="mdi mdi-calendar text-primary me-1"></i> Terdaftar: {{ \Carbon\Carbon::parse($eq->tanggal_pengadaan)->translatedFormat('d M Y') }}</div>
+                                @if($eq->lantai)
+                                    <div class="mb-1 text-muted" style="font-size: 0.92rem;"><i class="mdi mdi-layers-outline text-info me-1"></i> Lantai: <strong>Lantai {{ $eq->lantai }}</strong></div>
+                                @endif
+                                <div class="mb-1 text-muted" style="font-size: 0.92rem;">
+                                    <i class="mdi mdi-calendar text-primary me-1"></i> Terdaftar: {{ \Carbon\Carbon::parse($eq->tanggal_pengadaan)->translatedFormat('d M Y') }}
+                                    @if($eq->jam)
+                                        pukul {{ $eq->jam }}
+                                    @endif
+                                </div>
                                 <div>
                                     <span class="badge bg-dark text-white shadow-sm">
                                         @if($eq->status_kepemilikan == 'Milik RS') BPJS Kesehatan @elseif($eq->status_kepemilikan == 'KSO') Asuransi Swasta @else Umum / Mandiri @endif
@@ -162,17 +170,32 @@
                             <td>
                                 @php
                                     $kondisiClass = [
-                                        'Baik' => 'bg-success',
+                                        'Baik' => 'bg-success text-white',
                                         'Rusak Ringan' => 'bg-warning text-dark border border-dark',
-                                        'Rusak Berat' => 'bg-danger text-white'
+                                        'Rusak Berat' => 'bg-danger text-white',
+                                        'Stabil EWS' => 'bg-success text-white',
+                                        'Stabil perlu observasi rutin EWS' => 'bg-warning text-dark',
+                                        'Perlu pemantauan khusus EWS' => 'bg-warning text-dark',
+                                        'Perlu pemantauan ketat EWS' => 'text-white',
+                                        'Intensif ESW' => 'bg-danger text-white',
+                                        'Intensif EWS' => 'bg-danger text-white',
+                                    ];
+                                    $kondisiStyle = [
+                                        'Perlu pemantauan ketat EWS' => 'background-color: #fd7e14;',
                                     ];
                                     $kondisiLabel = [
                                         'Baik' => 'STABIL (RAWAT JALAN)',
                                         'Rusak Ringan' => 'GEJALA RINGAN',
-                                        'Rusak Berat' => 'RAWAT INTENSIF'
+                                        'Rusak Berat' => 'RAWAT INTENSIF',
+                                        'Stabil EWS' => 'STABIL EWS',
+                                        'Stabil perlu observasi rutin EWS' => 'STABIL PERLU OBSERVASI RUTIN EWS',
+                                        'Perlu pemantauan khusus EWS' => 'PERLU PEMANTAUAN KHUSUS EWS',
+                                        'Perlu pemantauan ketat EWS' => 'PERLU PEMANTAUAN KETAT EWS',
+                                        'Intensif ESW' => 'INTENSIF EWS',
+                                        'Intensif EWS' => 'INTENSIF EWS',
                                     ];
                                 @endphp
-                                <div class="badge {{ $kondisiClass[$eq->kondisi] ?? 'bg-secondary' }} py-2 px-3 shadow-sm" style="font-size: 0.95rem;">
+                                <div class="badge {{ $kondisiClass[$eq->kondisi] ?? 'bg-secondary' }} py-2 px-3 shadow-sm" style="font-size: 0.95rem; {{ $kondisiStyle[$eq->kondisi] ?? '' }}">
                                     {{ $kondisiLabel[$eq->kondisi] ?? strtoupper($eq->kondisi) }}
                                 </div>
                             </td>
@@ -235,12 +258,6 @@
                                 placeholder="Contoh: Budi Santoso">
                         </div>
                         <div class="col-md-6 mb-4">
-                            <label class="form-label text-dark fw-bold fs-5">Diagnosa Utama / Gejala <span
-                                    class="text-danger">*</span></label>
-                            <input type="text" name="type" class="form-control form-control-lg bg-white" required
-                                placeholder="Contoh: Demam Tinggi / Hipertensi">
-                        </div>
-                        <div class="col-md-6 mb-4">
                             <label class="form-label text-dark fw-bold fs-5">No. Rekam Medis (RM) <span
                                     class="text-danger">*</span></label>
                             <input type="text" name="serial_number"
@@ -258,17 +275,21 @@
                             <input type="text" name="lokasi" class="form-control form-control-lg bg-white" required
                                 placeholder="Contoh: Ruang Melati / Poliklinik">
                         </div>
-                        <div class="col-md-4 mb-4">
-                            <label class="form-label text-dark fw-bold fs-5">Kondisi Saat Ini <span
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label text-dark fw-bold fs-5">Lantai <span
                                     class="text-danger">*</span></label>
-                            <select name="kondisi" class="form-select form-select-lg bg-white fw-bold text-dark"
-                                required>
-                                <option value="Baik">Kondisi Stabil (Rawat Jalan)</option>
-                                <option value="Rusak Ringan">Gejala Ringan</option>
-                                <option value="Rusak Berat">Rawat Intensif</option>
+                            <select name="lantai" class="form-select form-select-lg bg-white fw-bold text-dark" required>
+                                <option value="" disabled selected>-- Pilih Lantai --</option>
+                                @foreach($globalFloors as $fl)
+                                    @php
+                                        $flName = $fl->name;
+                                        $displayFl = is_numeric($flName) ? 'Lantai ' . $flName : $flName;
+                                    @endphp
+                                    <option value="{{ $flName }}">{{ $displayFl }}</option>
+                                @endforeach
                             </select>
                         </div>
-                        <div class="col-md-4 mb-4">
+                        <div class="col-md-6 mb-4">
                             <label class="form-label text-dark fw-bold fs-5">Metode Pembayaran <span
                                     class="text-danger">*</span></label>
                             <select name="status_kepemilikan"
@@ -278,19 +299,43 @@
                                 <option value="Hibah">Umum / Mandiri</option>
                             </select>
                         </div>
-                        <div class="col-md-4 mb-4">
+                        <div class="col-md-3 mb-4">
                             <label class="form-label text-dark fw-bold fs-5">Tanggal Registrasi <span
                                     class="text-danger">*</span></label>
                             <input type="date" name="tanggal_pengadaan" class="form-control form-control-lg bg-white"
-                                required>
+                                required value="{{ date('Y-m-d') }}">
                         </div>
-                        <div class="col-md-12 mb-4">
+                        <div class="col-md-3 mb-4">
+                            <label class="form-label text-dark fw-bold fs-5">Jam Handover <span
+                                    class="text-danger">*</span></label>
+                            <input type="time" name="jam" class="form-control form-control-lg bg-white"
+                                required value="{{ date('H:i') }}">
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label text-dark fw-bold fs-5">Kondisi Saat Ini <span
+                                    class="text-danger">*</span></label>
+                            <select name="kondisi" class="form-select form-select-lg bg-white fw-bold text-dark"
+                                required>
+                                <option value="Stabil EWS">Stabil EWS (Hijau)</option>
+                                <option value="Stabil perlu observasi rutin EWS">Stabil perlu observasi rutin EWS (Kuning)</option>
+                                <option value="Perlu pemantauan khusus EWS">Perlu pemantauan khusus EWS (Kuning)</option>
+                                <option value="Perlu pemantauan ketat EWS">Perlu pemantauan ketat EWS (Orange)</option>
+                                <option value="Intensif ESW">Intensif ESW (Merah)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-4">
                             <label class="form-label text-dark fw-bold fs-5">Upload Foto / Identitas Pasien</label>
                             <input type="file" name="gambar" class="form-control form-control-lg bg-white"
                                 accept="image/*">
                         </div>
+                        <div class="col-md-12 mb-4">
+                            <label class="form-label text-dark fw-bold fs-5">Diagnosa Utama / Gejala <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" name="type" class="form-control form-control-lg bg-white" required
+                                placeholder="Contoh: Demam Tinggi / Hipertensi">
+                        </div>
                         <div class="col-md-12">
-                            <label class="form-label text-dark fw-bold fs-5">Catatan Riwayat Medis Lainnya (Opsional)</label>
+                            <label class="form-label text-dark fw-bold fs-5">Catatan Handover (Opsional)</label>
                             <textarea name="spesifikasi" class="form-control bg-white" rows="3"></textarea>
                         </div>
                     </div>
@@ -326,11 +371,6 @@
                                     required>
                             </div>
                             <div class="col-md-6 mb-4">
-                                <label class="form-label text-dark fw-bold fs-5">Diagnosa Utama / Gejala</label>
-                                <input type="text" name="type" class="form-control form-control-lg" value="{{ $eq->type }}"
-                                    required>
-                            </div>
-                            <div class="col-md-6 mb-4">
                                 <label class="form-label text-dark fw-bold fs-5">No. Rekam Medis (RM)</label>
                                 <input type="text" name="serial_number"
                                     class="form-control form-control-lg border-primary fw-bold"
@@ -346,15 +386,21 @@
                                 <input type="text" name="lokasi" class="form-control form-control-lg"
                                     value="{{ $eq->lokasi }}" required>
                             </div>
-                            <div class="col-md-4 mb-4">
-                                <label class="form-label text-dark fw-bold fs-5">Kondisi Klinis</label>
-                                <select name="kondisi" class="form-select form-select-lg fw-bold text-dark" required>
-                                    <option value="Baik" {{ $eq->kondisi == 'Baik' ? 'selected' : '' }}>Kondisi Stabil (Rawat Jalan)</option>
-                                    <option value="Rusak Ringan" {{ $eq->kondisi == 'Rusak Ringan' ? 'selected' : '' }}>Gejala Ringan</option>
-                                    <option value="Rusak Berat" {{ $eq->kondisi == 'Rusak Berat' ? 'selected' : '' }}>Rawat Intensif</option>
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label text-dark fw-bold fs-5">Lantai <span
+                                        class="text-danger">*</span></label>
+                                <select name="lantai" class="form-select form-select-lg fw-bold text-dark" required>
+                                    <option value="" disabled>-- Pilih Lantai --</option>
+                                    @foreach($globalFloors as $fl)
+                                        @php
+                                            $flName = $fl->name;
+                                            $displayFl = is_numeric($flName) ? 'Lantai ' . $flName : $flName;
+                                        @endphp
+                                        <option value="{{ $flName }}" {{ $eq->lantai == $flName ? 'selected' : '' }}>{{ $displayFl }}</option>
+                                    @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-4 mb-4">
+                            <div class="col-md-6 mb-4">
                                 <label class="form-label text-dark fw-bold fs-5">Metode Pembayaran</label>
                                 <select name="status_kepemilikan" class="form-select form-select-lg fw-bold text-dark"
                                     required>
@@ -363,14 +409,38 @@
                                     <option value="Hibah" {{ $eq->status_kepemilikan == 'Hibah' ? 'selected' : '' }}>Umum / Mandiri</option>
                                 </select>
                             </div>
-                            <div class="col-md-4 mb-4">
+                            <div class="col-md-3 mb-4">
                                 <label class="form-label text-dark fw-bold fs-5">Tanggal Registrasi</label>
                                 <input type="date" name="tanggal_pengadaan" class="form-control form-control-lg"
                                     value="{{ $eq->tanggal_pengadaan }}" required>
                             </div>
-                            <div class="col-md-12 mb-4">
+                            <div class="col-md-3 mb-4">
+                                <label class="form-label text-dark fw-bold fs-5">Jam Handover</label>
+                                <input type="time" name="jam" class="form-control form-control-lg"
+                                    value="{{ $eq->jam }}" required>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label text-dark fw-bold fs-5">Kondisi Klinis</label>
+                                <select name="kondisi" class="form-select form-select-lg fw-bold text-dark" required>
+                                    <option value="Stabil EWS" {{ $eq->kondisi == 'Stabil EWS' || $eq->kondisi == 'Baik' ? 'selected' : '' }}>Stabil EWS (Hijau)</option>
+                                    <option value="Stabil perlu observasi rutin EWS" {{ $eq->kondisi == 'Stabil perlu observasi rutin EWS' ? 'selected' : '' }}>Stabil perlu observasi rutin EWS (Kuning)</option>
+                                    <option value="Perlu pemantauan khusus EWS" {{ $eq->kondisi == 'Perlu pemantauan khusus EWS' || $eq->kondisi == 'Rusak Ringan' ? 'selected' : '' }}>Perlu pemantauan khusus EWS (Kuning)</option>
+                                    <option value="Perlu pemantauan ketat EWS" {{ $eq->kondisi == 'Perlu pemantauan ketat EWS' ? 'selected' : '' }}>Perlu pemantauan ketat EWS (Orange)</option>
+                                    <option value="Intensif ESW" {{ $eq->kondisi == 'Intensif ESW' || $eq->kondisi == 'Intensif EWS' || $eq->kondisi == 'Rusak Berat' ? 'selected' : '' }}>Intensif ESW (Merah)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-4">
                                 <label class="form-label text-dark fw-bold fs-5">Ganti Foto Pasien (Abaikan jika tetap)</label>
                                 <input type="file" name="gambar" class="form-control form-control-lg" accept="image/*">
+                            </div>
+                            <div class="col-md-12 mb-4">
+                                <label class="form-label text-dark fw-bold fs-5">Diagnosa Utama / Gejala</label>
+                                <input type="text" name="type" class="form-control form-control-lg" value="{{ $eq->type }}"
+                                    required>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label text-dark fw-bold fs-5">Catatan Handover</label>
+                                <textarea name="spesifikasi" class="form-control" rows="3">{{ $eq->spesifikasi }}</textarea>
                             </div>
                         </div>
                     </div>

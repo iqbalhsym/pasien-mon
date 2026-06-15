@@ -36,11 +36,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/kontrol-pasien/export', [CalibrationController::class, 'exportCsv'])->name('calibrations.export');
     Route::get('/rekam-medis', [MaintenanceController::class, 'index'])->name('maintenances.index');
     Route::get('/rekam-medis/export', [MaintenanceController::class, 'exportCSV'])->name('maintenances.export');
+    Route::get('/beds', [\App\Http\Controllers\BedController::class, 'index'])->name('beds.index');
     Route::get('/rekam-medis/{serial_number}', [MaintenanceController::class, 'history'])->name('maintenances.history');
     Route::get('/rekam-medis/{serial_number}/qr', [MaintenanceController::class, 'printQr'])->name('maintenances.qr');
 
     // --- RUTE EDIT/HAPUS/TAMBAH (Admin & User biasa) ---
     Route::middleware(['role:admin,user'])->group(function () {
+        // Beds Sync
+        Route::post('/beds/sync', [\App\Http\Controllers\BedController::class, 'sync'])->name('beds.sync');
+
         // Pasien (Alat)
         Route::post('/pasien', [EquipmentController::class, 'store'])->name('equipments.store');
         Route::put('/pasien/{equipment}', [EquipmentController::class, 'update'])->name('equipments.update');

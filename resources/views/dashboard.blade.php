@@ -24,8 +24,8 @@
 
 @section('content')
 <div class="row">
-    <!-- Total Alat -->
-    <div class="col-sm-6 col-lg-3 grid-margin stretch-card">
+    <!-- Total Pasien -->
+    <div class="col-lg-4 col-md-6 col-sm-12 grid-margin stretch-card">
         <div class="card card-rounded shadow-sm">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -40,12 +40,12 @@
         </div>
     </div>
     
-    <!-- Alat Kondisi Baik -->
-    <div class="col-sm-6 col-lg-3 grid-margin stretch-card">
+    <!-- Stabil EWS (Green) -->
+    <div class="col-lg-2 col-md-3 col-sm-6 grid-margin stretch-card">
         <div class="card card-rounded shadow-sm">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h4 class="card-title card-title-dash mb-0 text-uppercase fw-bold text-success">Kondisi Baik</h4>
+                    <h4 class="card-title card-title-dash mb-0 text-uppercase fw-bold text-success">Stabil EWS</h4>
                     <div class="badge badge-opacity-success bg-success"><i class="mdi mdi-emoticon-happy fs-4 text-white"></i></div>
                 </div>
                 <h2 class="text-dark fw-bold mb-0" style="font-size: 2.2rem;">{{ number_format($alatBaik) }}</h2>
@@ -56,12 +56,12 @@
         </div>
     </div>
 
-    <!-- Alat Rusak Ringan -->
-    <div class="col-sm-6 col-lg-3 grid-margin stretch-card">
+    <!-- Observasi EWS (Yellow) -->
+    <div class="col-lg-2 col-md-3 col-sm-6 grid-margin stretch-card">
         <div class="card card-rounded shadow-sm">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h4 class="card-title card-title-dash mb-0 text-uppercase fw-bold text-warning">Gejala Ringan</h4>
+                    <h4 class="card-title card-title-dash mb-0 text-uppercase fw-bold text-warning">Observasi EWS</h4>
                     <div class="badge badge-opacity-warning bg-warning"><i class="mdi mdi-alert-circle fs-4 text-dark"></i></div>
                 </div>
                 <h2 class="text-dark fw-bold mb-0" style="font-size: 2.2rem;">{{ number_format($alatRusakRingan) }}</h2>
@@ -72,12 +72,28 @@
         </div>
     </div>
 
-    <!-- Alat Rusak Berat -->
-    <div class="col-sm-6 col-lg-3 grid-margin stretch-card">
+    <!-- Pemantauan Ketat (Orange) -->
+    <div class="col-lg-2 col-md-3 col-sm-6 grid-margin stretch-card">
         <div class="card card-rounded shadow-sm">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h4 class="card-title card-title-dash mb-0 text-uppercase fw-bold text-danger">Rawat Intensif</h4>
+                    <h4 class="card-title card-title-dash mb-0 text-uppercase fw-bold" style="color: #fd7e14 !important;">Ketat EWS</h4>
+                    <div class="badge text-white" style="background-color: #fd7e14;"><i class="mdi mdi-alert fs-4"></i></div>
+                </div>
+                <h2 class="text-dark fw-bold mb-0" style="font-size: 2.2rem;">{{ number_format($alatOrange) }}</h2>
+                <div class="mt-3">
+                    <a href="{{ route('equipments.index') }}" class="text-decoration-none fw-bold" style="font-size: 0.95rem; color: #fd7e14 !important;">Lihat Detail <i class="mdi mdi-arrow-right-circle"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Intensif EWS (Red) -->
+    <div class="col-lg-2 col-md-3 col-sm-6 grid-margin stretch-card">
+        <div class="card card-rounded shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h4 class="card-title card-title-dash mb-0 text-uppercase fw-bold text-danger">Intensif EWS</h4>
                     <div class="badge badge-opacity-danger bg-danger"><i class="mdi mdi-pulse fs-4 text-white"></i></div>
                 </div>
                 <h2 class="text-dark fw-bold mb-0" style="font-size: 2.2rem;">{{ number_format($alatRusakBerat) }}</h2>

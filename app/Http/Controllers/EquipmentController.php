@@ -14,11 +14,35 @@ class EquipmentController extends Controller
         $perPage = $request->input('per_page', 10);
         $query = Equipment::query();
 
+        if ($request->filled('lantai')) {
+            $query->where('lantai', $request->input('lantai'));
+        }
+
+        if ($request->filled('wing')) {
+            $wingVal = $request->input('wing');
+            $query->where(function($q) use ($wingVal) {
+                $q->whereHas('bed.room.wing', function($wq) use ($wingVal) {
+                    $wq->where('name', $wingVal);
+                })->orWhere('lokasi', 'like', $wingVal . ' - %');
+            });
+        }
+
+        if ($request->filled('room')) {
+            $roomVal = $request->input('room');
+            $query->where(function($q) use ($roomVal) {
+                $q->whereHas('bed.room', function($rq) use ($roomVal) {
+                    $rq->where('name', $roomVal);
+                })->orWhere('lokasi', 'like', '% - ' . $roomVal . ' (%');
+            });
+        }
+
         if ($search) {
-            $query->where('merk', 'like', "%{$search}%")
-                ->orWhere('type', 'like', "%{$search}%")
-                ->orWhere('serial_number', 'like', "%{$search}%")
-                ->orWhere('lokasi', 'like', "%{$search}%");
+            $query->where(function($q) use ($search) {
+                $q->where('merk', 'like', "%{$search}%")
+                    ->orWhere('type', 'like', "%{$search}%")
+                    ->orWhere('serial_number', 'like', "%{$search}%")
+                    ->orWhere('lokasi', 'like', "%{$search}%");
+            });
         }
 
         $equipments = $query->with('media')->latest()->paginate($perPage);
@@ -33,8 +57,11 @@ class EquipmentController extends Controller
             'serial_number' => 'required|unique:equipments,serial_number',
             'tanggal_lahir' => 'required|date',
             'lokasi' => 'required',
+            'lantai' => 'required|string',
             'kondisi' => 'required',
             'tanggal_pengadaan' => 'required|date',
+            'jam' => 'nullable|string',
+            'spesifikasi' => 'nullable|string',
             'status_kepemilikan' => 'required',
             'gambar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
@@ -59,8 +86,11 @@ class EquipmentController extends Controller
             'serial_number' => 'required|unique:equipments,serial_number,' . $equipment->id,
             'tanggal_lahir' => 'required|date',
             'lokasi' => 'required',
+            'lantai' => 'required|string',
             'kondisi' => 'required',
             'tanggal_pengadaan' => 'required|date',
+            'jam' => 'nullable|string',
+            'spesifikasi' => 'nullable|string',
             'status_kepemilikan' => 'required',
             'gambar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
@@ -117,7 +147,7 @@ class EquipmentController extends Controller
         );
 
         // Header kolom CSV
-        $columns = array('Merk', 'Type', 'Serial Number', 'Lokasi', 'Kondisi', 'Spesifikasi', 'Tanggal Pengadaan', 'Status Kepemilikan');
+        $columns = array('Merk', 'Type', 'Serial Number', 'Lokasi', 'Kondisi', 'Spesifikasi', 'Tanggal Pengadaan', 'Jam', 'Status Kepemilikan', 'Lantai');
 
         $callback = function () use ($equipments, $columns) {
             $file = fopen('php://output', 'w');
@@ -132,7 +162,9 @@ class EquipmentController extends Controller
                     $item->kondisi,
                     $item->spesifikasi,
                     $item->tanggal_pengadaan,
-                    $item->status_kepemilikan
+                    $item->jam,
+                    $item->status_kepemilikan,
+                    $item->lantai
                 ));
             }
             fclose($file);
@@ -182,6 +214,11 @@ class EquipmentController extends Controller
                 }
             }
 
+            $hasJam = (count($row) >= 9);
+            $jamFix = $hasJam ? trim($row[7] ?? '') : '';
+            $statusFix = $hasJam ? (!empty(trim($row[8] ?? '')) ? trim($row[8]) : 'Milik RS') : (!empty(trim($row[7] ?? '')) ? trim($row[7]) : 'Milik RS');
+            $lantaiFix = (count($row) >= 10) ? trim($row[9] ?? '') : null;
+
             // 4. Update atau Buat data baru berdasarkan Serial Number
             Equipment::updateOrCreate(
                 ['serial_number' => trim($row[2])],
@@ -192,7 +229,9 @@ class EquipmentController extends Controller
                     'kondisi' => !empty(trim($row[4] ?? '')) ? trim($row[4]) : 'Baik',
                     'spesifikasi' => !empty(trim($row[5] ?? '')) ? trim($row[5]) : '-',
                     'tanggal_pengadaan' => $tanggalFix,
-                    'status_kepemilikan' => !empty(trim($row[7] ?? '')) ? trim($row[7]) : 'Milik RS',
+                    'jam' => $jamFix,
+                    'status_kepemilikan' => $statusFix,
+                    'lantai' => $lantaiFix,
                 ]
             );
         }

@@ -177,14 +177,14 @@
     }
 
     .sidebar .nav .nav-item {
-      padding: 0 1.5rem;
+      padding: 0 1rem;
       margin-bottom: 0.5rem;
     }
 
     .sidebar .nav .nav-item .nav-link {
       display: flex;
       align-items: center;
-      padding: 0.8rem 1.25rem;
+      padding: 0.8rem 1rem;
       color: #6c7383;
       border-radius: 8px;
       font-weight: 600;
@@ -496,6 +496,46 @@
         padding: 1rem;
       }
     }
+
+    /* Collapsed Sidebar for Desktop */
+    @media (min-width: 992px) {
+      body.sidebar-collapsed .sidebar {
+        transform: translateX(-250px);
+      }
+      body.sidebar-collapsed .main-panel {
+        width: 100% !important;
+        margin-left: 0 !important;
+      }
+    }
+
+    /* Custom Sidebar Sub-menu Styling to Prevent Cutoff */
+    .sidebar .nav .nav-item .collapse .nav-item {
+      padding: 0 !important;
+      margin-bottom: 0.2rem;
+    }
+    .sidebar .nav .nav-item .collapse .nav-link {
+      padding: 0.5rem 0.75rem !important;
+      font-size: 0.88rem;
+    }
+    .sidebar .nav .nav-item .collapse .collapse .nav-link {
+      padding: 0.4rem 0.75rem !important;
+      font-size: 0.82rem;
+    }
+
+    /* Custom Scrollbar for Sidebar */
+    .sidebar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .sidebar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .sidebar::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.15);
+      border-radius: 10px;
+    }
+    .sidebar::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
   </style>
 
 </head>
@@ -582,12 +622,172 @@
             </a>
           </li>
 
+          <li class="nav-item {{ request()->routeIs('beds.*') ? 'active' : '' }}">
+            <a class="nav-link text-decoration-none" href="{{ route('beds.index') }}">
+              <i class="mdi mdi-bed-outline"></i>
+              <span class="menu-title">Monitoring Bed & Kamar</span>
+            </a>
+          </li>
+
           <li class="nav-item {{ request()->routeIs('maintenances.*') ? 'active' : '' }}">
             <a class="nav-link text-decoration-none" href="{{ route('maintenances.index') }}">
               <i class="mdi mdi-account-clock"></i>
               <span class="menu-title">Riwayat Pasien</span>
             </a>
           </li>
+
+          @php
+              $currentRoute = request()->routeIs('maintenances.*') ? 'maintenances.index' : (request()->routeIs('beds.*') ? 'beds.index' : 'equipments.index');
+              $queryParam = request()->routeIs('beds.*') ? 'floor' : 'lantai';
+          @endphp
+          <div class="category-heading">ZONA RAWAT INAP</div>
+          
+          <!-- All Floors Option -->
+          <li class="nav-item mb-1">
+            <a class="nav-link text-decoration-none d-flex align-items-center py-2 px-3 {{ !request($queryParam) ? 'active' : '' }}" 
+               href="{{ route($currentRoute, request()->except([$queryParam, 'wing', 'room'])) }}"
+               style="border-radius: 8px; font-weight: 600; font-size: 0.92rem; color: {{ !request($queryParam) ? '#ffffff' : '#6c7383' }}; background: {{ !request($queryParam) ? '#1F3BB3' : 'transparent' }};">
+              <i class="mdi mdi-layers-outline me-2 fs-5" style="color: {{ !request($queryParam) ? '#ffffff' : '#b9b9b9' }};"></i>
+              <span>Semua Lantai</span>
+            </a>
+          </li>
+
+          @foreach($globalFloors as $fl)
+            @php
+                $flName = $fl->name;
+                $displayFl = is_numeric($flName) ? 'Lantai ' . $flName : $flName;
+                
+                // Format floor parameter for query string compatibility
+                $paramFloor = $flName;
+                if (preg_match('/Lantai\s+(\d+)/i', $flName, $matches)) {
+                    $paramFloor = $matches[1];
+                }
+                
+                $isFloorActive = request($queryParam) == $paramFloor;
+                $floorCollapseId = 'floorCollapse_' . $fl->id;
+            @endphp
+            <li class="nav-item mb-1">
+              <!-- Level 1: Floor -->
+              <a class="nav-link text-decoration-none d-flex justify-content-between align-items-center py-2 px-3 {{ $isFloorActive ? 'active' : '' }}" 
+                 data-bs-toggle="collapse" 
+                 href="#{{ $floorCollapseId }}" 
+                 role="button" 
+                 aria-expanded="{{ $isFloorActive ? 'true' : 'false' }}"
+                 style="border-radius: 8px; font-weight: 600; font-size: 0.92rem; color: {{ $isFloorActive ? '#ffffff' : '#6c7383' }}; background: {{ $isFloorActive ? '#1F3BB3' : 'transparent' }};">
+                <div class="d-flex align-items-center">
+                  <i class="mdi mdi-office-building me-2 fs-5" style="color: {{ $isFloorActive ? '#ffffff' : '#b9b9b9' }};"></i>
+                  <span>{{ $displayFl }}</span>
+                </div>
+                <i class="mdi mdi-chevron-down toggle-icon ms-auto" style="transition: transform 0.2s; transform: {{ $isFloorActive ? 'rotate(180deg)' : 'rotate(0deg)' }};"></i>
+              </a>
+
+              <!-- Level 2: Wings Collapsible -->
+              <div class="collapse {{ $isFloorActive ? 'show' : '' }}" id="{{ $floorCollapseId }}">
+                <ul class="nav flex-column ms-2 mt-1" style="padding: 0; list-style: none;">
+                  
+                  <!-- View all rooms in this floor link -->
+                  <li class="nav-item mb-1">
+                    <a class="nav-link text-decoration-none py-1.5 px-3 d-flex align-items-center" 
+                       href="{{ route($currentRoute, array_merge(request()->except(['wing', 'room']), [$queryParam => $paramFloor])) }}"
+                       style="font-size: 0.88rem; font-weight: 500; color: {{ ($isFloorActive && !request('wing')) ? '#1F3BB3' : '#6c7383' }};">
+                      <i class="mdi mdi-layers-triple-outline me-2" style="font-size: 1rem;"></i>
+                      <span>Semua Kamar di Lantai ini</span>
+                    </a>
+                  </li>
+
+                  @foreach($fl->wings as $wing)
+                    @php
+                        $isWingActive = $isFloorActive && request('wing') == $wing->name;
+                        $wingCollapseId = 'wingCollapse_' . $wing->id;
+                    @endphp
+                    <li class="nav-item mb-1">
+                      <!-- Wing Toggler -->
+                      <a class="nav-link text-decoration-none d-flex justify-content-between align-items-center py-1.5 px-3" 
+                         data-bs-toggle="collapse" 
+                         href="#{{ $wingCollapseId }}" 
+                         role="button" 
+                         aria-expanded="{{ $isWingActive ? 'true' : 'false' }}"
+                         style="font-size: 0.88rem; font-weight: 500; color: {{ $isWingActive ? '#1F3BB3' : '#6c7383' }};">
+                        <div class="d-flex align-items-center">
+                          <i class="mdi mdi-layers me-2" style="font-size: 1rem;"></i>
+                          <span>{{ $wing->name }}</span>
+                        </div>
+                        <i class="mdi mdi-chevron-down toggle-icon ms-auto" style="font-size: 0.8rem; transition: transform 0.2s; transform: {{ $isWingActive ? 'rotate(180deg)' : 'rotate(0deg)' }};"></i>
+                      </a>
+
+                      <!-- Level 3: Rooms Collapsible -->
+                      <div class="collapse {{ $isWingActive ? 'show' : '' }}" id="{{ $wingCollapseId }}">
+                        <ul class="nav flex-column ms-2 mt-1" style="padding: 0; list-style: none;">
+                          
+                          <!-- View all rooms in this wing link -->
+                          <li class="nav-item mb-1">
+                            <a class="nav-link text-decoration-none py-1.5 px-3 d-flex align-items-center" 
+                               href="{{ route($currentRoute, array_merge(request()->except(['room']), [$queryParam => $paramFloor, 'wing' => $wing->name])) }}"
+                               style="font-size: 0.84rem; font-weight: 500; color: {{ ($isWingActive && !request('room')) ? '#1F3BB3' : '#6c7383' }};">
+                              <i class="mdi mdi-circle-double me-2" style="font-size: 0.9rem;"></i>
+                              <span>Semua di {{ $wing->name }}</span>
+                            </a>
+                          </li>
+
+                          @foreach($wing->rooms as $room)
+                            @php
+                                $isRoomActive = $isWingActive && request('room') == $room->name;
+                                $patientCount = $room->occupied_beds_count ?? 0;
+                                
+                                // Style badge matching reference image (Pill layout: border red/green, custom inner bg/text)
+                                $badgeStyle = $patientCount > 0 
+                                    ? 'border: 2px solid #198754; background-color: #e8f5e9; color: #198754;' 
+                                    : 'border: 2px solid #dc3545; background-color: #ffffff; color: #dc3545;';
+                            @endphp
+                            <li class="nav-item mb-1">
+                              <a class="nav-link text-decoration-none d-flex justify-content-between align-items-center py-1.5 px-3" 
+                                 href="{{ route($currentRoute, [$queryParam => $paramFloor, 'wing' => $wing->name, 'room' => $room->name]) }}"
+                                 style="font-size: 0.84rem; font-weight: 500; color: {{ $isRoomActive ? '#1F3BB3' : '#6c7383' }}; background-color: {{ $isRoomActive ? 'rgba(31,59,179,0.05)' : 'transparent' }}; border-radius: 4px;">
+                                <div class="d-flex align-items-center text-truncate" style="max-width: 170px;">
+                                  <i class="mdi mdi-door-open me-2" style="font-size: 0.9rem;"></i>
+                                  <span class="text-truncate" title="{{ $room->name }}">{{ $room->name }}</span>
+                                </div>
+                                <span class="badge rounded-pill fw-bold" style="{{ $badgeStyle }} font-size: 0.75rem; padding: 2px 7px; min-width: 28px; height: 20px; display: inline-flex; align-items: center; justify-content: center;">
+                                  {{ $patientCount }}
+                                </span>
+                              </a>
+                            </li>
+                          @endforeach
+                        </ul>
+                      </div>
+                    </li>
+                  @endforeach
+                </ul>
+              </div>
+            </li>
+          @endforeach
+
+          <script>
+            // Simple JS helper to rotate chevrons when Bootstrap collapse toggles
+            document.addEventListener('DOMContentLoaded', function () {
+              const accordion = document.getElementById('sidebarRoomsAccordion');
+              if (accordion) {
+                accordion.addEventListener('show.bs.collapse', function (e) {
+                  const toggler = document.querySelector(`[href="#${e.target.id}"]`);
+                  if (toggler) {
+                    const chevron = toggler.querySelector('.toggle-icon');
+                    if (chevron) {
+                      chevron.style.transform = 'rotate(180deg)';
+                    }
+                  }
+                });
+                accordion.addEventListener('hide.bs.collapse', function (e) {
+                  const toggler = document.querySelector(`[href="#${e.target.id}"]`);
+                  if (toggler) {
+                    const chevron = toggler.querySelector('.toggle-icon');
+                    if (chevron) {
+                      chevron.style.transform = 'rotate(0deg)';
+                    }
+                  }
+                });
+              }
+            });
+          </script>
 
           @endauth
 
@@ -642,7 +842,7 @@
       if (toggleBtn) {
         toggleBtn.addEventListener('click', function () {
           if (window.innerWidth >= 992) {
-            // Desktop: bisa ditambahkan toggle icon-only jika diperlukan
+            document.body.classList.toggle('sidebar-collapsed');
           } else {
             sidebar.classList.toggle('active');
             overlay.classList.toggle('active');

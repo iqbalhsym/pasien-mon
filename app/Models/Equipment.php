@@ -12,8 +12,8 @@ class Equipment extends Model implements HasMedia
 
     protected $table = 'equipments';
     protected $fillable = [
-        'merk', 'type', 'serial_number', 'tanggal_lahir', 'lokasi', 'kondisi',
-        'spesifikasi', 'tanggal_pengadaan', 'gambar', 'status_kepemilikan'
+        'merk', 'type', 'serial_number', 'tanggal_lahir', 'lokasi', 'lantai', 'kondisi',
+        'spesifikasi', 'tanggal_pengadaan', 'jam', 'gambar', 'status_kepemilikan'
     ];
 
     public function calibrations()
@@ -24,5 +24,10 @@ class Equipment extends Model implements HasMedia
     public function maintenances()
     {
         return $this->hasMany(Maintenance::class);
+    }
+
+    public function bed()
+    {
+        return $this->hasOne(Bed::class);
     }
 }

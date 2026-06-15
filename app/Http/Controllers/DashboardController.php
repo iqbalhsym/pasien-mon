@@ -12,9 +12,10 @@ class DashboardController extends Controller
     public function index()
     {
         $totalAlat = Equipment::count();
-        $alatBaik = Equipment::where('kondisi', 'Baik')->count();
-        $alatRusakRingan = Equipment::where('kondisi', 'Rusak Ringan')->count();
-        $alatRusakBerat = Equipment::where('kondisi', 'Rusak Berat')->count();
+        $alatBaik = Equipment::whereIn('kondisi', ['Baik', 'Stabil EWS'])->count();
+        $alatRusakRingan = Equipment::whereIn('kondisi', ['Rusak Ringan', 'Stabil perlu observasi rutin EWS', 'Perlu pemantauan khusus EWS'])->count();
+        $alatOrange = Equipment::where('kondisi', 'Perlu pemantauan ketat EWS')->count();
+        $alatRusakBerat = Equipment::whereIn('kondisi', ['Rusak Berat', 'Intensif ESW', 'Intensif EWS'])->count();
 
         // Calculate approaching calibrations (next 1 year or overdue)
         $today = Carbon::today();
@@ -36,7 +37,7 @@ class DashboardController extends Controller
         $hibah = Equipment::where('status_kepemilikan', 'Hibah')->count();
 
         return view('dashboard', compact(
-            'totalAlat', 'alatBaik', 'alatRusakRingan', 'alatRusakBerat',
+            'totalAlat', 'alatBaik', 'alatRusakRingan', 'alatOrange', 'alatRusakBerat',
             'nearCalibrationAlat', 'nearMaintenanceAlat', 'kso', 'milikRS', 'hibah'
         ));
     }

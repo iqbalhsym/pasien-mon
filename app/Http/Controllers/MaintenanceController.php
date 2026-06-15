@@ -19,6 +19,28 @@ class MaintenanceController extends Controller
             }])
             ->orderBy('merk');
 
+        if ($request->filled('lantai')) {
+            $query->where('lantai', $request->input('lantai'));
+        }
+
+        if ($request->filled('wing')) {
+            $wingVal = $request->input('wing');
+            $query->where(function($q) use ($wingVal) {
+                $q->whereHas('bed.room.wing', function($wq) use ($wingVal) {
+                    $wq->where('name', $wingVal);
+                })->orWhere('lokasi', 'like', $wingVal . ' - %');
+            });
+        }
+
+        if ($request->filled('room')) {
+            $roomVal = $request->input('room');
+            $query->where(function($q) use ($roomVal) {
+                $q->whereHas('bed.room', function($rq) use ($roomVal) {
+                    $rq->where('name', $roomVal);
+                })->orWhere('lokasi', 'like', '% - ' . $roomVal . ' (%');
+            });
+        }
+
         if ($search) {
             $query->where(function($q) use ($search) {
                 $q->where('merk', 'like', "%{$search}%")

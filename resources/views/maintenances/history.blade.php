@@ -9,7 +9,7 @@
             <i class="mdi mdi-history text-primary me-2"></i> Riwayat Berobat Pasien
         </h2>
         <p class="text-muted mb-0" style="font-size: 1.05rem;">
-            Menampilkan catatan medis untuk: <strong class="text-primary">{{ $equipment->merk }}</strong> (No. RM: {{ $equipment->serial_number }})
+            Menampilkan catatan medis untuk: <strong class="text-primary">{{ $equipment->merk }}</strong> (No. RM: {{ $equipment->serial_number }})@if($equipment->lantai) | Lantai: <strong>Lantai {{ $equipment->lantai }}</strong>@endif
         </p>
     </div>
     <div class="col-sm-8 text-sm-end mt-3 mt-sm-0">
@@ -89,6 +89,9 @@
                                 <td>
                                     <h5 class="fw-bold text-primary mb-1" style="font-size: 1.15rem;">{{ $mnt->equipment->merk }}</h5>
                                     <div class="text-dark fw-bold mb-1" style="font-size: 1rem;">Kategori: {{ $mnt->equipment->type }}</div>
+                                    @if($mnt->equipment->lantai)
+                                        <div class="mb-1 text-muted" style="font-size: 0.92rem;"><i class="mdi mdi-layers-outline text-info me-1"></i> Lantai: <strong>Lantai {{ $mnt->equipment->lantai }}</strong></div>
+                                    @endif
                                     <div><span class="badge bg-light text-dark border px-2 py-1"><i class="mdi mdi-barcode me-1"></i> No. RM: {{ $mnt->equipment->serial_number }}</span></div>
                                 </td>
                                 <td>
@@ -126,18 +129,20 @@
                                         <span class="badge bg-light text-dark border" style="font-size: 0.85rem;"><i class="mdi mdi-clipboard-pulse text-primary me-1"></i> Diagnosa: <b>{{ $mnt->diagnosa_gejala ?: '-' }}</b></span>
                                         <span class="badge bg-light text-dark border" style="font-size: 0.85rem;"><i class="mdi mdi-map-marker text-danger me-1"></i> Lokasi: <b>{{ $mnt->lokasi_rawat ?: '-' }}</b></span>
                                         <span class="badge bg-light text-dark border" style="font-size: 0.85rem;">
-                                             <i class="mdi mdi-heart-pulse text-success me-1"></i> 
-                                             Kondisi: <b>
-                                             @if($mnt->kondisi_klinis == 'Baik')
-                                                 STABIL
-                                             @elseif($mnt->kondisi_klinis == 'Rusak Ringan')
-                                                 GEJALA RINGAN
-                                             @elseif($mnt->kondisi_klinis == 'Rusak Berat')
-                                                 RAWAT INTENSIF
-                                             @else
-                                                 -
-                                             @endif
-                                             </b>
+                                              <i class="mdi mdi-heart-pulse text-success me-1"></i> 
+                                              Kondisi: <b>
+                                              @if($mnt->kondisi_klinis == 'Baik' || $mnt->kondisi_klinis == 'Stabil EWS')
+                                                  <span class="text-success fw-bold">STABIL EWS</span>
+                                              @elseif($mnt->kondisi_klinis == 'Rusak Ringan' || $mnt->kondisi_klinis == 'Stabil perlu observasi rutin EWS' || $mnt->kondisi_klinis == 'Perlu pemantauan khusus EWS')
+                                                  <span class="text-warning fw-bold">OBSERVASI EWS</span>
+                                              @elseif($mnt->kondisi_klinis == 'Perlu pemantauan ketat EWS')
+                                                  <span class="fw-bold" style="color: #fd7e14;">PEMANTAUAN KETAT EWS</span>
+                                              @elseif($mnt->kondisi_klinis == 'Rusak Berat' || $mnt->kondisi_klinis == 'Intensif ESW' || $mnt->kondisi_klinis == 'Intensif EWS')
+                                                  <span class="text-danger fw-bold">INTENSIF EWS</span>
+                                              @else
+                                                  {{ $mnt->kondisi_klinis ?: '-' }}
+                                              @endif
+                                              </b>
                                         </span>
                                         <span class="badge bg-light text-dark border" style="font-size: 0.85rem;">
                                              <i class="mdi mdi-wallet text-info me-1"></i> 
@@ -216,7 +221,7 @@
                                         data-lokasi="{{ $eq->lokasi }}"
                                         data-kondisi="{{ $eq->kondisi }}"
                                         data-pembayaran="{{ $eq->status_kepemilikan }}">
-                                        {{ $eq->merk }} (No. RM: {{ $eq->serial_number }})
+                                        {{ $eq->merk }} (No. RM: {{ $eq->serial_number }})@if($eq->lantai) - Lantai {{ $eq->lantai }}@endif
                                     </option>
                                 @endforeach
                             </select>
@@ -255,9 +260,11 @@
                         <div class="col-md-6 mb-4">
                             <label class="form-label text-dark fw-bold fs-5">Status Kondisi Klinis Saat Ini</label>
                             <select name="kondisi_klinis" id="hist_add_kondisi_klinis" class="form-select form-select-lg bg-white fw-bold text-dark">
-                                <option value="Baik">STABIL (RAWAT JALAN)</option>
-                                <option value="Rusak Ringan">GEJALA RINGAN</option>
-                                <option value="Rusak Berat">RAWAT INTENSIF</option>
+                                <option value="Stabil EWS">Stabil EWS (Hijau)</option>
+                                <option value="Stabil perlu observasi rutin EWS">Stabil perlu observasi rutin EWS (Kuning)</option>
+                                <option value="Perlu pemantauan khusus EWS">Perlu pemantauan khusus EWS (Kuning)</option>
+                                <option value="Perlu pemantauan ketat EWS">Perlu pemantauan ketat EWS (Orange)</option>
+                                <option value="Intensif ESW">Intensif ESW (Merah)</option>
                             </select>
                         </div>
                         <div class="col-md-6 mb-4">
@@ -270,7 +277,7 @@
                         </div>
 
                         <div class="col-md-12 mb-2">
-                            <label class="form-label text-dark fw-bold fs-5">Uraian Tindakan & Catatan Medis <span class="text-danger">*</span></label>
+                            <label class="form-label text-dark fw-bold fs-5">Catatan Handover <span class="text-danger">*</span></label>
                             <textarea name="tindakan_hasil" class="form-control bg-white" rows="4" required placeholder="Pemeriksaan fisik menunjukkan gejala flu, memberikan resep obat paracetamol, pasien disarankan istirahat."></textarea>
                         </div>
                     </div>
@@ -330,7 +337,7 @@
                             <select name="equipment_id" class="form-select form-select-lg disabled fw-bold text-dark" required>
                                 @foreach($equipments as $eq)
                                     <option value="{{ $eq->id }}" {{ $eq->id == $mnt->equipment_id ? 'selected' : '' }}>
-                                        {{ $eq->merk }} (No. RM: {{ $eq->serial_number }})
+                                        {{ $eq->merk }} (No. RM: {{ $eq->serial_number }})@if($eq->lantai) - Lantai {{ $eq->lantai }}@endif
                                     </option>
                                 @endforeach
                             </select>
@@ -368,9 +375,11 @@
                         <div class="col-md-6 mb-4">
                             <label class="form-label text-dark fw-bold fs-5">Status Kondisi Klinis</label>
                             <select name="kondisi_klinis" class="form-select form-select-lg bg-white fw-bold text-dark">
-                                <option value="Baik" {{ $mnt->kondisi_klinis == 'Baik' ? 'selected' : '' }}>STABIL (RAWAT JALAN)</option>
-                                <option value="Rusak Ringan" {{ $mnt->kondisi_klinis == 'Rusak Ringan' ? 'selected' : '' }}>GEJALA RINGAN</option>
-                                <option value="Rusak Berat" {{ $mnt->kondisi_klinis == 'Rusak Berat' ? 'selected' : '' }}>RAWAT INTENSIF</option>
+                                <option value="Stabil EWS" {{ $mnt->kondisi_klinis == 'Stabil EWS' || $mnt->kondisi_klinis == 'Baik' ? 'selected' : '' }}>Stabil EWS (Hijau)</option>
+                                <option value="Stabil perlu observasi rutin EWS" {{ $mnt->kondisi_klinis == 'Stabil perlu observasi rutin EWS' ? 'selected' : '' }}>Stabil perlu observasi rutin EWS (Kuning)</option>
+                                <option value="Perlu pemantauan khusus EWS" {{ $mnt->kondisi_klinis == 'Perlu pemantauan khusus EWS' || $mnt->kondisi_klinis == 'Rusak Ringan' ? 'selected' : '' }}>Perlu pemantauan khusus EWS (Kuning)</option>
+                                <option value="Perlu pemantauan ketat EWS" {{ $mnt->kondisi_klinis == 'Perlu pemantauan ketat EWS' ? 'selected' : '' }}>Perlu pemantauan ketat EWS (Orange)</option>
+                                <option value="Intensif ESW" {{ $mnt->kondisi_klinis == 'Intensif ESW' || $mnt->kondisi_klinis == 'Intensif EWS' || $mnt->kondisi_klinis == 'Rusak Berat' ? 'selected' : '' }}>Intensif ESW (Merah)</option>
                             </select>
                         </div>
                         <div class="col-md-6 mb-4">
@@ -383,7 +392,7 @@
                         </div>
 
                         <div class="col-md-12 mb-2">
-                            <label class="form-label text-dark fw-bold fs-5">Uraian Tindakan & Catatan Medis</label>
+                            <label class="form-label text-dark fw-bold fs-5">Catatan Handover</label>
                             <textarea name="tindakan_hasil" class="form-control fw-bold" rows="5" required>{{ $mnt->tindakan_hasil }}</textarea>
                         </div>
                     </div>

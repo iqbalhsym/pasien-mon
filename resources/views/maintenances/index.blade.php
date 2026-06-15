@@ -85,7 +85,10 @@
                                     <div><span class="badge bg-light text-dark border px-2 py-1"><i class="mdi mdi-barcode me-1"></i> No. RM: {{ $eq->serial_number }}</span></div>
                                 </td>
                                 <td>
-                                    <div class="mb-2 text-dark fs-6"><i class="mdi mdi-map-marker text-danger me-1"></i> {{ $eq->lokasi ?: '-' }}</div>
+                                    <div class="mb-1 text-dark fs-6"><i class="mdi mdi-map-marker text-danger me-1"></i> {{ $eq->lokasi ?: '-' }}</div>
+                                    @if($eq->lantai)
+                                        <div class="mb-1 text-muted" style="font-size: 0.92rem;"><i class="mdi mdi-layers-outline text-info me-1"></i> Lantai: <strong>Lantai {{ $eq->lantai }}</strong></div>
+                                    @endif
                                     <div class="badge bg-info text-white shadow-sm px-3 py-2 fw-bold" style="font-size: 0.95rem;">
                                         <i class="mdi mdi-history me-1"></i> {{ $eq->maintenances_count }} Kunjungan Tercatat
                                     </div>
@@ -95,11 +98,23 @@
                                         <div class="text-dark mb-1" style="font-size: 1.05rem;">
                                             <i class="mdi mdi-calendar-check text-success fs-5 me-1"></i> Kunjungan Terakhir: <b>{{ \Carbon\Carbon::parse($lastMaintenance->tanggal_pelaksanaan)->translatedFormat('d F Y') }}</b>
                                         </div>
-                                        <div class="text-dark" style="font-size: 1.05rem;">
+                                        <div class="text-dark mb-2" style="font-size: 1.05rem;">
                                             <i class="mdi mdi-calendar-clock text-danger fs-5 me-1"></i> Rencana Kontrol Berikutnya:
                                             <span class="fw-bold {{ $isOverdue ? 'text-danger' : ($isWarning ? 'text-warning' : 'text-primary') }}">
                                                 {{ $tglBerikutnya->translatedFormat('d F Y') }}
                                             </span>
+                                        </div>
+                                        @php
+                                            $borderClass = 'border-secondary';
+                                            if ($lastMaintenance->jenis_pemeliharaan == 'Preventif') {
+                                                $borderClass = 'border-success';
+                                            } elseif ($lastMaintenance->jenis_pemeliharaan == 'Pemindahan Poli') {
+                                                $borderClass = 'border-info';
+                                            }
+                                        @endphp
+                                        <div class="p-2 bg-light border-start border-3 {{ $borderClass }} rounded text-dark mt-2" style="font-size: 0.9rem; font-style: italic; line-height: 1.4;">
+                                            <span class="fw-bold not-italic text-muted small d-block mb-1"><i class="mdi mdi-file-document-outline me-1"></i> Tindakan/Hasil Terakhir:</span>
+                                            "{{ Str::limit($lastMaintenance->tindakan_hasil, 100) }}"
                                         </div>
                                     @else
                                         <div class="text-muted fst-italic"><i class="mdi mdi-alert-circle-outline me-1"></i> Belum ada riwayat berobat</div>
@@ -153,7 +168,7 @@
                                         data-lokasi="{{ $eq->lokasi }}"
                                         data-kondisi="{{ $eq->kondisi }}"
                                         data-pembayaran="{{ $eq->status_kepemilikan }}">
-                                        {{ $eq->merk }} (No. RM: {{ $eq->serial_number }})
+                                        {{ $eq->merk }} (No. RM: {{ $eq->serial_number }})@if($eq->lantai) - Lantai {{ $eq->lantai }}@endif
                                     </option>
                                 @endforeach
                             </select>
@@ -192,9 +207,11 @@
                         <div class="col-md-6 mb-4">
                             <label class="form-label text-dark fw-bold fs-5">Status Kondisi Klinis Saat Ini</label>
                             <select name="kondisi_klinis" id="add_kondisi_klinis" class="form-select form-select-lg bg-white fw-bold text-dark">
-                                <option value="Baik">STABIL (RAWAT JALAN)</option>
-                                <option value="Rusak Ringan">GEJALA RINGAN</option>
-                                <option value="Rusak Berat">RAWAT INTENSIF</option>
+                                <option value="Stabil EWS">Stabil EWS (Hijau)</option>
+                                <option value="Stabil perlu observasi rutin EWS">Stabil perlu observasi rutin EWS (Kuning)</option>
+                                <option value="Perlu pemantauan khusus EWS">Perlu pemantauan khusus EWS (Kuning)</option>
+                                <option value="Perlu pemantauan ketat EWS">Perlu pemantauan ketat EWS (Orange)</option>
+                                <option value="Intensif ESW">Intensif ESW (Merah)</option>
                             </select>
                         </div>
                         <div class="col-md-6 mb-4">
@@ -207,7 +224,7 @@
                         </div>
 
                         <div class="col-md-12 mb-2">
-                            <label class="form-label text-dark fw-bold fs-5">Uraian Tindakan & Catatan Medis <span class="text-danger">*</span></label>
+                            <label class="form-label text-dark fw-bold fs-5">Catatan Handover <span class="text-danger">*</span></label>
                             <textarea name="tindakan_hasil" class="form-control bg-white" rows="4" required placeholder="Pemeriksaan fisik menunjukkan gejala flu, memberikan resep obat paracetamol, pasien disarankan istirahat."></textarea>
                         </div>
                     </div>
