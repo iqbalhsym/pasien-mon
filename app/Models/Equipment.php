@@ -13,7 +13,11 @@ class Equipment extends Model implements HasMedia
     protected $table = 'equipments';
     protected $fillable = [
         'merk', 'type', 'serial_number', 'tanggal_lahir', 'lokasi', 'lantai', 'kondisi',
-        'spesifikasi', 'tanggal_pengadaan', 'jam', 'gambar', 'status_kepemilikan'
+        'spesifikasi', 'tanggal_pengadaan', 'jam', 'gambar', 'status_kepemilikan',
+        'registered_date', 'los_aktual', 'dpjp_utama', 'dpjp_raber', 'dokter_konsul',
+        'visit_dpjp', 'planning_pasien', 'rencana_pulang', 'npja', 'ews',
+        'tingkat_ketergantungan', 'ners_bertugas', 'alkes_invasif', 'tindakan_detail',
+        'gender', 'guarantor', 'hak_kelas'
     ];
 
     public function calibrations()

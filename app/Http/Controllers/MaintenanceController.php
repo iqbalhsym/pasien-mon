@@ -9,15 +9,68 @@ use Illuminate\Support\Facades\Response;
 
 class MaintenanceController extends Controller
 {
+    private function fetchApiPatientsMap()
+    {
+        return \Illuminate\Support\Facades\Cache::remember('api_patients_map', 300, function () {
+            try {
+                $apiUrl = 'https://bed-monitoring.rs.ui.ac.id/api/external/beds-occupancy';
+                $apiKey = 'rsui_bed_mon_secret_key_2026';
+                $response = \Illuminate\Support\Facades\Http::withHeaders([
+                    'X-API-Key' => $apiKey,
+                    'Content-Type: application/json'
+                ])->timeout(10)->get($apiUrl);
+
+                if ($response->successful()) {
+                    $body = $response->json();
+                    $map = [];
+                    if (isset($body['data']) && is_array($body['data'])) {
+                        foreach ($body['data'] as $floor) {
+                            foreach ($floor['wings'] ?? [] as $wing) {
+                                foreach ($wing['rooms'] ?? [] as $room) {
+                                    $roomClass = $room['class'] ?? '-';
+                                    foreach ($room['beds'] ?? [] as $bed) {
+                                        $patient = $bed['patient'] ?? null;
+                                        if ($patient && !empty($patient['no_rm'])) {
+                                            $noRm = trim($patient['no_rm']);
+                                            $map[$noRm] = [
+                                                'gender' => $patient['gender'] ?? '-',
+                                                'guarantor' => $patient['guarantor'] ?? '-',
+                                                'class' => $roomClass,
+                                                'diagnosa_medis' => $patient['diagnosa_medis'] ?? '-',
+                                            ];
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return $map;
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Gagal fetch api_patients_map: ' . $e->getMessage());
+            }
+            return [];
+        });
+    }
+
     public function index(Request $request)
     {
         $search = $request->input('search');
 
+        $sort = $request->input('sort', 'terbaru');
+
         $query = Equipment::withCount('maintenances')
             ->with(['maintenances' => function($q) {
                 $q->latest('tanggal_pelaksanaan');
-            }])
-            ->orderBy('merk');
+            }]);
+
+        if ($sort === 'alphabetical') {
+            $query->orderBy('merk', 'asc');
+        } elseif ($sort === 'alphabetical_desc') {
+            $query->orderBy('merk', 'desc');
+        } else {
+            $query->orderBy('id', 'desc');
+        }
 
         if ($request->filled('lantai')) {
             $lantaiVal = $request->input('lantai');
@@ -57,7 +110,45 @@ class MaintenanceController extends Controller
         $equipmentsPaginator = $query->paginate(10);
         $equipments = Equipment::all(); // untuk modal daftar pilihan dropdown
         
-        return view('maintenances.index', compact('equipmentsPaginator', 'equipments', 'search'));
+        $patientsMap = $this->fetchApiPatientsMap();
+        
+        return view('maintenances.index', compact('equipmentsPaginator', 'equipments', 'search', 'sort', 'patientsMap'));
+    }
+
+    public function patientDetail(Request $request, $serial_number)
+    {
+        $equipment = Equipment::where('serial_number', $serial_number)->firstOrFail();
+        $patientsMap = $this->fetchApiPatientsMap();
+        $apiData = $patientsMap[$equipment->serial_number] ?? null;
+
+        return view('maintenances.patient_detail', compact('equipment', 'apiData'));
+    }
+
+    public function updatePatientDetail(Request $request, $serial_number)
+    {
+        $equipment = Equipment::where('serial_number', $serial_number)->firstOrFail();
+
+        $request->validate([
+            'registered_date' => 'nullable|string',
+            'los_aktual' => 'nullable|string',
+            'dpjp_utama' => 'nullable|string',
+            'dpjp_raber' => 'nullable|string',
+            'dokter_konsul' => 'nullable|string',
+            'visit_dpjp' => 'nullable|string',
+            'planning_pasien' => 'nullable|string',
+            'rencana_pulang' => 'nullable|string',
+            'npja' => 'nullable|string',
+            'ews' => 'nullable|string',
+            'tingkat_ketergantungan' => 'nullable|string',
+            'ners_bertugas' => 'nullable|string',
+            'alkes_invasif' => 'nullable|string',
+            'tindakan_detail' => 'nullable|string',
+        ]);
+
+        $equipment->update($request->all());
+
+        return redirect()->route('maintenances.patient_detail', $serial_number)
+            ->with('success', 'Detail informasi klinis pasien berhasil diperbarui!');
     }
 
     public function history(Request $request, $serial_number)

@@ -48,12 +48,33 @@
 
         <div class="card shadow-sm border-0" style="border-top: 4px solid #DC3545 !important;">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center mb-4 gap-3">
                     <h4 class="card-title fw-bold text-danger mb-0" style="font-size: 1.25rem;">CATATAN RIWAYAT BEROBAT PASIEN & RENCANA KONTROL</h4>
-                    <form action="{{ route('maintenances.index') }}" method="GET" class="w-25">
+                    <form action="{{ route('maintenances.index') }}" method="GET" class="d-flex flex-column flex-sm-row gap-2" style="max-width: 550px; min-width: 280px;">
+                        @if(request('lantai'))
+                            <input type="hidden" name="lantai" value="{{ request('lantai') }}">
+                        @endif
+                        @if(request('wing'))
+                            <input type="hidden" name="wing" value="{{ request('wing') }}">
+                        @endif
+                        @if(request('room'))
+                            <input type="hidden" name="room" value="{{ request('room') }}">
+                        @endif
+                        
+                        <!-- Filter Urutan -->
+                        <div class="input-group" style="min-width: 200px;">
+                            <span class="input-group-text bg-light border-end-0"><i class="mdi mdi-filter-variant text-muted fs-5"></i></span>
+                            <select name="sort" class="form-select border-start-0 ps-0 bg-light fw-bold text-dark" onchange="this.form.submit()" style="font-size: 0.9rem; height: 100%;">
+                                <option value="terbaru" {{ request('sort', 'terbaru') === 'terbaru' ? 'selected' : '' }}>Pasien Baru di Awal</option>
+                                <option value="alphabetical" {{ request('sort') === 'alphabetical' ? 'selected' : '' }}>Nama Pasien (A-Z)</option>
+                                <option value="alphabetical_desc" {{ request('sort') === 'alphabetical_desc' ? 'selected' : '' }}>Nama Pasien (Z-A)</option>
+                            </select>
+                        </div>
+
+                        <!-- Search Input -->
                         <div class="input-group">
                             <span class="input-group-text bg-light border-end-0"><i class="mdi mdi-magnify text-muted fs-4"></i></span>
-                            <input type="text" name="search" class="form-control border-start-0 ps-0 bg-light fw-bold" placeholder="Cari nama dokter, pasien, RM..." value="{{ request('search') }}">
+                            <input type="text" name="search" class="form-control border-start-0 ps-0 bg-light fw-bold" placeholder="Cari dokter, pasien, RM..." value="{{ request('search') }}" style="font-size: 0.9rem;">
                         </div>
                     </form>
                 </div>
@@ -82,7 +103,24 @@
                                 <td>
                                     <h5 class="fw-bold text-primary mb-1" style="font-size: 1.15rem;">{{ $eq->merk }}</h5>
                                     <div class="text-dark fw-bold mb-1" style="font-size: 1rem;">Kategori: {{ $eq->type }}</div>
-                                    <div><span class="badge bg-light text-dark border px-2 py-1"><i class="mdi mdi-barcode me-1"></i> No. RM: {{ $eq->serial_number }}</span></div>
+                                    <div class="mb-2"><span class="badge bg-light text-dark border px-2 py-1"><i class="mdi mdi-barcode me-1"></i> No. RM: {{ $eq->serial_number }}</span></div>
+                                    @php
+                                        $apiData = $patientsMap[$eq->serial_number] ?? null;
+                                        $gender = $apiData ? $apiData['gender'] : ($eq->gender ?: '-');
+                                        $guarantor = $apiData ? $apiData['guarantor'] : ($eq->guarantor ?: '-');
+                                        $class = $apiData ? $apiData['class'] : ($eq->hak_kelas ?: '-');
+                                    @endphp
+                                    <div class="mt-2 p-2 bg-light rounded border" style="font-size: 0.9rem; max-width: 280px;">
+                                        <div class="mb-1 text-dark">
+                                            <i class="mdi mdi-gender-male-female text-primary me-1"></i> Gender: <strong>{{ $gender }}</strong>
+                                        </div>
+                                        <div class="mb-1 text-dark">
+                                            <i class="mdi mdi-shield-outline text-success me-1"></i> Penjamin: <strong>{{ $guarantor }}</strong>
+                                        </div>
+                                        <div class="text-dark">
+                                            <i class="mdi mdi-hotel text-info me-1"></i> Kelas: <strong>{{ $class }}</strong>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td>
                                     <div class="mb-1 text-dark fs-6"><i class="mdi mdi-map-marker text-danger me-1"></i> {{ $eq->lokasi ?: '-' }}</div>
@@ -120,8 +158,11 @@
                                         <div class="text-muted fst-italic"><i class="mdi mdi-alert-circle-outline me-1"></i> Belum ada riwayat berobat</div>
                                     @endif
                                 </td>
-                                <td class="text-center align-middle">
-                                    <a href="{{ route('maintenances.history', $eq->serial_number) }}" class="btn btn-primary fw-bold px-3 py-2 text-white shadow-sm">
+                                <td class="text-center align-middle" style="white-space: nowrap;">
+                                    <a href="{{ route('maintenances.patient_detail', $eq->serial_number) }}" class="btn btn-outline-info fw-bold px-3 py-2 me-1 shadow-sm" style="font-size: 0.95rem;">
+                                        <i class="mdi mdi-account-card-details me-1"></i> Detail Pasien
+                                    </a>
+                                    <a href="{{ route('maintenances.history', $eq->serial_number) }}" class="btn btn-primary fw-bold px-3 py-2 text-white shadow-sm" style="font-size: 0.95rem;">
                                         Lihat Riwayat <i class="mdi mdi-arrow-right-bold ms-1"></i>
                                     </a>
                                 </td>
@@ -139,7 +180,7 @@
                 </div>
 
                 <div class="mt-4 pt-3 border-top d-flex justify-content-center">
-                    {{ $equipmentsPaginator->links('pagination::bootstrap-5') }}
+                    {{ $equipmentsPaginator->appends(request()->input())->links('pagination::bootstrap-5') }}
                 </div>
             </div>
         </div>

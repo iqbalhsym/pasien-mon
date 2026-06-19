@@ -38,6 +38,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/rekam-medis/export', [MaintenanceController::class, 'exportCSV'])->name('maintenances.export');
     Route::get('/beds', [\App\Http\Controllers\BedController::class, 'index'])->name('beds.index');
     Route::get('/rekam-medis/{serial_number}', [MaintenanceController::class, 'history'])->name('maintenances.history');
+    Route::get('/rekam-medis/{serial_number}/detail', [MaintenanceController::class, 'patientDetail'])->name('maintenances.patient_detail');
+    Route::put('/rekam-medis/{serial_number}/detail', [MaintenanceController::class, 'updatePatientDetail'])->name('maintenances.update_patient_detail');
     Route::get('/rekam-medis/{serial_number}/qr', [MaintenanceController::class, 'printQr'])->name('maintenances.qr');
     Route::post('/beds/sync', [\App\Http\Controllers\BedController::class, 'sync'])->name('beds.sync');
 

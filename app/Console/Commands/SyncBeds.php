@@ -158,6 +158,10 @@ class SyncBeds extends Command
                                         'lokasi' => $newLocation,
                                         'lantai' => $formattedFloor,
                                         'status_kepemilikan' => $statusKepemilikan,
+                                        'gender' => $patientData['gender'] ?? null,
+                                        'guarantor' => $patientData['guarantor'] ?? null,
+                                        'hak_kelas' => $roomClass,
+                                        'registered_date' => $equipment->registered_date ?: now()->format('Y-m-d'),
                                     ]);
 
                                     // Detect movement/transfer to a different bed/room
@@ -191,7 +195,11 @@ class SyncBeds extends Command
                                         'spesifikasi' => 'Terdaftar via sinkronisasi bed monitoring.',
                                         'tanggal_pengadaan' => now()->format('Y-m-d'),
                                         'jam' => now()->format('H:i'),
-                                        'status_kepemilikan' => $statusKepemilikan
+                                        'status_kepemilikan' => $statusKepemilikan,
+                                        'gender' => $patientData['gender'] ?? null,
+                                        'guarantor' => $patientData['guarantor'] ?? null,
+                                        'hak_kelas' => $roomClass,
+                                        'registered_date' => now()->format('Y-m-d'),
                                     ]);
                                 }
 
