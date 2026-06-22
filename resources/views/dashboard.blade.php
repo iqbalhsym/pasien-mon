@@ -13,7 +13,7 @@
         </div>
         <div>
           <div class="btn-wrapper">
-            <a href="{{ route('equipments.index') }}" class="btn btn-primary text-white me-0 px-4 py-2 fw-bold"><i class="mdi mdi-plus-circle me-1"></i> Pasien Baru</a>
+            <a href="{{ route('maintenances.index', ['register' => 1]) }}" class="btn btn-primary text-white me-0 px-4 py-2 fw-bold"><i class="mdi mdi-plus-circle me-1"></i> Pasien Baru</a>
           </div>
         </div>
       </div>
@@ -34,7 +34,7 @@
                 </div>
                 <h2 class="text-dark fw-bold mb-0" style="font-size: 2.2rem;">{{ number_format($totalAlat) }}</h2>
                 <div class="mt-3">
-                    <a href="{{ route('equipments.index') }}" class="text-decoration-none text-primary fw-bold" style="font-size: 0.95rem;">Lihat Detail <i class="mdi mdi-arrow-right-circle"></i></a>
+                    <a href="{{ route('maintenances.index') }}" class="text-decoration-none text-primary fw-bold" style="font-size: 0.95rem;">Lihat Detail <i class="mdi mdi-arrow-right-circle"></i></a>
                 </div>
             </div>
         </div>
@@ -50,7 +50,7 @@
                 </div>
                 <h2 class="text-dark fw-bold mb-0" style="font-size: 2.2rem;">{{ number_format($alatBaik) }}</h2>
                 <div class="mt-3">
-                    <a href="{{ route('equipments.index') }}" class="text-decoration-none text-success fw-bold" style="font-size: 0.95rem;">Lihat Detail <i class="mdi mdi-arrow-right-circle"></i></a>
+                    <a href="{{ route('maintenances.index') }}" class="text-decoration-none text-success fw-bold" style="font-size: 0.95rem;">Lihat Detail <i class="mdi mdi-arrow-right-circle"></i></a>
                 </div>
             </div>
         </div>
@@ -66,7 +66,7 @@
                 </div>
                 <h2 class="text-dark fw-bold mb-0" style="font-size: 2.2rem;">{{ number_format($alatRusakRingan) }}</h2>
                 <div class="mt-3">
-                    <a href="{{ route('equipments.index') }}" class="text-decoration-none text-warning fw-bold text-dark" style="font-size: 0.95rem;">Lihat Detail <i class="mdi mdi-arrow-right-circle"></i></a>
+                    <a href="{{ route('maintenances.index') }}" class="text-decoration-none text-warning fw-bold text-dark" style="font-size: 0.95rem;">Lihat Detail <i class="mdi mdi-arrow-right-circle"></i></a>
                 </div>
             </div>
         </div>
@@ -82,7 +82,7 @@
                 </div>
                 <h2 class="text-dark fw-bold mb-0" style="font-size: 2.2rem;">{{ number_format($alatOrange) }}</h2>
                 <div class="mt-3">
-                    <a href="{{ route('equipments.index') }}" class="text-decoration-none fw-bold" style="font-size: 0.95rem; color: #fd7e14 !important;">Lihat Detail <i class="mdi mdi-arrow-right-circle"></i></a>
+                    <a href="{{ route('maintenances.index') }}" class="text-decoration-none fw-bold" style="font-size: 0.95rem; color: #fd7e14 !important;">Lihat Detail <i class="mdi mdi-arrow-right-circle"></i></a>
                 </div>
             </div>
         </div>
@@ -98,7 +98,7 @@
                 </div>
                 <h2 class="text-dark fw-bold mb-0" style="font-size: 2.2rem;">{{ number_format($alatRusakBerat) }}</h2>
                 <div class="mt-3">
-                    <a href="{{ route('equipments.index') }}" class="text-decoration-none text-danger fw-bold" style="font-size: 0.95rem;">Lihat Detail <i class="mdi mdi-arrow-right-circle"></i></a>
+                    <a href="{{ route('maintenances.index') }}" class="text-decoration-none text-danger fw-bold" style="font-size: 0.95rem;">Lihat Detail <i class="mdi mdi-arrow-right-circle"></i></a>
                 </div>
             </div>
         </div>

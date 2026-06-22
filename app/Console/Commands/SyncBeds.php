@@ -148,11 +148,13 @@ class SyncBeds extends Command
                                 // Search for existing patient/equipment
                                 $equipment = Equipment::where('serial_number', $noRm)->first();
 
+                                $apiRencanaPulang = $patientData['rencana_pulang'] ?? $patientData['estimasi_pulang'] ?? $patientData['estimated_discharge'] ?? $patientData['discharge_date'] ?? $patientData['tgl_pulang'] ?? null;
+
                                 if ($equipment) {
                                     $oldLocation = $equipment->lokasi;
 
                                     // Update details
-                                    $equipment->update([
+                                    $updateData = [
                                         'merk' => $patientName,
                                         'type' => $diagnosa,
                                         'lokasi' => $newLocation,
@@ -162,7 +164,11 @@ class SyncBeds extends Command
                                         'guarantor' => $patientData['guarantor'] ?? null,
                                         'hak_kelas' => $roomClass,
                                         'registered_date' => $equipment->registered_date ?: now()->format('Y-m-d'),
-                                    ]);
+                                    ];
+                                    if ($apiRencanaPulang) {
+                                        $updateData['rencana_pulang'] = $apiRencanaPulang;
+                                    }
+                                    $equipment->update($updateData);
 
                                     // Detect movement/transfer to a different bed/room
                                     if ($oldLocation !== $newLocation) {
@@ -184,7 +190,7 @@ class SyncBeds extends Command
                                     $estimatedBirthdate = Carbon::now()->subYears($age)->startOfYear()->format('Y-m-d');
 
                                     // Create new patient
-                                    $equipment = Equipment::create([
+                                    $createData = [
                                         'merk' => $patientName,
                                         'type' => $diagnosa,
                                         'serial_number' => $noRm,
@@ -200,7 +206,11 @@ class SyncBeds extends Command
                                         'guarantor' => $patientData['guarantor'] ?? null,
                                         'hak_kelas' => $roomClass,
                                         'registered_date' => now()->format('Y-m-d'),
-                                    ]);
+                                    ];
+                                    if ($apiRencanaPulang) {
+                                        $createData['rencana_pulang'] = $apiRencanaPulang;
+                                    }
+                                    $equipment = Equipment::create($createData);
                                 }
 
                                 $equipmentId = $equipment->id;

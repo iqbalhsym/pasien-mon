@@ -236,7 +236,7 @@
                         </div>
                         <div class="col-md-6 mb-4">
                             <label class="form-label text-dark fw-bold fs-5">Dokter / Tenaga Medis <span class="text-danger">*</span></label>
-                            <input type="text" name="petugas" class="form-control form-control-lg bg-white" required placeholder="Sebutkan Nama Dokter / Perawat">
+                            <input type="text" name="petugas" class="form-control form-control-lg bg-white" required placeholder="Sebutkan Nama Dokter / Perawat" list="doctors_list">
                         </div>
                         <div class="col-md-6 mb-4">
                             <label class="form-label text-dark fw-bold fs-5">Tanggal Pemeriksaan / Tindakan <span class="text-danger">*</span></label>
@@ -352,7 +352,7 @@
                         </div>
                         <div class="col-md-6 mb-4">
                             <label class="form-label text-dark fw-bold fs-5">Dokter / Tenaga Medis</label>
-                            <input type="text" name="petugas" class="form-control form-control-lg fw-bold" value="{{ $mnt->petugas }}" required>
+                            <input type="text" name="petugas" class="form-control form-control-lg fw-bold" value="{{ $mnt->petugas }}" required list="doctors_list">
                         </div>
                         <div class="col-md-6 mb-4">
                             <label class="form-label text-dark fw-bold fs-5">Tanggal Pemeriksaan / Tindakan</label>
@@ -431,4 +431,12 @@
 </div>
 @endforeach
 
+@php
+    $doctorsList = \App\Models\Doctor::orderBy('name')->get();
+@endphp
+<datalist id="doctors_list">
+    @foreach($doctorsList as $doc)
+        <option value="{{ $doc->name }}">{{ $doc->ksm }}</option>
+    @endforeach
+</datalist>
 @stop

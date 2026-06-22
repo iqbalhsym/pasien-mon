@@ -213,9 +213,11 @@
 
                                                         <!-- Patient Info if occupied -->
                                                         @if($status == 'terisi' && $patient)
-                                                            <div class="text-primary mt-1" style="font-size: 0.88rem; font-weight: 700;">
-                                                                {{ $patient->merk }}
-                                                            </div>
+                                                            <a href="{{ route('maintenances.patient_detail', $patient->serial_number) }}" class="text-decoration-none">
+                                                                <div class="text-primary mt-1 hover-underline" style="font-size: 0.88rem; font-weight: 700;">
+                                                                    {{ $patient->merk }}
+                                                                </div>
+                                                            </a>
                                                             <div class="text-muted" style="font-size: 0.8rem;">
                                                                 No. RM: <b>{{ $patient->serial_number }}</b>
                                                             </div>
@@ -233,6 +235,11 @@
                                                     </span>
                                                     
                                                     @if($status == 'terisi' && $patient)
+                                                        <a href="{{ route('maintenances.patient_detail', $patient->serial_number) }}" 
+                                                           class="btn btn-info btn-sm text-white py-1 px-2.5 d-block mt-1 fw-bold shadow-sm"
+                                                           style="font-size: 0.75rem;">
+                                                            <i class="mdi mdi-account-card-details me-1"></i> Detail
+                                                        </a>
                                                         <a href="{{ route('maintenances.history', $patient->serial_number) }}" 
                                                            class="btn btn-dark btn-sm text-white py-1 px-2.5 d-block mt-1 fw-bold shadow-sm"
                                                            style="font-size: 0.75rem;">
@@ -240,7 +247,7 @@
                                                         </a>
                                                     @elseif($status == 'kosong' && auth()->user()->role !== 'viewer')
                                                         <!-- Short register link that autofills room & floor -->
-                                                        <a href="{{ route('equipments.index') }}" 
+                                                        <a href="{{ route('maintenances.index', ['register' => 1, 'lantai' => $selectedFloorName, 'wing' => $wing->name, 'room' => $room->name]) }}" 
                                                            class="btn btn-outline-success btn-sm py-1 px-2 d-block mt-1 fw-bold"
                                                            style="font-size: 0.75rem;">
                                                             <i class="mdi mdi-account-plus me-1"></i> Daftar

@@ -615,13 +615,6 @@
 
           <div class="category-heading">Manajemen Pasien</div>
 
-          <li class="nav-item {{ request()->routeIs('equipments.*') ? 'active' : '' }}">
-            <a class="nav-link text-decoration-none" href="{{ route('equipments.index') }}">
-              <i class="mdi mdi-account-multiple"></i>
-              <span class="menu-title">Manajemen Pasien</span>
-            </a>
-          </li>
-
           <li class="nav-item {{ request()->routeIs('beds.*') ? 'active' : '' }}">
             <a class="nav-link text-decoration-none" href="{{ route('beds.index') }}">
               <i class="mdi mdi-bed-outline"></i>
@@ -637,7 +630,7 @@
           </li>
 
           @php
-              $currentRoute = request()->routeIs('maintenances.*') ? 'maintenances.index' : (request()->routeIs('beds.*') ? 'beds.index' : 'equipments.index');
+              $currentRoute = request()->routeIs('beds.*') ? 'beds.index' : 'maintenances.index';
               $queryParam = request()->routeIs('beds.*') ? 'floor' : 'lantai';
           @endphp
           <div class="category-heading">ZONA RAWAT INAP</div>

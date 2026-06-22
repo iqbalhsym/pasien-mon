@@ -10,47 +10,7 @@ class EquipmentController extends Controller
 {
     public function index(Request $request)
     {
-        $search = $request->input('search');
-        $perPage = $request->input('per_page', 10);
-        $query = Equipment::query();
-
-        if ($request->filled('lantai')) {
-            $lantaiVal = $request->input('lantai');
-            if (preg_match('/Lantai\s+(\d+)/i', $lantaiVal, $matches)) {
-                $lantaiVal = $matches[1];
-            }
-            $query->where('lantai', $lantaiVal);
-        }
-
-        if ($request->filled('wing')) {
-            $wingVal = $request->input('wing');
-            $query->where(function($q) use ($wingVal) {
-                $q->whereHas('bed.room.wing', function($wq) use ($wingVal) {
-                    $wq->where('name', $wingVal);
-                })->orWhere('lokasi', 'like', $wingVal . ' - %');
-            });
-        }
-
-        if ($request->filled('room')) {
-            $roomVal = $request->input('room');
-            $query->where(function($q) use ($roomVal) {
-                $q->whereHas('bed.room', function($rq) use ($roomVal) {
-                    $rq->where('name', $roomVal);
-                })->orWhere('lokasi', 'like', '% - ' . $roomVal . ' (%');
-            });
-        }
-
-        if ($search) {
-            $query->where(function($q) use ($search) {
-                $q->where('merk', 'like', "%{$search}%")
-                    ->orWhere('type', 'like', "%{$search}%")
-                    ->orWhere('serial_number', 'like', "%{$search}%")
-                    ->orWhere('lokasi', 'like', "%{$search}%");
-            });
-        }
-
-        $equipments = $query->with('media')->latest()->paginate($perPage);
-        return view('equipments.index', compact('equipments', 'search', 'perPage'));
+        return redirect()->route('maintenances.index', $request->query());
     }
 
     public function store(Request $request)
@@ -82,7 +42,7 @@ class EquipmentController extends Controller
             $equipment->addMediaFromRequest('gambar')->toMediaCollection('equipments');
         }
 
-        return redirect()->route('equipments.index')->with('success', 'Data pasien berhasil ditambahkan!');
+        return redirect()->route('maintenances.index')->with('success', 'Data pasien berhasil ditambahkan!');
     }
 
     public function update(Request $request, $id)
@@ -135,7 +95,7 @@ class EquipmentController extends Controller
             $equipment->addMediaFromRequest('gambar')->toMediaCollection('equipments');
         }
 
-        return redirect()->route('equipments.index')->with('success', 'Data pasien berhasil diperbarui!');
+        return redirect()->route('maintenances.index')->with('success', 'Data pasien berhasil diperbarui!');
     }
 
     public function destroy($id)
@@ -144,7 +104,7 @@ class EquipmentController extends Controller
         $equipment->clearMediaCollection('equipments');
         $equipment->delete();
 
-        return redirect()->route('equipments.index')->with('success', 'Data pasien berhasil dihapus!');
+        return redirect()->route('maintenances.index')->with('success', 'Data pasien berhasil dihapus!');
     }
 
     public function exportCsv()

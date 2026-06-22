@@ -17,7 +17,11 @@ class Equipment extends Model implements HasMedia
         'registered_date', 'los_aktual', 'dpjp_utama', 'dpjp_raber', 'dokter_konsul',
         'visit_dpjp', 'planning_pasien', 'rencana_pulang', 'npja', 'ews',
         'tingkat_ketergantungan', 'ners_bertugas', 'alkes_invasif', 'tindakan_detail',
-        'gender', 'guarantor', 'hak_kelas'
+        'gender', 'guarantor', 'hak_kelas',
+        'billing_aktual', 'pagu_budget', 'persentase_pagu', 'kategori_pasien',
+        'target_los', 'notes_num', 'notes_case_manager', 'riw_lab', 'riw_rad',
+        'riw_obat', 'rencana_prosedur', 'rencana_diagnostik', 'rencana_konsul',
+        'ners_pagi', 'ners_siang', 'ners_malam'
     ];
 
     public function calibrations()

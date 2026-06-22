@@ -98,95 +98,301 @@
 
                 <!-- VIEW MODE -->
                 <div id="viewMode">
+                    @php
+                        $tglMasukRaw = $equipment->registered_date ?: $equipment->tanggal_pengadaan;
+                        $tglMasukParsed = null;
+                        try {
+                            $tglMasukParsed = \Carbon\Carbon::parse($tglMasukRaw);
+                        } catch (\Exception $e) {}
+                        
+                        $dayNamesIndonesian = [
+                            'Sunday' => 'Minggu',
+                            'Monday' => 'Senin',
+                            'Tuesday' => 'Selasa',
+                            'Wednesday' => 'Rabu',
+                            'Thursday' => 'Kamis',
+                            'Friday' => 'Jumat',
+                            'Saturday' => 'Sabtu'
+                        ];
+                        $displayHariMasuk = $tglMasukParsed ? ' (' . ($dayNamesIndonesian[$tglMasukParsed->format('l')] ?? $tglMasukParsed->format('l')) . ')' : '';
+                        $displayTglMasuk = $tglMasukParsed ? $tglMasukParsed->format('d/m/Y') . $displayHariMasuk : ($tglMasukRaw ?: '-');
+
+                        $dynamicLos = '-';
+                        $losIntVal = 0;
+                        if ($tglMasukParsed) {
+                            $losIntVal = (int)$tglMasukParsed->diffInDays(now()->startOfDay());
+                            $dynamicLos = $losIntVal . ' Hari';
+                        }
+                        
+                        $targetLosRaw = $equipment->target_los;
+                        $targetLosInt = (int)preg_replace('/[^0-9]/', '', $targetLosRaw);
+                        $isOverLos = false;
+                        if ($targetLosInt > 0 && $losIntVal > $targetLosInt) {
+                            $isOverLos = true;
+                        }
+
+                        $tglPulangRaw = $equipment->rencana_pulang ?: ($apiData['rencana_pulang'] ?? null);
+                        if ($tglPulangRaw === '-') {
+                            $tglPulangRaw = null;
+                        }
+                        $tglPulangParsed = null;
+                        if ($tglPulangRaw) {
+                            try {
+                                $tglPulangParsed = \Carbon\Carbon::parse($tglPulangRaw);
+                            } catch (\Exception $e) {}
+                        }
+                        $displayHariPulang = $tglPulangParsed ? ' (' . ($dayNamesIndonesian[$tglPulangParsed->format('l')] ?? $tglPulangParsed->format('l')) . ')' : '';
+                        $displayTglPulang = $tglPulangParsed ? $tglPulangParsed->format('d/m/Y') . $displayHariPulang : ($tglPulangRaw ?: '');
+
+                        $rawDokterKonsul = $equipment->dokter_konsul ?? '';
+                        $konsulDoctors = [];
+                        if (!empty($rawDokterKonsul)) {
+                            $parts = explode(',', $rawDokterKonsul);
+                            foreach ($parts as $part) {
+                                $part = trim($part);
+                                if ($part === '') continue;
+                                
+                                $checked = true;
+                                $name = $part;
+                                if (strpos($part, '[v] ') === 0) {
+                                    $checked = true;
+                                    $name = substr($part, 4);
+                                } elseif (strpos($part, '[ ] ') === 0) {
+                                    $checked = false;
+                                    $name = substr($part, 4);
+                                }
+                                $konsulDoctors[] = [
+                                    'name' => $name,
+                                    'checked' => $checked
+                                ];
+                            }
+                        }
+                        $doctorCount = max(1, min(5, count($konsulDoctors)));
+
+                        $handoverLines = array_filter(array_map('trim', explode("\n", $equipment->spesifikasi ?? '')));
+                        $pagiNote = '-';
+                        $soreNote = '-';
+                        $malamNote = '-';
+                        foreach($handoverLines as $line) {
+                            if (stripos($line, 'pagi:') !== false || stripos($line, 'pagi -') !== false) {
+                                $pagiNote = trim(preg_replace('/^pagi\s*(:|-)\s*/i', '', $line));
+                            } elseif (stripos($line, 'sore:') !== false || stripos($line, 'sore -') !== false) {
+                                $soreNote = trim(preg_replace('/^sore\s*(:|-)\s*/i', '', $line));
+                            } elseif (stripos($line, 'malam:') !== false || stripos($line, 'malam -') !== false) {
+                                $malamNote = trim(preg_replace('/^malam\s*(:|-)\s*/i', '', $line));
+                            }
+                        }
+                        if ($pagiNote === '-' && $soreNote === '-' && $malamNote === '-' && !empty($equipment->spesifikasi)) {
+                            $pagiNote = $handoverLines[0] ?? '-';
+                            $soreNote = $handoverLines[1] ?? '-';
+                            $malamNote = $handoverLines[2] ?? '-';
+                        }
+                    @endphp
                     <div class="row">
-                        <!-- Group 1: General Info -->
-                        <div class="col-md-6 mb-3">
-                            <label class="text-muted fw-bold small d-block mb-1"><i class="mdi mdi-calendar text-primary me-1"></i> Tanggal Registrasi / Masuk RS</label>
-                            <div class="p-3 bg-light rounded border text-dark fw-bold">
-                                {{ $equipment->registered_date ?: '-' }}
+                        <!-- Left Column: INFORMASI MEDIS KLINIS & PEMANTAUAN -->
+                        <div class="col-md-6 border-end pe-md-3 mb-4 mb-md-0">
+                            <h5 class="fw-bold text-danger mb-3"><i class="mdi mdi-medical-bag text-danger me-1"></i> MEDIS KLINIS & PEMANTAUAN</h5>
+                            
+                            <div class="row g-2 mb-2">
+                                <div class="col-4">
+                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-calendar text-primary me-0.5"></i> Masuk RS</label>
+                                    <div class="p-2 bg-light rounded border text-dark fw-bold" style="font-size: 0.8rem;">
+                                        {{ $displayTglMasuk }}
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-clock-outline text-primary me-0.5"></i> LOS Aktual</label>
+                                    <div class="p-2 bg-light rounded border text-dark fw-bold" style="font-size: 0.8rem;">
+                                        {{ $dynamicLos }}
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-calendar-range text-info me-0.5"></i> Target LOS</label>
+                                    <div class="p-2 rounded border text-dark fw-bold d-flex justify-content-between align-items-center {{ $isOverLos ? 'border-danger text-danger' : 'bg-light border-light' }}" style="font-size: 0.8rem; {{ $isOverLos ? 'background-color: #F8D7DA !important; color: #721C24 !important; border-color: #dc3545 !important;' : '' }}">
+                                        <span>{{ $equipment->target_los ? $equipment->target_los . ' Hari' : '-' }}</span>
+                                        @if($isOverLos)
+                                            <span class="badge bg-danger text-white fw-bold" style="font-size: 0.65rem; padding: 2px 4px;"><i class="mdi mdi-alert-circle me-0.5"></i> Over</span>
+                                        @endif
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="text-muted fw-bold small d-block mb-1"><i class="mdi mdi-clock-outline text-primary me-1"></i> LOS (Length of Stay) Aktual</label>
-                            <div class="p-3 bg-light rounded border text-dark fw-bold">
-                                {{ $equipment->los_aktual ?: '-' }}
+
+                            <div class="row g-2 mb-2">
+                                <div class="col-7">
+                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-doctor text-success me-0.5"></i> DPJP Utama</label>
+                                    <div class="p-2 bg-light rounded border text-dark fw-bold text-truncate" style="font-size: 0.8rem;" title="{{ $equipment->dpjp_utama }}">
+                                        {{ $equipment->dpjp_utama ?: '-' }}
+                                    </div>
+                                </div>
+                                <div class="col-5">
+                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-clipboard-check text-info me-0.5"></i> Visit DPJP</label>
+                                    <div class="p-2 bg-light rounded border text-dark fw-bold text-center" style="font-size: 0.8rem;">
+                                        {{ $equipment->visit_dpjp ?: '-' }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-doctor text-info me-0.5"></i> Dokter Konsul</label>
+                                <div class="p-2 bg-light rounded border text-dark fw-bold" style="font-size: 0.8rem;">
+                                    @if(count($konsulDoctors) > 0)
+                                        <div class="d-flex flex-column gap-1">
+                                            @foreach($konsulDoctors as $doc)
+                                                <div class="d-flex align-items-center">
+                                                    <i class="mdi {{ $doc['checked'] ? 'mdi-checkbox-marked text-success' : 'mdi-checkbox-blank-outline text-muted' }} me-1.5" style="font-size: 0.95rem;"></i>
+                                                    <span>{{ $doc['name'] }}</span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-account-star text-warning me-0.5"></i> NPJA</label>
+                                    <div class="p-2 bg-light rounded border text-dark fw-bold text-truncate" style="font-size: 0.8rem;" title="{{ $equipment->npja }}">{{ $equipment->npja ?: '-' }}</div>
+                                </div>
+                                <div class="col-6">
+                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-heart-pulse text-danger me-0.5"></i> EWS</label>
+                                    <div class="p-2 bg-light rounded border text-dark fw-bold text-truncate" style="font-size: 0.8rem;" title="{{ $equipment->ews }}">{{ $equipment->ews ?: '-' }}</div>
+                                </div>
+                                <div class="col-6">
+                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-human text-warning me-0.5"></i> Ketergantungan</label>
+                                    <div class="p-2 bg-light rounded border text-dark fw-bold text-truncate" style="font-size: 0.8rem;" title="{{ $equipment->tingkat_ketergantungan }}">{{ $equipment->tingkat_ketergantungan ?: '-' }}</div>
+                                </div>
+                                <div class="col-6">
+                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-account-network text-warning me-0.5"></i> Ners Bertugas</label>
+                                    <div class="p-2 bg-light rounded border text-dark fw-bold text-truncate" style="font-size: 0.8rem;" title="{{ $equipment->ners_bertugas }}">{{ $equipment->ners_bertugas ?: '-' }}</div>
+                                </div>
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-clipboard-text text-dark me-0.5"></i> Diagnosis Medis Saat Ini</label>
+                                <div class="p-2 bg-light rounded border text-dark text-wrap" style="font-size: 0.8rem;">{{ $equipment->type ?: '-' }}</div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-lightbulb-on text-primary me-0.5"></i> Planning Pasien</label>
+                                <div class="p-2 bg-light rounded border text-dark text-wrap" style="white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->planning_pasien ?: '-' }}</div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-logout text-success me-0.5"></i> Estimasi Pulang</label>
+                                <div class="p-2 bg-light rounded border text-dark" style="white-space: pre-wrap; font-size: 0.8rem;">{{ $displayTglPulang }}</div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-needle text-danger me-0.5"></i> Barrier</label>
+                                <div class="p-2 bg-light rounded border text-dark" style="white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->alkes_invasif ?: '-' }}</div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-medical-bag text-primary me-0.5"></i> Tindakan / Terapi Medis</label>
+                                <div class="p-2 bg-light rounded border text-dark" style="white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->tindakan_detail ?: '-' }}</div>
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-repeat text-warning me-0.5"></i> Catatan Handover</label>
+                                <div class="p-2 bg-light rounded border text-dark" style="font-size: 0.8rem;">
+                                    <div class="mb-2">
+                                        <span class="text-muted fw-bold" style="font-size: 0.72rem;">PAGI:</span> <span class="fw-bold">{{ $pagiNote }}</span>
+                                        <div class="text-muted ps-3 small">Ners Pagi: <span class="fw-bold text-dark">{{ $equipment->ners_pagi ?: '-' }}</span></div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="text-muted fw-bold" style="font-size: 0.72rem;">SORE:</span> <span class="fw-bold">{{ $soreNote }}</span>
+                                        <div class="text-muted ps-3 small">Ners Siang: <span class="fw-bold text-dark">{{ $equipment->ners_siang ?: '-' }}</span></div>
+                                    </div>
+                                    <div>
+                                        <span class="text-muted fw-bold" style="font-size: 0.72rem;">MALAM:</span> <span class="fw-bold">{{ $malamNote }}</span>
+                                        <div class="text-muted ps-3 small">Ners Malam: <span class="fw-bold text-dark">{{ $equipment->ners_malam ?: '-' }}</span></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Group 2: Doctors -->
-                        <div class="col-md-6 mb-3">
-                            <label class="text-muted fw-bold small d-block mb-1"><i class="mdi mdi-doctor text-success me-1"></i> DPJP Utama</label>
-                            <div class="p-3 bg-light rounded border text-dark fw-bold">
-                                {{ $equipment->dpjp_utama ?: '-' }}
+                        <!-- Right Column: KEBUTUHAN CASE MANAGER -->
+                        <div class="col-md-6 ps-md-3">
+                            <h5 class="fw-bold text-primary mb-3"><i class="mdi mdi-clipboard-text-play text-primary me-1"></i> KEBUTUHAN CASE MANAGER</h5>
+                            
+                            <div class="row g-2 mb-2">
+                                <div class="col-4">
+                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-cash-multiple text-success me-0.5"></i> Billing</label>
+                                    <div class="p-2 bg-light rounded border text-dark fw-bold text-truncate" style="font-size: 0.8rem;">
+                                        {{ $equipment->billing_aktual ? 'Rp ' . number_format($equipment->billing_aktual, 0, ',', '.') : '-' }}
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-cash text-danger me-0.5"></i> PAGU</label>
+                                    <div class="p-2 bg-light rounded border text-dark fw-bold text-truncate" style="font-size: 0.8rem;">
+                                        {{ $equipment->pagu_budget ? 'Rp ' . number_format($equipment->pagu_budget, 0, ',', '.') : '-' }}
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-chart-percent text-info me-0.5"></i> % vs Pagu</label>
+                                    <div class="p-2 bg-light rounded border text-dark fw-bold text-truncate" style="font-size: 0.8rem;">
+                                        {{ $equipment->persentase_pagu ?: '-' }}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="text-muted fw-bold small d-block mb-1"><i class="mdi mdi-account-group text-success me-1"></i> DPJP Raber (Rawat Bersama)</label>
-                            <div class="p-3 bg-light rounded border text-dark fw-bold">
-                                {{ $equipment->dpjp_raber ?: '-' }}
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="text-muted fw-bold small d-block mb-1"><i class="mdi mdi-doctor text-info me-1"></i> Dokter Konsul</label>
-                            <div class="p-3 bg-light rounded border text-dark fw-bold">
-                                {{ $equipment->dokter_konsul ?: '-' }}
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="text-muted fw-bold small d-block mb-1"><i class="mdi mdi-clipboard-check text-info me-1"></i> Visit DPJP</label>
-                            <div class="p-3 bg-light rounded border text-dark fw-bold">
-                                {{ $equipment->visit_dpjp ?: '-' }}
-                            </div>
-                        </div>
 
-                        <!-- Group 3: Nursing & Clinical Score -->
-                        <div class="col-md-6 mb-3">
-                            <label class="text-muted fw-bold small d-block mb-1"><i class="mdi mdi-account-star text-warning me-1"></i> NPJA</label>
-                            <div class="p-3 bg-light rounded border text-dark fw-bold">
-                                {{ $equipment->npja ?: '-' }}
+                            <div class="mb-2">
+                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-tag-text-outline text-warning me-0.5"></i> Kategori Pasien</label>
+                                <div class="p-2 bg-light rounded border text-dark fw-bold" style="font-size: 0.8rem;">
+                                    {{ $equipment->kategori_pasien ?: '-' }}
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="text-muted fw-bold small d-block mb-1"><i class="mdi mdi-heart-pulse text-danger me-1"></i> EWS (Early Warning Score)</label>
-                            <div class="p-3 bg-light rounded border text-dark fw-bold">
-                                {{ $equipment->ews ?: '-' }}
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="text-muted fw-bold small d-block mb-1"><i class="mdi mdi-human text-warning me-1"></i> Tingkat Ketergantungan</label>
-                            <div class="p-3 bg-light rounded border text-dark fw-bold">
-                                {{ $equipment->tingkat_ketergantungan ?: '-' }}
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="text-muted fw-bold small d-block mb-1"><i class="mdi mdi-account-network text-warning me-1"></i> Ners yang Bertugas</label>
-                            <div class="p-3 bg-light rounded border text-dark fw-bold">
-                                {{ $equipment->ners_bertugas ?: '-' }}
-                            </div>
-                        </div>
 
-                        <!-- Group 4: Treatment & Planning (Large Fields) -->
-                        <div class="col-md-12 mb-3">
-                            <label class="text-muted fw-bold small d-block mb-1"><i class="mdi mdi-clipboard-text text-dark me-1"></i> Diagnosis Medis Saat Ini</label>
-                            <div class="p-3 bg-light rounded border text-dark">
-                                {{ $equipment->type ?: '-' }}
+                            <div class="mb-2">
+                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-note-text text-secondary me-0.5"></i> Notes NUM</label>
+                                <div class="p-2 bg-light rounded border text-dark" style="min-height: 40px; white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->notes_num ?: '-' }}</div>
                             </div>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label class="text-muted fw-bold small d-block mb-1"><i class="mdi mdi-lightbulb-on text-primary me-1"></i> Planning Pasien</label>
-                            <div class="p-3 bg-light rounded border text-dark" style="min-height: 80px; white-space: pre-wrap;">{{ $equipment->planning_pasien ?: '-' }}</div>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label class="text-muted fw-bold small d-block mb-1"><i class="mdi mdi-logout text-success me-1"></i> Rencana Pulang</label>
-                            <div class="p-3 bg-light rounded border text-dark" style="min-height: 60px; white-space: pre-wrap;">{{ $equipment->rencana_pulang ?: '-' }}</div>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label class="text-muted fw-bold small d-block mb-1"><i class="mdi mdi-needle text-danger me-1"></i> Penggunaan Alkes & Alat Invasif</label>
-                            <div class="p-3 bg-light rounded border text-dark" style="min-height: 80px; white-space: pre-wrap;">{{ $equipment->alkes_invasif ?: '-' }}</div>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label class="text-muted fw-bold small d-block mb-1"><i class="mdi mdi-medical-bag text-primary me-1"></i> Tindakan / Terapi Medis</label>
-                            <div class="p-3 bg-light rounded border text-dark" style="min-height: 80px; white-space: pre-wrap;">{{ $equipment->tindakan_detail ?: '-' }}</div>
+                            <div class="mb-2">
+                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-note-outline text-secondary me-0.5"></i> Notes Case Manager</label>
+                                <div class="p-2 bg-light rounded border text-dark" style="min-height: 40px; white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->notes_case_manager ?: '-' }}</div>
+                            </div>
+
+                            <!-- Dynamic Lab, Rad, Obat Collapsible blocks -->
+                            <div class="mb-2">
+                                <div class="card border shadow-xs" style="border-radius: 6px; overflow: hidden; margin-bottom: 6px;">
+                                    <div class="card-header bg-white p-2 d-flex justify-content-between align-items-center" style="cursor: pointer; font-size: 0.8rem;" data-bs-toggle="collapse" data-bs-target="#detail_riw_lab_collapse" aria-expanded="false">
+                                        <span class="fw-bold text-primary"><i class="mdi mdi-flask-outline me-1"></i> Riw Pemeriksaan Lab</span>
+                                        <i class="mdi mdi-chevron-down text-muted"></i>
+                                    </div>
+                                    <div id="detail_riw_lab_collapse" class="collapse">
+                                        <div class="card-body bg-light border-top text-dark p-2" style="white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->riw_lab ?: '-' }}</div>
+                                    </div>
+                                </div>
+                                <div class="card border shadow-xs" style="border-radius: 6px; overflow: hidden; margin-bottom: 6px;">
+                                    <div class="card-header bg-white p-2 d-flex justify-content-between align-items-center" style="cursor: pointer; font-size: 0.8rem;" data-bs-toggle="collapse" data-bs-target="#detail_riw_rad_collapse" aria-expanded="false">
+                                        <span class="fw-bold text-success"><i class="mdi mdi-video-outline me-1"></i> Riw Pemeriksaan Rad</span>
+                                        <i class="mdi mdi-chevron-down text-muted"></i>
+                                    </div>
+                                    <div id="detail_riw_rad_collapse" class="collapse">
+                                        <div class="card-body bg-light border-top text-dark p-2" style="white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->riw_rad ?: '-' }}</div>
+                                    </div>
+                                </div>
+                                <div class="card border shadow-xs" style="border-radius: 6px; overflow: hidden; margin-bottom: 6px;">
+                                    <div class="card-header bg-white p-2 d-flex justify-content-between align-items-center" style="cursor: pointer; font-size: 0.8rem;" data-bs-toggle="collapse" data-bs-target="#detail_riw_obat_collapse" aria-expanded="false">
+                                        <span class="fw-bold text-danger"><i class="mdi mdi-pill me-1"></i> Riw Obat Mahal / Antibiotik</span>
+                                        <i class="mdi mdi-chevron-down text-muted"></i>
+                                    </div>
+                                    <div id="detail_riw_obat_collapse" class="collapse">
+                                        <div class="card-body bg-light border-top text-dark p-2" style="white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->riw_obat ?: '-' }}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-file-document-box-outline text-dark me-0.5"></i> Rencana Prosedur</label>
+                                <div class="p-2 bg-light rounded border text-dark" style="min-height: 40px; white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->rencana_prosedur ?: '-' }}</div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-file-find text-dark me-0.5"></i> Rencana Diagnostik</label>
+                                <div class="p-2 bg-light rounded border text-dark" style="min-height: 40px; white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->rencana_diagnostik ?: '-' }}</div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-forum-outline text-dark me-0.5"></i> Rencana Konsul</label>
+                                <div class="p-2 bg-light rounded border text-dark" style="min-height: 40px; white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->rencana_konsul ?: '-' }}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -196,79 +402,394 @@
                     <form action="{{ route('maintenances.update_patient_detail', $equipment->serial_number) }}" method="POST">
                         @csrf
                         @method('PUT')
+                        @php
+                            // Parse planning items for checkboxes
+                            $planningItems = array_filter(array_map('trim', explode("\n", $equipment->planning_pasien ?? '')));
+                            $labVal = ''; $labChecked = false;
+                            $radVal = ''; $radChecked = false;
+                            $konVal = ''; $konChecked = false;
+                            $tndVal = ''; $tndChecked = false;
+                            $eduVal = ''; $eduChecked = false;
+                            foreach($planningItems as $item) {
+                                if (stripos($item, 'lab:') !== false || stripos($item, 'lab -') !== false) {
+                                    $labChecked = true;
+                                    $labVal = trim(preg_replace('/^lab\s*(:|-)\s*/i', '', $item));
+                                } elseif (stripos($item, 'radiologi:') !== false || stripos($item, 'radiologi -') !== false) {
+                                    $radChecked = true;
+                                    $radVal = trim(preg_replace('/^radiologi\s*(:|-)\s*/i', '', $item));
+                                } elseif (stripos($item, 'konsul:') !== false || stripos($item, 'konsul -') !== false) {
+                                    $konChecked = true;
+                                    $konVal = trim(preg_replace('/^konsul\s*(:|-)\s*/i', '', $item));
+                                } elseif (stripos($item, 'tindakan:') !== false || stripos($item, 'tindakan -') !== false) {
+                                    $tndChecked = true;
+                                    $tndVal = trim(preg_replace('/^tindakan\s*(:|-)\s*/i', '', $item));
+                                } elseif (stripos($item, 'edukasi:') !== false || stripos($item, 'edukasi -') !== false) {
+                                    $eduChecked = true;
+                                    $eduVal = trim(preg_replace('/^edukasi\s*(:|-)\s*/i', '', $item));
+                                }
+                            }
+                            if ($labVal === '-') $labVal = '';
+                            if ($radVal === '-') $radVal = '';
+                            if ($konVal === '-') $konVal = '';
+                            if ($tndVal === '-') $tndVal = '';
+                            if ($eduVal === '-') $eduVal = '';
+
+                            // Parse handover shift values
+                            $handoverLinesEdit = array_filter(array_map('trim', explode("\n", $equipment->spesifikasi ?? '')));
+                            $pagiValue = '';
+                            $soreValue = '';
+                            $malamValue = '';
+                            foreach($handoverLinesEdit as $line) {
+                                if (stripos($line, 'pagi:') !== false || stripos($line, 'pagi -') !== false) {
+                                    $pagiValue = trim(preg_replace('/^pagi\s*(:|-)\s*/i', '', $line));
+                                } elseif (stripos($line, 'sore:') !== false || stripos($line, 'sore -') !== false) {
+                                    $soreValue = trim(preg_replace('/^sore\s*(:|-)\s*/i', '', $line));
+                                } elseif (stripos($line, 'malam:') !== false || stripos($line, 'malam -') !== false) {
+                                    $malamValue = trim(preg_replace('/^malam\s*(:|-)\s*/i', '', $line));
+                                }
+                            }
+                            if ($pagiValue === '-') $pagiValue = '';
+                            if ($soreValue === '-') $soreValue = '';
+                            if ($malamValue === '-') $malamValue = '';
+
+                            if ($pagiValue === '' && $soreValue === '' && $malamValue === '' && !empty($equipment->spesifikasi)) {
+                                $pagiValue = $equipment->spesifikasi;
+                            }
+                        @endphp
                         <div class="row">
-                            <!-- Group 1: General Info -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label text-dark fw-bold small"><i class="mdi mdi-calendar text-primary me-1"></i> Tanggal Registrasi / Masuk RS</label>
-                                <input type="text" name="registered_date" class="form-control" value="{{ $equipment->registered_date }}" placeholder="Contoh: 15 Juni 2026 atau 2026-06-15">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label text-dark fw-bold small"><i class="mdi mdi-clock-outline text-primary me-1"></i> LOS (Length of Stay) Aktual</label>
-                                <input type="text" name="los_aktual" class="form-control" value="{{ $equipment->los_aktual }}" placeholder="Contoh: 4 Hari">
+                            <!-- Left Column: INFORMASI MEDIS KLINIS & PEMANTAUAN -->
+                            <div class="col-md-6 border-end pe-md-3 mb-4 mb-md-0">
+                                <h5 class="fw-bold text-danger mb-3"><i class="mdi mdi-medical-bag text-danger me-1"></i> MEDIS KLINIS & PEMANTAUAN</h5>
+                                
+                                <div class="row g-2 mb-2">
+                                    <div class="col-4">
+                                        <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-calendar text-primary me-0.5"></i> Masuk RS (Auto)</label>
+                                        <input type="text" class="form-control form-control-sm bg-light text-muted" value="{{ $displayTglMasuk }}" readonly style="cursor: not-allowed; font-size: 0.8rem;">
+                                    </div>
+                                    <div class="col-4">
+                                        <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-clock-outline text-primary me-0.5"></i> LOS (Auto)</label>
+                                        <input type="text" class="form-control form-control-sm bg-light text-muted" value="{{ $dynamicLos }}" readonly style="cursor: not-allowed; font-size: 0.8rem;">
+                                    </div>
+                                    <div class="col-4">
+                                        <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-calendar-range text-info me-0.5"></i> Target LOS</label>
+                                        <input type="number" name="target_los" class="form-control form-control-sm" value="{{ $equipment->target_los }}" placeholder="Hari" style="font-size: 0.8rem;">
+                                    </div>
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-doctor text-success me-0.5"></i> DPJP Utama</label>
+                                    <div class="input-group input-group-sm shadow-sm">
+                                        <input type="text" name="dpjp_utama" class="form-control form-control-sm" value="{{ $equipment->dpjp_utama }}" placeholder="Nama DPJP Utama" list="doctors_list" style="font-size: 0.8rem;">
+                                        <div class="input-group-text bg-white py-0">
+                                            <div class="form-check mb-0">
+                                                <input type="checkbox" name="visit_dpjp_check" id="visit_dpjp_check" class="form-check-input" value="Sudah" {{ !empty($equipment->visit_dpjp) && (stripos($equipment->visit_dpjp, 'tidak') === false) && (stripos($equipment->visit_dpjp, 'belum') === false) ? 'checked' : '' }}>
+                                                <label class="form-check-label small fw-bold text-dark mb-0" for="visit_dpjp_check">Visite</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row g-2 mb-2">
+                                    <div class="col-6">
+                                        <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-account-star text-warning me-0.5"></i> NPJA</label>
+                                        <input type="text" name="npja" class="form-control form-control-sm" value="{{ $equipment->npja }}" placeholder="Nama NPJA" style="font-size: 0.8rem;">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-heart-pulse text-danger me-0.5"></i> EWS</label>
+                                        <select name="ews" class="form-select form-select-sm" style="font-size: 0.8rem;">
+                                            <option value="" {{ empty($equipment->ews) ? 'selected' : '' }}>-- Pilih EWS --</option>
+                                            @foreach(['Hijau', 'Kuning', 'Oranye', 'Merah', 'DNR'] as $opt)
+                                                <option value="{{ $opt }}" {{ $equipment->ews === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-human text-warning me-0.5"></i> Tingkat Ketergantungan</label>
+                                        <select name="tingkat_ketergantungan" class="form-select form-select-sm" style="font-size: 0.8rem;">
+                                            <option value="" {{ empty($equipment->tingkat_ketergantungan) ? 'selected' : '' }}>-- Pilih Ketergantungan --</option>
+                                            @foreach(['Minimal', 'Partial', 'Total'] as $opt)
+                                                <option value="{{ $opt }}" {{ $equipment->tingkat_ketergantungan === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-account-network text-warning me-0.5"></i> Ners Bertugas</label>
+                                        <input type="text" name="ners_bertugas" class="form-control form-control-sm" value="{{ $equipment->ners_bertugas }}" placeholder="Nama ners" style="font-size: 0.8rem;">
+                                    </div>
+                                </div>
+
+                                <div class="mb-2">
+                                    <div class="p-2 bg-light rounded border shadow-sm">
+                                        <label class="fw-bold text-dark mb-2 small" style="font-size: 0.75rem;"><i class="mdi mdi-doctor text-info me-0.5"></i> Dokter Konsul (Maksimal 5)</label>
+                                        <div id="doctor_inputs_list">
+                                            @for($i = 0; $i < 5; $i++)
+                                                @php
+                                                    $doc = $konsulDoctors[$i] ?? null;
+                                                    $docName = $doc ? $doc['name'] : '';
+                                                    $docChecked = $doc ? $doc['checked'] : false;
+                                                @endphp
+                                                <div class="doctor-input-item mb-1.5 align-items-center" id="doc_row_{{ $i }}" style="display: {{ $i < $doctorCount ? 'flex' : 'none' }};">
+                                                    <span class="fw-bold me-1.5 small" style="width: 15px; font-size: 0.75rem;">#{{ $i + 1 }}</span>
+                                                    <div class="input-group input-group-sm flex-nowrap">
+                                                        <input type="text" name="dokter_konsul[]" class="form-control form-control-sm" value="{{ $docName }}" placeholder="Nama Dokter" list="doctors_list" style="font-size: 0.8rem;">
+                                                        <div class="input-group-text bg-white py-0">
+                                                            <div class="form-check mb-0">
+                                                                <input type="checkbox" name="dokter_konsul_check[]" value="{{ $i }}" id="dokter_konsul_check_{{ $i }}" class="form-check-input" {{ $docChecked ? 'checked' : '' }}>
+                                                                <label class="form-check-label small fw-bold text-dark mb-0" for="dokter_konsul_check_{{ $i }}">Konsul</label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    @if($i > 0)
+                                                        <button type="button" class="btn btn-outline-danger btn-xs ms-1.5 p-1 py-0.5 rounded" onclick="removeDoctorRow({{ $i }})"><i class="mdi mdi-close"></i></button>
+                                                    @endif
+                                                </div>
+                                            @endfor
+                                        </div>
+                                        <button type="button" id="btn_add_doctor" class="btn btn-outline-primary btn-xs fw-bold mt-1.5" onclick="addDoctorRow()" style="display: {{ $doctorCount < 5 ? 'inline-block' : 'none' }};"><i class="mdi mdi-plus me-1"></i> Tambah</button>
+                                    </div>
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-clipboard-text text-dark me-0.5"></i> Diagnosis Medis</label>
+                                    <input type="text" name="type" class="form-control form-control-sm" value="{{ $equipment->type }}" placeholder="Diagnosis medis" style="font-size: 0.8rem;">
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-lightbulb-on text-primary me-0.5"></i> Planning Pasien</label>
+                                    <div class="p-2 bg-light rounded border">
+                                        <!-- LAB -->
+                                        <div class="mb-1.5">
+                                            <div class="form-check mb-0.5">
+                                                <input type="checkbox" name="planning_lab_check" id="planning_lab_check" class="form-check-input" value="1" {{ $labChecked ? 'checked' : '' }}>
+                                                <label class="form-check-label fw-bold text-dark small" for="planning_lab_check">Laboratorium (Lab)</label>
+                                            </div>
+                                            <div id="planning_lab_container" style="display: {{ $labChecked ? 'block' : 'none' }}; margin-left: 20px;">
+                                                <input type="text" name="planning_lab" class="form-control form-control-sm" value="{{ $labVal }}" placeholder="Planning Lab" style="font-size: 0.8rem;">
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- RADIOLOGI -->
+                                        <div class="mb-1.5">
+                                            <div class="form-check mb-0.5">
+                                                <input type="checkbox" name="planning_radiologi_check" id="planning_radiologi_check" class="form-check-input" value="1" {{ $radChecked ? 'checked' : '' }}>
+                                                <label class="form-check-label fw-bold text-dark small" for="planning_radiologi_check">Radiologi</label>
+                                            </div>
+                                            <div id="planning_radiologi_container" style="display: {{ $radChecked ? 'block' : 'none' }}; margin-left: 20px;">
+                                                <input type="text" name="planning_radiologi" class="form-control form-control-sm" value="{{ $radVal }}" placeholder="Planning Radiologi" style="font-size: 0.8rem;">
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- KONSUL -->
+                                        <div class="mb-1.5">
+                                            <div class="form-check mb-0.5">
+                                                <input type="checkbox" name="planning_konsul_check" id="planning_konsul_check" class="form-check-input" value="1" {{ $konChecked ? 'checked' : '' }}>
+                                                <label class="form-check-label fw-bold text-dark small" for="planning_konsul_check">Konsul</label>
+                                            </div>
+                                            <div id="planning_konsul_container" style="display: {{ $konChecked ? 'block' : 'none' }}; margin-left: 20px;">
+                                                <input type="text" name="planning_konsul" class="form-control form-control-sm" value="{{ $konVal }}" placeholder="Planning Konsul" style="font-size: 0.8rem;">
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- TINDAKAN -->
+                                        <div class="mb-1.5">
+                                            <div class="form-check mb-0.5">
+                                                <input type="checkbox" name="planning_tindakan_check" id="planning_tindakan_check" class="form-check-input" value="1" {{ $tndChecked ? 'checked' : '' }}>
+                                                <label class="form-check-label fw-bold text-dark small" for="planning_tindakan_check">Tindakan</label>
+                                            </div>
+                                            <div id="planning_tindakan_container" style="display: {{ $tndChecked ? 'block' : 'none' }}; margin-left: 20px;">
+                                                <input type="text" name="planning_tindakan" class="form-control form-control-sm" value="{{ $tndVal }}" placeholder="Planning Tindakan" style="font-size: 0.8rem;">
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- EDUKASI -->
+                                        <div>
+                                            <div class="form-check mb-0.5">
+                                                <input type="checkbox" name="planning_edukasi_check" id="planning_edukasi_check" class="form-check-input" value="1" {{ $eduChecked ? 'checked' : '' }}>
+                                                <label class="form-check-label fw-bold text-dark small" for="planning_edukasi_check">Edukasi / Dll</label>
+                                            </div>
+                                            <div id="planning_edukasi_container" style="display: {{ $eduChecked ? 'block' : 'none' }}; margin-left: 20px;">
+                                                <input type="text" name="planning_edukasi" class="form-control form-control-sm" value="{{ $eduVal }}" placeholder="Planning Edukasi" style="font-size: 0.8rem;">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-logout text-success me-0.5"></i> Estimasi Pulang (Auto)</label>
+                                    <input type="text" class="form-control form-control-sm bg-light text-muted" value="{{ $displayTglPulang }}" readonly style="cursor: not-allowed; font-size: 0.8rem;">
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-needle text-danger me-0.5"></i> Penggunaan Alkes & Alat Invasif (Barrier)</label>
+                                    <div class="dropdown" id="alkes_dropdown_container">
+                                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" id="alkesDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.8rem; background-color: #fff;">
+                                            <span id="alkesDropdownLabel" class="text-truncate">Pilih Alkes / Alat Invasif</span>
+                                        </button>
+                                        <ul class="dropdown-menu w-100 p-2" aria-labelledby="alkesDropdownBtn" style="max-height: 250px; overflow-y: auto; font-size: 0.8rem;">
+                                            @php
+                                                $alkesOptions = [
+                                                    'Syringe pump', 'Infusion Pump', 'Monitor', 'Oksigen', 'Kasur Dekubitus', 
+                                                    'Nebulizer', 'Suction', 'Blower', 'NGT/OGT', 'IV Perifer', 'CVC', 
+                                                    'Kateter urin', 'Drain', 'NJFT', 'HFNC', 'PEG', 'Cimino', 'Stoma', 
+                                                    'CDL', 'Chemoport', 'Trakeostomi'
+                                                ];
+                                                $currentAlkes = array_map('trim', explode(',', $equipment->alkes_invasif ?? ''));
+                                            @endphp
+                                            @foreach($alkesOptions as $opt)
+                                                <li>
+                                                    <div class="form-check dropdown-item py-1">
+                                                        <input class="form-check-input alkes-checkbox" type="checkbox" value="{{ $opt }}" id="alkes_chk_{{ $loop->index }}" {{ in_array($opt, $currentAlkes) ? 'checked' : '' }}>
+                                                        <label class="form-check-label w-100 cursor-pointer mb-0" for="alkes_chk_{{ $loop->index }}">
+                                                            {{ $opt }}
+                                                        </label>
+                                                    </div>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                        <input type="hidden" name="alkes_invasif" id="alkes_invasif_hidden" value="{{ $equipment->alkes_invasif }}">
+                                    </div>
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-medical-bag text-primary me-0.5"></i> Tindakan / Terapi Medis</label>
+                                    <div class="dropdown" id="tindakan_dropdown_container">
+                                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" id="tindakanDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.8rem; background-color: #fff;">
+                                            <span id="tindakanDropdownLabel" class="text-truncate">Pilih Tindakan / Terapi Medis</span>
+                                        </button>
+                                        <ul class="dropdown-menu w-100 p-2" aria-labelledby="tindakanDropdownBtn" style="max-height: 200px; overflow-y: auto; font-size: 0.8rem;">
+                                            @php
+                                                $tindakanOptions = [
+                                                    'Kemoterapi', 'EKG', 'GV', 'Konseling Laktasi', 'Pasang Infus', 'CTG', 'USG/Echo'
+                                                ];
+                                                $currentTindakan = array_map('trim', explode(',', $equipment->tindakan_detail ?? ''));
+                                            @endphp
+                                            @foreach($tindakanOptions as $opt)
+                                                <li>
+                                                    <div class="form-check dropdown-item py-1">
+                                                        <input class="form-check-input tindakan-checkbox" type="checkbox" value="{{ $opt }}" id="tindakan_chk_{{ $loop->index }}" {{ in_array($opt, $currentTindakan) ? 'checked' : '' }}>
+                                                        <label class="form-check-label w-100 cursor-pointer mb-0" for="tindakan_chk_{{ $loop->index }}">
+                                                            {{ $opt }}
+                                                        </label>
+                                                    </div>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                        <input type="hidden" name="tindakan_detail" id="tindakan_detail_hidden" value="{{ $equipment->tindakan_detail }}">
+                                    </div>
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-repeat text-warning me-0.5"></i> Catatan Handover Per Shift</label>
+                                    <div class="p-2 bg-light rounded border">
+                                        <div class="row g-2 mb-1.5">
+                                            <div class="col-8">
+                                                <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.72rem;"><i class="mdi mdi-white-balance-sunny text-warning me-0.5"></i> Pagi</label>
+                                                <textarea name="handover_pagi" class="form-control form-control-sm" rows="1" placeholder="Pagi..." style="font-size: 0.8rem;">{{ $pagiValue }}</textarea>
+                                            </div>
+                                            <div class="col-4">
+                                                <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.72rem;">Ners Pagi</label>
+                                                <input type="text" name="ners_pagi" class="form-control form-control-sm" value="{{ $equipment->ners_pagi }}" placeholder="Ners Pagi" style="font-size: 0.8rem;">
+                                            </div>
+                                        </div>
+                                        <div class="row g-2 mb-1.5">
+                                            <div class="col-8">
+                                                <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.72rem;"><i class="mdi mdi-weather-sunset text-primary me-0.5"></i> Sore</label>
+                                                <textarea name="handover_sore" class="form-control form-control-sm" rows="1" placeholder="Sore..." style="font-size: 0.8rem;">{{ $soreValue }}</textarea>
+                                            </div>
+                                            <div class="col-4">
+                                                <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.72rem;">Ners Siang</label>
+                                                <input type="text" name="ners_siang" class="form-control form-control-sm" value="{{ $equipment->ners_siang }}" placeholder="Ners Siang" style="font-size: 0.8rem;">
+                                            </div>
+                                        </div>
+                                        <div class="row g-2">
+                                            <div class="col-8">
+                                                <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.72rem;"><i class="mdi mdi-weather-night text-info me-0.5"></i> Malam</label>
+                                                <textarea name="handover_malam" class="form-control form-control-sm" rows="1" placeholder="Malam..." style="font-size: 0.8rem;">{{ $malamValue }}</textarea>
+                                            </div>
+                                            <div class="col-4">
+                                                <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.72rem;">Ners Malam</label>
+                                                <input type="text" name="ners_malam" class="form-control form-control-sm" value="{{ $equipment->ners_malam }}" placeholder="Ners Malam" style="font-size: 0.8rem;">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
-                            <!-- Group 2: Doctors -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label text-dark fw-bold small"><i class="mdi mdi-doctor text-success me-1"></i> DPJP Utama</label>
-                                <input type="text" name="dpjp_utama" class="form-control" value="{{ $equipment->dpjp_utama }}" placeholder="Nama DPJP Utama">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label text-dark fw-bold small"><i class="mdi mdi-account-group text-success me-1"></i> DPJP Raber (Rawat Bersama)</label>
-                                <input type="text" name="dpjp_raber" class="form-control" value="{{ $equipment->dpjp_raber }}" placeholder="Nama Dokter Raber">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label text-dark fw-bold small"><i class="mdi mdi-doctor text-info me-1"></i> Dokter Konsul</label>
-                                <input type="text" name="dokter_konsul" class="form-control" value="{{ $equipment->dokter_konsul }}" placeholder="Nama Dokter Konsul">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label text-dark fw-bold small"><i class="mdi mdi-clipboard-check text-info me-1"></i> Visit DPJP</label>
-                                <input type="text" name="visit_dpjp" class="form-control" value="{{ $equipment->visit_dpjp }}" placeholder="Contoh: Sudah (Pukul 09:00)">
-                            </div>
+                            <!-- Right Column: KEBUTUHAN CASE MANAGER -->
+                            <div class="col-md-6 ps-md-3">
+                                <h5 class="fw-bold text-primary mb-3"><i class="mdi mdi-clipboard-text-play text-primary me-1"></i> KEBUTUHAN CASE MANAGER</h5>
+                                
+                                <div class="row g-2 mb-2">
+                                    <div class="col-4">
+                                        <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-cash-multiple text-success me-0.5"></i> Billing</label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-white fw-bold py-0">Rp</span>
+                                            <input type="text" name="billing_aktual" id="billing_aktual" class="form-control form-control-sm" value="{{ $equipment->billing_aktual ? number_format($equipment->billing_aktual, 0, ',', '.') : '' }}" placeholder="Rp" style="font-size: 0.8rem;">
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-cash text-danger me-0.5"></i> PAGU</label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-white fw-bold py-0">Rp</span>
+                                            <input type="text" name="pagu_budget" id="pagu_budget" class="form-control form-control-sm" value="{{ $equipment->pagu_budget ? number_format($equipment->pagu_budget, 0, ',', '.') : '' }}" placeholder="Rp" style="font-size: 0.8rem;">
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-chart-percent text-info me-0.5"></i> % vs Pagu</label>
+                                        <input type="text" id="persentase_pagu_display" class="form-control form-control-sm bg-light text-muted" value="{{ $equipment->persentase_pagu }}" readonly placeholder="Otomatis" style="cursor: not-allowed; font-size: 0.8rem;">
+                                    </div>
+                                </div>
 
-                            <!-- Group 3: Nursing & Clinical Score -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label text-dark fw-bold small"><i class="mdi mdi-account-star text-warning me-1"></i> NPJA</label>
-                                <input type="text" name="npja" class="form-control" value="{{ $equipment->npja }}" placeholder="Nama NPJA">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label text-dark fw-bold small"><i class="mdi mdi-heart-pulse text-danger me-1"></i> EWS (Early Warning Score)</label>
-                                <input type="text" name="ews" class="form-control" value="{{ $equipment->ews }}" placeholder="Contoh: Skor 2 (Stabil)">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label text-dark fw-bold small"><i class="mdi mdi-human text-warning me-1"></i> Tingkat Ketergantungan</label>
-                                <input type="text" name="tingkat_ketergantungan" class="form-control" value="{{ $equipment->tingkat_ketergantungan }}" placeholder="Contoh: Ketergantungan Sedang">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label text-dark fw-bold small"><i class="mdi mdi-account-network text-warning me-1"></i> Ners yang Bertugas</label>
-                                <input type="text" name="ners_bertugas" class="form-control" value="{{ $equipment->ners_bertugas }}" placeholder="Nama-nama Ners">
-                            </div>
+                                <div class="mb-2">
+                                    <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-tag-text-outline text-warning me-0.5"></i> Kategori Pasien</label>
+                                    <select name="kategori_pasien" class="form-select form-select-sm" style="font-size: 0.8rem;">
+                                        <option value="" {{ empty($equipment->kategori_pasien) ? 'selected' : '' }}>-- Pilih Kategori Pasien --</option>
+                                        @foreach(['IGD Medis', 'IGD Surgikal', 'Elektif Medis', 'Elektif Surgikal', 'Elektif Kemoterapi'] as $cat)
+                                            <option value="{{ $cat }}" {{ $equipment->kategori_pasien === $cat ? 'selected' : '' }}>{{ $cat }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
 
-                            <!-- Group 4: Treatment & Planning (Large Fields) -->
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label text-dark fw-bold small"><i class="mdi mdi-clipboard-text text-dark me-1"></i> Diagnosis Medis Saat Ini</label>
-                                <input type="text" name="type" class="form-control" value="{{ $equipment->type }}" placeholder="Diagnosis Medis">
-                            </div>
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label text-dark fw-bold small"><i class="mdi mdi-lightbulb-on text-primary me-1"></i> Planning Pasien</label>
-                                <textarea name="planning_pasien" class="form-control" rows="3" placeholder="Rencana penanganan medis...">{{ $equipment->planning_pasien }}</textarea>
-                            </div>
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label text-dark fw-bold small"><i class="mdi mdi-logout text-success me-1"></i> Rencana Pulang</label>
-                                <textarea name="rencana_pulang" class="form-control" rows="2" placeholder="Rencana kepulangan pasien...">{{ $equipment->rencana_pulang }}</textarea>
-                            </div>
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label text-dark fw-bold small"><i class="mdi mdi-needle text-danger me-1"></i> Penggunaan Alkes & Alat Invasif</label>
-                                <textarea name="alkes_invasif" class="form-control" rows="3" placeholder="Contoh: Infus RL, Kateter Urine, dll...">{{ $equipment->alkes_invasif }}</textarea>
-                            </div>
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label text-dark fw-bold small"><i class="mdi mdi-medical-bag text-primary me-1"></i> Tindakan / Terapi Medis</label>
-                                <textarea name="tindakan_detail" class="form-control" rows="3" placeholder="Terapi obat, pembedahan, atau tindakan khusus lainnya...">{{ $equipment->tindakan_detail }}</textarea>
+                                <div class="mb-2">
+                                    <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-note-text text-secondary me-0.5"></i> Notes NUM</label>
+                                    <textarea name="notes_num" class="form-control form-control-sm" rows="2" placeholder="Catatan NUM..." style="font-size: 0.8rem;">{{ $equipment->notes_num }}</textarea>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-note-outline text-secondary me-0.5"></i> Notes Case Manager</label>
+                                    <textarea name="notes_case_manager" class="form-control form-control-sm" rows="2" placeholder="Catatan Case Manager..." style="font-size: 0.8rem;">{{ $equipment->notes_case_manager }}</textarea>
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-flask-outline text-primary me-0.5"></i> Riw Pemeriksaan Lab (singkat)</label>
+                                    <textarea name="riw_lab" class="form-control form-control-sm" rows="2" placeholder="Contoh: GDS 1/6, 2/6 ; Elektrolit 1/6 4/6" style="font-size: 0.8rem;">{{ $equipment->riw_lab }}</textarea>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-video-outline text-success me-0.5"></i> Riw Pemeriksaan Rad (singkat)</label>
+                                    <textarea name="riw_rad" class="form-control form-control-sm" rows="2" placeholder="Contoh: Rad toraks 1/6. 4/6 ; CT Brain NK 1/6" style="font-size: 0.8rem;">{{ $equipment->riw_rad }}</textarea>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-pill text-danger me-0.5"></i> Riw Obat Mahal / Antibiotik (singkat)</label>
+                                    <textarea name="riw_obat" class="form-control form-control-sm" rows="2" placeholder="Tuliskan riwayat obat..." style="font-size: 0.8rem;">{{ $equipment->riw_obat }}</textarea>
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-file-document-box-outline text-dark me-0.5"></i> Rencana Prosedur</label>
+                                    <textarea name="rencana_prosedur" class="form-control form-control-sm" rows="2" placeholder="Rencana prosedur..." style="font-size: 0.8rem;">{{ $equipment->rencana_prosedur }}</textarea>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-file-find text-dark me-0.5"></i> Rencana Diagnostik</label>
+                                    <textarea name="rencana_diagnostik" class="form-control form-control-sm" rows="2" placeholder="Rencana diagnostik..." style="font-size: 0.8rem;">{{ $equipment->rencana_diagnostik }}</textarea>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-forum-outline text-dark me-0.5"></i> Rencana Konsul</label>
+                                    <textarea name="rencana_konsul" class="form-control form-control-sm" rows="2" placeholder="Rencana konsul..." style="font-size: 0.8rem;">{{ $equipment->rencana_konsul }}</textarea>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="mt-4 pt-3 border-top d-flex justify-content-between">
-                            <button type="button" id="btnCancelEdit" class="btn btn-light fw-bold px-4">Batal</button>
-                            <button type="submit" class="btn btn-success text-white fw-bold px-4">
+                        <div class="mt-3 pt-3 border-top d-flex justify-content-between">
+                            <button type="button" id="btnCancelEdit" class="btn btn-light fw-bold px-4 btn-sm">Batal</button>
+                            <button type="submit" class="btn btn-success text-white fw-bold px-4 btn-sm">
                                 <i class="mdi mdi-content-save me-1"></i> Simpan Perubahan
                             </button>
                         </div>
@@ -313,6 +834,191 @@
             btnToggleEdit.innerHTML = '<i class="mdi mdi-eye me-1"></i> Lihat Data';
             btnToggleEdit.className = 'btn btn-outline-primary btn-sm fw-bold px-3 py-2 shadow-sm';
         }
+
+        // --- Dokter Konsul Row Management ---
+        let activeDoctorsCount = {{ $doctorCount }};
+        
+        window.addDoctorRow = function() {
+            if (activeDoctorsCount < 5) {
+                document.getElementById('doc_row_' + activeDoctorsCount).style.display = 'flex';
+                activeDoctorsCount++;
+            }
+            if (activeDoctorsCount === 5) {
+                document.getElementById('btn_add_doctor').style.display = 'none';
+            }
+        };
+
+        window.removeDoctorRow = function(index) {
+            const row = document.getElementById('doc_row_' + index);
+            const input = row.querySelector('input[name="dokter_konsul[]"]');
+            const checkbox = row.querySelector('input[type="checkbox"]');
+            input.value = '';
+            checkbox.checked = false;
+            row.style.display = 'none';
+            
+            // Shift subsequent inputs and checkbox states up
+            for (let i = index; i < 4; i++) {
+                const nextRow = document.getElementById('doc_row_' + (i + 1));
+                const currentInput = document.getElementById('doc_row_' + i).querySelector('input[name="dokter_konsul[]"]');
+                const currentCheckbox = document.getElementById('doc_row_' + i).querySelector('input[type="checkbox"]');
+                
+                const nextInput = nextRow.querySelector('input[name="dokter_konsul[]"]');
+                const nextCheckbox = nextRow.querySelector('input[type="checkbox"]');
+                
+                currentInput.value = nextInput.value;
+                currentCheckbox.checked = nextCheckbox.checked;
+                
+                document.getElementById('doc_row_' + i).style.display = nextRow.style.display;
+            }
+            
+            const lastRow = document.getElementById('doc_row_4');
+            lastRow.querySelector('input[name="dokter_konsul[]"]').value = '';
+            lastRow.querySelector('input[type="checkbox"]').checked = false;
+            lastRow.style.display = 'none';
+            
+            if (activeDoctorsCount > 1) {
+                activeDoctorsCount--;
+            }
+            document.getElementById('btn_add_doctor').style.display = 'inline-block';
+        };
+
+        // --- Planning Checkbox Toggles ---
+        ['lab', 'radiologi', 'konsul', 'tindakan', 'edukasi'].forEach(function(item) {
+            const checkbox = document.getElementById('planning_' + item + '_check');
+            if (checkbox) {
+                checkbox.addEventListener('change', function() {
+                    const container = document.getElementById('planning_' + item + '_container');
+                    if (container) {
+                        if (this.checked) {
+                            container.style.display = 'block';
+                        } else {
+                            container.style.display = 'none';
+                            const inputField = container.querySelector('input');
+                            if (inputField) inputField.value = '';
+                        }
+                    }
+                });
+            }
+        });
+        // --- Billing and PAGU currency formatting & percentage calculation ---
+        const billingInput = document.getElementById('billing_aktual');
+        const paguInput = document.getElementById('pagu_budget');
+        const persentaseDisplay = document.getElementById('persentase_pagu_display');
+
+        function cleanNumber(val) {
+            return parseInt(val.replace(/[^0-9]/g, '')) || 0;
+        }
+
+        function formatRupiah(val) {
+            let num = val.replace(/[^0-9]/g, '');
+            if (!num) return '';
+            return parseInt(num).toLocaleString('id-ID');
+        }
+
+        function updatePercentage() {
+            let billing = cleanNumber(billingInput.value);
+            let pagu = cleanNumber(paguInput.value);
+            if (pagu > 0) {
+                let pct = Math.round((billing / pagu) * 100);
+                persentaseDisplay.value = pct + '%';
+            } else {
+                persentaseDisplay.value = '';
+            }
+        }
+        if (billingInput && paguInput) {
+            [billingInput, paguInput].forEach(input => {
+                input.addEventListener('input', function(e) {
+                    let cursorPosition = this.selectionStart;
+                    let originalLength = this.value.length;
+                    
+                    let formatted = formatRupiah(this.value);
+                    this.value = formatted;
+                    
+                    let newLength = formatted.length;
+                    cursorPosition = cursorPosition + (newLength - originalLength);
+                    this.setSelectionRange(cursorPosition, cursorPosition);
+                    
+                    updatePercentage();
+                });
+            });
+        }
+
+        // --- Multi-select checkboxes for Alkes Invasif & Tindakan ---
+        const alkesCheckboxes = document.querySelectorAll('.alkes-checkbox');
+        const alkesHiddenInput = document.getElementById('alkes_invasif_hidden');
+        const alkesDropdownLabel = document.getElementById('alkesDropdownLabel');
+
+        function updateAlkesSelection() {
+            const selected = [];
+            alkesCheckboxes.forEach(cb => {
+                if (cb.checked) {
+                    selected.push(cb.value);
+                }
+            });
+            const selectedStr = selected.join(', ');
+            if (alkesHiddenInput) {
+                alkesHiddenInput.value = selectedStr;
+            }
+            if (alkesDropdownLabel) {
+                alkesDropdownLabel.innerText = selected.length > 0 ? selectedStr : 'Pilih Alkes / Alat Invasif';
+            }
+        }
+
+        if (alkesCheckboxes.length > 0) {
+            alkesCheckboxes.forEach(cb => {
+                cb.addEventListener('change', updateAlkesSelection);
+            });
+            // Stop click propagation to prevent dropdown close on selection
+            const alkesMenu = document.querySelector('#alkes_dropdown_container .dropdown-menu');
+            if (alkesMenu) {
+                alkesMenu.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            }
+            updateAlkesSelection();
+        }
+
+        const tindakanCheckboxes = document.querySelectorAll('.tindakan-checkbox');
+        const tindakanHiddenInput = document.getElementById('tindakan_detail_hidden');
+        const tindakanDropdownLabel = document.getElementById('tindakanDropdownLabel');
+
+        function updateTindakanSelection() {
+            const selected = [];
+            tindakanCheckboxes.forEach(cb => {
+                if (cb.checked) {
+                    selected.push(cb.value);
+                }
+            });
+            const selectedStr = selected.join(', ');
+            if (tindakanHiddenInput) {
+                tindakanHiddenInput.value = selectedStr;
+            }
+            if (tindakanDropdownLabel) {
+                tindakanDropdownLabel.innerText = selected.length > 0 ? selectedStr : 'Pilih Tindakan / Terapi Medis';
+            }
+        }
+
+        if (tindakanCheckboxes.length > 0) {
+            tindakanCheckboxes.forEach(cb => {
+                cb.addEventListener('change', updateTindakanSelection);
+            });
+            // Stop click propagation to prevent dropdown close on selection
+            const tindakanMenu = document.querySelector('#tindakan_dropdown_container .dropdown-menu');
+            if (tindakanMenu) {
+                tindakanMenu.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            }
+            updateTindakanSelection();
+        }
     });
 </script>
+@php
+    $doctorsList = \App\Models\Doctor::orderBy('name')->get();
+@endphp
+<datalist id="doctors_list">
+    @foreach($doctorsList as $doc)
+        <option value="{{ $doc->name }}">{{ $doc->ksm }}</option>
+    @endforeach
+</datalist>
 @stop
