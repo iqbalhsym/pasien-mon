@@ -613,6 +613,20 @@
             </a>
           </li>
 
+          <div class="category-heading">Dashboard Mutu</div>
+          <li class="nav-item {{ request()->routeIs('mutu.kepatuhan-visit') ? 'active' : '' }}">
+            <a class="nav-link text-decoration-none" href="{{ route('mutu.kepatuhan-visit') }}">
+              <i class="mdi mdi-chart-box-outline"></i>
+              <span class="menu-title">Kepatuhan Visit DPJP</span>
+            </a>
+          </li>
+          <li class="nav-item {{ request()->routeIs('mutu.respon-konsul') ? 'active' : '' }}">
+            <a class="nav-link text-decoration-none" href="{{ route('mutu.respon-konsul') }}">
+              <i class="mdi mdi-message-text-clock-outline"></i>
+              <span class="menu-title">Respon e-Konsul DPJP</span>
+            </a>
+          </li>
+
           <div class="category-heading">Manajemen Pasien</div>
 
           <li class="nav-item {{ request()->routeIs('beds.*') ? 'active' : '' }}">

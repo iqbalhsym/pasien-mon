@@ -118,7 +118,49 @@ class MaintenanceController extends Controller
             });
         }
 
-        $equipmentsPaginator = $query->paginate(10);
+        $perPage = $request->input('per_page', 10);
+
+        if ($sort === 'los_terlama' || $sort === 'los_singkat') {
+            // Ambil semua data sesuai filter (tanpa paginasi sql)
+            $allEquipments = $query->get();
+
+            // Hitung LOS secara manual di PHP
+            foreach ($allEquipments as $eq) {
+                $tglMasukRaw = $eq->registered_date ?: $eq->tanggal_pengadaan;
+                $tglMasukParsed = null;
+                try {
+                    $tglMasukParsed = \Carbon\Carbon::parse($tglMasukRaw);
+                } catch (\Exception $e) {}
+                
+                $losInt = 0;
+                if ($tglMasukParsed) {
+                    $losInt = (int)$tglMasukParsed->diffInDays(now()->startOfDay());
+                }
+                $eq->los_calculated = $losInt;
+            }
+
+            // Sortir Collection
+            if ($sort === 'los_terlama') {
+                $allEquipments = $allEquipments->sortByDesc('los_calculated');
+            } else {
+                $allEquipments = $allEquipments->sortBy('los_calculated');
+            }
+
+            // Paginasi Manual
+            $page = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
+            
+            $equipmentsPaginator = new \Illuminate\Pagination\LengthAwarePaginator(
+                $allEquipments->forPage($page, $perPage),
+                $allEquipments->count(),
+                $perPage,
+                $page,
+                ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath()]
+            );
+            $equipmentsPaginator->appends($request->all());
+        } else {
+            // Jika bukan sort LOS, pakai paginasi SQL biasa (lebih cepat)
+            $equipmentsPaginator = $query->paginate($perPage)->appends($request->all());
+        }
         $equipments = Equipment::all(); // untuk modal daftar pilihan dropdown
         
         $patientsMap = $this->fetchApiPatientsMap();

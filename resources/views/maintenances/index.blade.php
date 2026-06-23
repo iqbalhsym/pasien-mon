@@ -47,6 +47,25 @@
                    class="btn btn-sm fw-bold {{ request('sort') === 'ruangan' ? 'btn-primary text-white' : 'btn-light border text-dark bg-white' }}" style="font-size: 0.82rem;" title="Urut per Ruangan A-Z">
                     <i class="mdi mdi-hospital-building me-1"></i>Ruangan
                 </a>
+                <a href="{{ route('maintenances.index', array_merge(request()->except(['sort', 'page']), ['sort' => 'los_terlama'])) }}"
+                   class="btn btn-sm fw-bold {{ request('sort') === 'los_terlama' ? 'btn-warning text-dark' : 'btn-light border text-dark bg-white' }}" style="font-size: 0.82rem;" title="Urut LOS Terlama ke Baru">
+                    <i class="mdi mdi-sort-numeric-descending me-1"></i>LOS Terlama
+                </a>
+                <a href="{{ route('maintenances.index', array_merge(request()->except(['sort', 'page']), ['sort' => 'los_singkat'])) }}"
+                   class="btn btn-sm fw-bold {{ request('sort') === 'los_singkat' ? 'btn-info text-white' : 'btn-light border text-dark bg-white' }}" style="font-size: 0.82rem;" title="Urut LOS Singkat ke Lama">
+                    <i class="mdi mdi-sort-numeric-ascending me-1"></i>LOS Singkat
+                </a>
+            </div>
+
+            <!-- Per Page Dropdown -->
+            <div class="input-group shadow-sm" style="width: auto;">
+                <span class="input-group-text bg-white border-end-0 py-0" style="font-size: 0.85rem;"><i class="mdi mdi-format-list-numbered text-muted"></i></span>
+                <select name="per_page" class="form-select border-start-0 ps-0 bg-white fw-bold text-dark" style="font-size: 0.88rem;" onchange="document.getElementById('monitoringFilterForm').submit();">
+                    <option value="10" {{ request('per_page') == '10' ? 'selected' : '' }}>10 baris</option>
+                    <option value="25" {{ request('per_page') == '25' ? 'selected' : '' }}>25 baris</option>
+                    <option value="50" {{ request('per_page') == '50' ? 'selected' : '' }}>50 baris</option>
+                    <option value="100" {{ request('per_page') == '100' ? 'selected' : '' }}>100 baris</option>
+                </select>
             </div>
 
             <!-- Submit & Reset -->

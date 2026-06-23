@@ -441,6 +441,26 @@
                 transform: rotate(360deg);
             }
         }
+        
+        .blinking-light {
+            width: 12px;
+            height: 12px;
+            background-color: #10B981; /* Hijau cerah */
+            border-radius: 50%;
+            box-shadow: 0 0 8px #10B981, 0 0 15px #10B981;
+            animation: blink 1.5s infinite alternate;
+        }
+
+        @keyframes blink {
+            from {
+                opacity: 1;
+                transform: scale(1);
+            }
+            to {
+                opacity: 0.4;
+                transform: scale(0.85);
+            }
+        }
     </style>
 </head>
 
@@ -565,12 +585,15 @@
                     {{-- <span class="glass-badge">
                         <i class="mdi mdi-shield-check-outline"></i> Active Directory Secured
                     </span> --}}
-                    <h2 class="fw-extrabold mb-3" style="font-size: 2.2rem; font-weight: 800; line-height: 1.25;">PASIEN
-                        JOURNEY</h2>
-                    <p class="mb-4" style="font-size: 1.05rem; opacity: 0.9; line-height: 1.6; font-weight: 500;">
-                        Portal pemantauan internal RS Universitas Indonesia untuk merekam, memelihara, dan meninjau
-                        seluruh data riwayat medis pasien secara terintegrasi, aman, dan efisien.
+                    <h2 class="fw-extrabold mb-3 text-center" style="font-size: 2.2rem; font-weight: 800; line-height: 1.25;">PASIEN JOURNEY</h2>
+                    <p class="mb-4 text-justify" style="font-size: 1.05rem; opacity: 0.9; line-height: 1.6; font-weight: 500; text-align: justify;">
+                        Portal pemantauan internal RS Universitas Indonesia untuk merekam, memelihara, dan meninjau seluruh data riwayat medis pasien secara terintegrasi, aman, dan efisien.
                     </p>
+
+                    <div class="d-flex align-items-center justify-content-center mt-3" style="background: rgba(0,0,0,0.15); border-radius: 50px; padding: 0.5rem 1rem; width: max-content; margin: 0 auto; border: 1px solid rgba(255,255,255,0.1);">
+                        <div class="blinking-light me-2"></div>
+                        <span style="font-size: 0.9rem; font-weight: 600; letter-spacing: 0.5px; color: #fff;">Sistem aktif &mdash; Data real-time</span>
+                    </div>
 
                     {{-- <hr style="border-top: 1px solid rgba(255,255,255,0.25); margin: 2rem 0;"> --}}
 

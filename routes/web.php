@@ -43,6 +43,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/rekam-medis/{serial_number}/qr', [MaintenanceController::class, 'printQr'])->name('maintenances.qr');
     Route::post('/beds/sync', [\App\Http\Controllers\BedController::class, 'sync'])->name('beds.sync');
 
+    // Mutu Dashboards
+    Route::prefix('mutu')->name('mutu.')->group(function() {
+        Route::get('/kepatuhan-visit', [\App\Http\Controllers\MutuController::class, 'kepatuhanVisit'])->name('kepatuhan-visit');
+        Route::get('/respon-konsul', [\App\Http\Controllers\MutuController::class, 'responKonsul'])->name('respon-konsul');
+    });
+
     // --- RUTE EDIT/HAPUS/TAMBAH (Admin & User biasa) ---
     Route::middleware(['role:admin,user'])->group(function () {
         // Pasien (Alat)
