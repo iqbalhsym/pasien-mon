@@ -57,4 +57,14 @@ return [
         'driver'    => 'file',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | LDAP Allowed Group
+    |--------------------------------------------------------------------------
+    |
+    | The AD/LDAP group that is allowed to log into the application.
+    |
+    */
+    'allowed_group' => env('LDAP_ALLOWED_GROUP', 'Monitoring-Pasien'),
+
 ];

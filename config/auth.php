@@ -64,7 +64,7 @@ return [
             'driver' => 'ldap',
             'model'  => LdapRecord\Models\ActiveDirectory\User::class,
             'rules'  => [
-                App\Ldap\Rules\OnlySarprasGroup::class,
+                App\Ldap\Rules\OnlyMonitoringPasienGroup::class,
             ],
             'scopes' => [],
             'database' => [
