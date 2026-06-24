@@ -351,31 +351,36 @@
                             </div>
 
                             <!-- Dynamic Lab, Rad, Obat Collapsible blocks -->
+                            <style>
+                                .card-header[aria-expanded="false"] .toggle-icon {
+                                    transform: rotate(0deg) !important;
+                                }
+                            </style>
                             <div class="mb-2">
                                 <div class="card border shadow-xs" style="border-radius: 6px; overflow: hidden; margin-bottom: 6px;">
-                                    <div class="card-header bg-white p-2 d-flex justify-content-between align-items-center" style="cursor: pointer; font-size: 0.8rem;" data-bs-toggle="collapse" data-bs-target="#detail_riw_lab_collapse" aria-expanded="false">
+                                    <div class="card-header bg-white p-2 d-flex justify-content-between align-items-center" style="cursor: pointer; font-size: 0.8rem;" data-bs-toggle="collapse" data-bs-target="#detail_riw_lab_collapse" aria-expanded="true">
                                         <span class="fw-bold text-primary"><i class="mdi mdi-flask-outline me-1"></i> Riw Pemeriksaan Lab</span>
-                                        <i class="mdi mdi-chevron-down text-muted"></i>
+                                        <i class="mdi mdi-chevron-down text-muted toggle-icon" style="transition: transform 0.2s; transform: rotate(180deg);"></i>
                                     </div>
-                                    <div id="detail_riw_lab_collapse" class="collapse">
+                                    <div id="detail_riw_lab_collapse" class="collapse show">
                                         <div class="card-body bg-light border-top text-dark p-2" style="white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->riw_lab ?: '-' }}</div>
                                     </div>
                                 </div>
                                 <div class="card border shadow-xs" style="border-radius: 6px; overflow: hidden; margin-bottom: 6px;">
-                                    <div class="card-header bg-white p-2 d-flex justify-content-between align-items-center" style="cursor: pointer; font-size: 0.8rem;" data-bs-toggle="collapse" data-bs-target="#detail_riw_rad_collapse" aria-expanded="false">
+                                    <div class="card-header bg-white p-2 d-flex justify-content-between align-items-center" style="cursor: pointer; font-size: 0.8rem;" data-bs-toggle="collapse" data-bs-target="#detail_riw_rad_collapse" aria-expanded="true">
                                         <span class="fw-bold text-success"><i class="mdi mdi-video-outline me-1"></i> Riw Pemeriksaan Rad</span>
-                                        <i class="mdi mdi-chevron-down text-muted"></i>
+                                        <i class="mdi mdi-chevron-down text-muted toggle-icon" style="transition: transform 0.2s; transform: rotate(180deg);"></i>
                                     </div>
-                                    <div id="detail_riw_rad_collapse" class="collapse">
+                                    <div id="detail_riw_rad_collapse" class="collapse show">
                                         <div class="card-body bg-light border-top text-dark p-2" style="white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->riw_rad ?: '-' }}</div>
                                     </div>
                                 </div>
                                 <div class="card border shadow-xs" style="border-radius: 6px; overflow: hidden; margin-bottom: 6px;">
-                                    <div class="card-header bg-white p-2 d-flex justify-content-between align-items-center" style="cursor: pointer; font-size: 0.8rem;" data-bs-toggle="collapse" data-bs-target="#detail_riw_obat_collapse" aria-expanded="false">
+                                    <div class="card-header bg-white p-2 d-flex justify-content-between align-items-center" style="cursor: pointer; font-size: 0.8rem;" data-bs-toggle="collapse" data-bs-target="#detail_riw_obat_collapse" aria-expanded="true">
                                         <span class="fw-bold text-danger"><i class="mdi mdi-pill me-1"></i> Riw Obat Mahal / Antibiotik</span>
-                                        <i class="mdi mdi-chevron-down text-muted"></i>
+                                        <i class="mdi mdi-chevron-down text-muted toggle-icon" style="transition: transform 0.2s; transform: rotate(180deg);"></i>
                                     </div>
-                                    <div id="detail_riw_obat_collapse" class="collapse">
+                                    <div id="detail_riw_obat_collapse" class="collapse show">
                                         <div class="card-body bg-light border-top text-dark p-2" style="white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->riw_obat ?: '-' }}</div>
                                     </div>
                                 </div>
