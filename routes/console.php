@@ -10,3 +10,10 @@ Artisan::command('inspire', function () {
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('sync:beds')->everyMinute();
+
+Artisan::command('visit:reset', function () {
+    \App\Models\Equipment::where('visit_dpjp', 'Sudah')->update(['visit_dpjp' => 'Belum']);
+    $this->info('DPJP visit status reset successfully.');
+})->purpose('Reset daily DPJP visit checklist');
+
+Schedule::command('visit:reset')->dailyAt('00:00');

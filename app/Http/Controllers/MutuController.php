@@ -10,6 +10,7 @@ class MutuController extends Controller
 {
     public function kepatuhanVisit(Request $request)
     {
+        Equipment::resetDailyVisits();
         // 1. Ambil data pasien aktif (yang ada di ruangan)
         $patients = Equipment::whereNotNull('lokasi')->where('lokasi', '!=', '')->get();
 

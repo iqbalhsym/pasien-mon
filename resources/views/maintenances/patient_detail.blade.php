@@ -91,323 +91,89 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h4 class="card-title fw-bold text-danger mb-0">INFORMASI MEDIS KLINIS & PEMANTAUAN</h4>
-                    <button type="button" id="btnToggleEdit" class="btn btn-primary btn-sm fw-bold px-3 py-2 text-white shadow-sm">
-                        <i class="mdi mdi-pencil me-1"></i> Ubah Data
-                    </button>
-                </div>
-
-                <!-- VIEW MODE -->
-                <div id="viewMode">
-                    @php
-                        $tglMasukRaw = $equipment->registered_date ?: $equipment->tanggal_pengadaan;
-                        $tglMasukParsed = null;
-                        try {
-                            $tglMasukParsed = \Carbon\Carbon::parse($tglMasukRaw);
-                        } catch (\Exception $e) {}
-                        
-                        $dayNamesIndonesian = [
-                            'Sunday' => 'Minggu',
-                            'Monday' => 'Senin',
-                            'Tuesday' => 'Selasa',
-                            'Wednesday' => 'Rabu',
-                            'Thursday' => 'Kamis',
-                            'Friday' => 'Jumat',
-                            'Saturday' => 'Sabtu'
-                        ];
-                        $displayHariMasuk = $tglMasukParsed ? ' (' . ($dayNamesIndonesian[$tglMasukParsed->format('l')] ?? $tglMasukParsed->format('l')) . ')' : '';
-                        $displayTglMasuk = $tglMasukParsed ? $tglMasukParsed->format('d/m/Y') . $displayHariMasuk : ($tglMasukRaw ?: '-');
-
-                        $dynamicLos = '-';
-                        $losIntVal = 0;
-                        if ($tglMasukParsed) {
-                            $losIntVal = (int)$tglMasukParsed->diffInDays(now()->startOfDay());
-                            $dynamicLos = $losIntVal . ' Hari';
-                        }
-                        
-                        $targetLosRaw = $equipment->target_los;
-                        $targetLosInt = (int)preg_replace('/[^0-9]/', '', $targetLosRaw);
-                        $isOverLos = false;
-                        if ($targetLosInt > 0 && $losIntVal > $targetLosInt) {
-                            $isOverLos = true;
-                        }
-
-                        $tglPulangRaw = $equipment->rencana_pulang ?: ($apiData['rencana_pulang'] ?? null);
-                        if ($tglPulangRaw === '-') {
-                            $tglPulangRaw = null;
-                        }
-                        $tglPulangParsed = null;
-                        if ($tglPulangRaw) {
-                            try {
-                                $tglPulangParsed = \Carbon\Carbon::parse($tglPulangRaw);
-                            } catch (\Exception $e) {}
-                        }
-                        $displayHariPulang = $tglPulangParsed ? ' (' . ($dayNamesIndonesian[$tglPulangParsed->format('l')] ?? $tglPulangParsed->format('l')) . ')' : '';
-                        $displayTglPulang = $tglPulangParsed ? $tglPulangParsed->format('d/m/Y') . $displayHariPulang : ($tglPulangRaw ?: '');
-
-                        $rawDokterKonsul = $equipment->dokter_konsul ?? '';
-                        $konsulDoctors = [];
-                        if (!empty($rawDokterKonsul)) {
-                            $parts = explode(',', $rawDokterKonsul);
-                            foreach ($parts as $part) {
-                                $part = trim($part);
-                                if ($part === '') continue;
-                                
-                                $checked = true;
-                                $name = $part;
-                                if (strpos($part, '[v] ') === 0) {
-                                    $checked = true;
-                                    $name = substr($part, 4);
-                                } elseif (strpos($part, '[ ] ') === 0) {
-                                    $checked = false;
-                                    $name = substr($part, 4);
-                                }
-                                $konsulDoctors[] = [
-                                    'name' => $name,
-                                    'checked' => $checked
-                                ];
-                            }
-                        }
-                        $doctorCount = max(1, min(5, count($konsulDoctors)));
-
-                        $handoverLines = array_filter(array_map('trim', explode("\n", $equipment->spesifikasi ?? '')));
-                        $pagiNote = '-';
-                        $soreNote = '-';
-                        $malamNote = '-';
-                        foreach($handoverLines as $line) {
-                            if (stripos($line, 'pagi:') !== false || stripos($line, 'pagi -') !== false) {
-                                $pagiNote = trim(preg_replace('/^pagi\s*(:|-)\s*/i', '', $line));
-                            } elseif (stripos($line, 'sore:') !== false || stripos($line, 'sore -') !== false) {
-                                $soreNote = trim(preg_replace('/^sore\s*(:|-)\s*/i', '', $line));
-                            } elseif (stripos($line, 'malam:') !== false || stripos($line, 'malam -') !== false) {
-                                $malamNote = trim(preg_replace('/^malam\s*(:|-)\s*/i', '', $line));
-                            }
-                        }
-                        if ($pagiNote === '-' && $soreNote === '-' && $malamNote === '-' && !empty($equipment->spesifikasi)) {
-                            $pagiNote = $handoverLines[0] ?? '-';
-                            $soreNote = $handoverLines[1] ?? '-';
-                            $malamNote = $handoverLines[2] ?? '-';
-                        }
-                    @endphp
-                    <div class="row">
-                        <!-- Left Column: INFORMASI MEDIS KLINIS & PEMANTAUAN -->
-                        <div class="col-md-6 border-end pe-md-3 mb-4 mb-md-0">
-                            <h5 class="fw-bold text-danger mb-3"><i class="mdi mdi-medical-bag text-danger me-1"></i> MEDIS KLINIS & PEMANTAUAN</h5>
-                            
-                            <div class="row g-2 mb-2">
-                                <div class="col-4">
-                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-calendar text-primary me-0.5"></i> Masuk RS</label>
-                                    <div class="p-2 bg-light rounded border text-dark fw-bold" style="font-size: 0.8rem;">
-                                        {{ $displayTglMasuk }}
-                                    </div>
-                                </div>
-                                <div class="col-4">
-                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-clock-outline text-primary me-0.5"></i> LOS Aktual</label>
-                                    <div class="p-2 bg-light rounded border text-dark fw-bold" style="font-size: 0.8rem;">
-                                        {{ $dynamicLos }}
-                                    </div>
-                                </div>
-                                <div class="col-4">
-                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-calendar-range text-info me-0.5"></i> Target LOS</label>
-                                    <div class="p-2 rounded border text-dark fw-bold d-flex justify-content-between align-items-center {{ $isOverLos ? 'border-danger text-danger' : 'bg-light border-light' }}" style="font-size: 0.8rem; {{ $isOverLos ? 'background-color: #F8D7DA !important; color: #721C24 !important; border-color: #dc3545 !important;' : '' }}">
-                                        <span>{{ $equipment->target_los ? $equipment->target_los . ' Hari' : '-' }}</span>
-                                        @if($isOverLos)
-                                            <span class="badge bg-danger text-white fw-bold" style="font-size: 0.65rem; padding: 2px 4px;"><i class="mdi mdi-alert-circle me-0.5"></i> Over</span>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row g-2 mb-2">
-                                <div class="col-7">
-                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-doctor text-success me-0.5"></i> DPJP Utama</label>
-                                    <div class="p-2 bg-light rounded border text-dark fw-bold text-truncate" style="font-size: 0.8rem;" title="{{ $equipment->dpjp_utama }}">
-                                        {{ $equipment->dpjp_utama ?: '-' }}
-                                    </div>
-                                </div>
-                                <div class="col-5">
-                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-clipboard-check text-info me-0.5"></i> Visit DPJP</label>
-                                    <div class="p-2 bg-light rounded border text-dark fw-bold text-center" style="font-size: 0.8rem;">
-                                        {{ $equipment->visit_dpjp ?: '-' }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mb-2">
-                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-doctor text-info me-0.5"></i> Dokter Konsul</label>
-                                <div class="p-2 bg-light rounded border text-dark fw-bold" style="font-size: 0.8rem;">
-                                    @if(count($konsulDoctors) > 0)
-                                        <div class="d-flex flex-column gap-1">
-                                            @foreach($konsulDoctors as $doc)
-                                                <div class="d-flex align-items-center">
-                                                    <i class="mdi {{ $doc['checked'] ? 'mdi-checkbox-marked text-success' : 'mdi-checkbox-blank-outline text-muted' }} me-1.5" style="font-size: 0.95rem;"></i>
-                                                    <span>{{ $doc['name'] }}</span>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </div>
-                            </div>
-
-                            <div class="row g-2 mb-2">
-                                <div class="col-6">
-                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-account-star text-warning me-0.5"></i> NPJA</label>
-                                    <div class="p-2 bg-light rounded border text-dark fw-bold text-truncate" style="font-size: 0.8rem;" title="{{ $equipment->npja }}">{{ $equipment->npja ?: '-' }}</div>
-                                </div>
-                                <div class="col-6">
-                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-heart-pulse text-danger me-0.5"></i> EWS</label>
-                                    <div class="p-2 bg-light rounded border text-dark fw-bold text-truncate" style="font-size: 0.8rem;" title="{{ $equipment->ews }}">{{ $equipment->ews ?: '-' }}</div>
-                                </div>
-                                <div class="col-6">
-                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-human text-warning me-0.5"></i> Ketergantungan</label>
-                                    <div class="p-2 bg-light rounded border text-dark fw-bold text-truncate" style="font-size: 0.8rem;" title="{{ $equipment->tingkat_ketergantungan }}">{{ $equipment->tingkat_ketergantungan ?: '-' }}</div>
-                                </div>
-                                <div class="col-6">
-                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-account-network text-warning me-0.5"></i> Ners Bertugas</label>
-                                    <div class="p-2 bg-light rounded border text-dark fw-bold text-truncate" style="font-size: 0.8rem;" title="{{ $equipment->ners_bertugas }}">{{ $equipment->ners_bertugas ?: '-' }}</div>
-                                </div>
-                            </div>
-
-                            <div class="mb-2">
-                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-clipboard-text text-dark me-0.5"></i> Diagnosis Medis Saat Ini</label>
-                                <div class="p-2 bg-light rounded border text-dark text-wrap" style="font-size: 0.8rem;">{{ $equipment->type ?: '-' }}</div>
-                            </div>
-                            <div class="mb-2">
-                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-lightbulb-on text-primary me-0.5"></i> Planning Pasien</label>
-                                <div class="p-2 bg-light rounded border text-dark text-wrap" style="white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->planning_pasien ?: '-' }}</div>
-                            </div>
-                            <div class="mb-2">
-                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-logout text-success me-0.5"></i> Estimasi Pulang</label>
-                                <div class="p-2 bg-light rounded border text-dark" style="white-space: pre-wrap; font-size: 0.8rem;">{{ $displayTglPulang }}</div>
-                            </div>
-                            <div class="mb-2">
-                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-needle text-danger me-0.5"></i> Barrier</label>
-                                <div class="p-2 bg-light rounded border text-dark" style="white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->alkes_invasif ?: '-' }}</div>
-                            </div>
-                            <div class="mb-2">
-                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-medical-bag text-primary me-0.5"></i> Tindakan / Terapi Medis</label>
-                                <div class="p-2 bg-light rounded border text-dark" style="white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->tindakan_detail ?: '-' }}</div>
-                            </div>
-
-                            <div class="mb-2">
-                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-repeat text-warning me-0.5"></i> Catatan Handover</label>
-                                <div class="p-2 bg-light rounded border text-dark" style="font-size: 0.8rem;">
-                                    <div class="mb-2">
-                                        <span class="text-muted fw-bold" style="font-size: 0.72rem;">PAGI:</span> <span class="fw-bold">{{ $pagiNote }}</span>
-                                        <div class="text-muted ps-3 small">Ners Pagi: <span class="fw-bold text-dark">{{ $equipment->ners_pagi ?: '-' }}</span></div>
-                                    </div>
-                                    <div class="mb-2">
-                                        <span class="text-muted fw-bold" style="font-size: 0.72rem;">SORE:</span> <span class="fw-bold">{{ $soreNote }}</span>
-                                        <div class="text-muted ps-3 small">Ners Siang: <span class="fw-bold text-dark">{{ $equipment->ners_siang ?: '-' }}</span></div>
-                                    </div>
-                                    <div>
-                                        <span class="text-muted fw-bold" style="font-size: 0.72rem;">MALAM:</span> <span class="fw-bold">{{ $malamNote }}</span>
-                                        <div class="text-muted ps-3 small">Ners Malam: <span class="fw-bold text-dark">{{ $equipment->ners_malam ?: '-' }}</span></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Right Column: KEBUTUHAN CASE MANAGER -->
-                        <div class="col-md-6 ps-md-3">
-                            <h5 class="fw-bold text-primary mb-3"><i class="mdi mdi-clipboard-text-play text-primary me-1"></i> KEBUTUHAN CASE MANAGER</h5>
-                            
-                            <div class="row g-2 mb-2">
-                                <div class="col-4">
-                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-cash-multiple text-success me-0.5"></i> Billing</label>
-                                    <div class="p-2 bg-light rounded border text-dark fw-bold text-truncate" style="font-size: 0.8rem;">
-                                        {{ $equipment->billing_aktual ? 'Rp ' . number_format($equipment->billing_aktual, 0, ',', '.') : '-' }}
-                                    </div>
-                                </div>
-                                <div class="col-4">
-                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-cash text-danger me-0.5"></i> PAGU</label>
-                                    <div class="p-2 bg-light rounded border text-dark fw-bold text-truncate" style="font-size: 0.8rem;">
-                                        {{ $equipment->pagu_budget ? 'Rp ' . number_format($equipment->pagu_budget, 0, ',', '.') : '-' }}
-                                    </div>
-                                </div>
-                                <div class="col-4">
-                                    <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-chart-percent text-info me-0.5"></i> % vs Pagu</label>
-                                    <div class="p-2 bg-light rounded border text-dark fw-bold text-truncate" style="font-size: 0.8rem;">
-                                        {{ $equipment->persentase_pagu ?: '-' }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mb-2">
-                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-tag-text-outline text-warning me-0.5"></i> Kategori Pasien</label>
-                                <div class="p-2 bg-light rounded border text-dark fw-bold" style="font-size: 0.8rem;">
-                                    {{ $equipment->kategori_pasien ?: '-' }}
-                                </div>
-                            </div>
-
-                            <div class="mb-2">
-                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-note-text text-secondary me-0.5"></i> Notes NUM</label>
-                                <div class="p-2 bg-light rounded border text-dark" style="min-height: 40px; white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->notes_num ?: '-' }}</div>
-                            </div>
-                            <div class="mb-2">
-                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-note-outline text-secondary me-0.5"></i> Notes Case Manager</label>
-                                <div class="p-2 bg-light rounded border text-dark" style="min-height: 40px; white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->notes_case_manager ?: '-' }}</div>
-                            </div>
-
-                            <!-- Dynamic Lab, Rad, Obat Collapsible blocks -->
-                            <style>
-                                .card-header[aria-expanded="false"] .toggle-icon {
-                                    transform: rotate(0deg) !important;
-                                }
-                            </style>
-                            <div class="mb-2">
-                                <div class="card border shadow-xs" style="border-radius: 6px; overflow: hidden; margin-bottom: 6px;">
-                                    <div class="card-header bg-white p-2 d-flex justify-content-between align-items-center" style="cursor: pointer; font-size: 0.8rem;" data-bs-toggle="collapse" data-bs-target="#detail_riw_lab_collapse" aria-expanded="true">
-                                        <span class="fw-bold text-primary"><i class="mdi mdi-flask-outline me-1"></i> Riw Pemeriksaan Lab</span>
-                                        <i class="mdi mdi-chevron-down text-muted toggle-icon" style="transition: transform 0.2s; transform: rotate(180deg);"></i>
-                                    </div>
-                                    <div id="detail_riw_lab_collapse" class="collapse show">
-                                        <div class="card-body bg-light border-top text-dark p-2" style="white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->riw_lab ?: '-' }}</div>
-                                    </div>
-                                </div>
-                                <div class="card border shadow-xs" style="border-radius: 6px; overflow: hidden; margin-bottom: 6px;">
-                                    <div class="card-header bg-white p-2 d-flex justify-content-between align-items-center" style="cursor: pointer; font-size: 0.8rem;" data-bs-toggle="collapse" data-bs-target="#detail_riw_rad_collapse" aria-expanded="true">
-                                        <span class="fw-bold text-success"><i class="mdi mdi-video-outline me-1"></i> Riw Pemeriksaan Rad</span>
-                                        <i class="mdi mdi-chevron-down text-muted toggle-icon" style="transition: transform 0.2s; transform: rotate(180deg);"></i>
-                                    </div>
-                                    <div id="detail_riw_rad_collapse" class="collapse show">
-                                        <div class="card-body bg-light border-top text-dark p-2" style="white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->riw_rad ?: '-' }}</div>
-                                    </div>
-                                </div>
-                                <div class="card border shadow-xs" style="border-radius: 6px; overflow: hidden; margin-bottom: 6px;">
-                                    <div class="card-header bg-white p-2 d-flex justify-content-between align-items-center" style="cursor: pointer; font-size: 0.8rem;" data-bs-toggle="collapse" data-bs-target="#detail_riw_obat_collapse" aria-expanded="true">
-                                        <span class="fw-bold text-danger"><i class="mdi mdi-pill me-1"></i> Riw Obat Mahal / Antibiotik</span>
-                                        <i class="mdi mdi-chevron-down text-muted toggle-icon" style="transition: transform 0.2s; transform: rotate(180deg);"></i>
-                                    </div>
-                                    <div id="detail_riw_obat_collapse" class="collapse show">
-                                        <div class="card-body bg-light border-top text-dark p-2" style="white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->riw_obat ?: '-' }}</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mb-2">
-                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-file-document-box-outline text-dark me-0.5"></i> Rencana Prosedur</label>
-                                <div class="p-2 bg-light rounded border text-dark" style="min-height: 40px; white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->rencana_prosedur ?: '-' }}</div>
-                            </div>
-                            <div class="mb-2">
-                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-file-find text-dark me-0.5"></i> Rencana Diagnostik</label>
-                                <div class="p-2 bg-light rounded border text-dark" style="min-height: 40px; white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->rencana_diagnostik ?: '-' }}</div>
-                            </div>
-                            <div class="mb-2">
-                                <label class="text-muted fw-bold small d-block mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-forum-outline text-dark me-0.5"></i> Rencana Konsul</label>
-                                <div class="p-2 bg-light rounded border text-dark" style="min-height: 40px; white-space: pre-wrap; font-size: 0.8rem;">{{ $equipment->rencana_konsul ?: '-' }}</div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- EDIT FORM MODE -->
-                <div id="editMode" style="display: none;">
+                <div id="editMode">
                     <form action="{{ route('maintenances.update_patient_detail', $equipment->serial_number) }}" method="POST">
                         @csrf
                         @method('PUT')
                         @php
+                            // Demographics and entrance times
+                            $tglMasukRaw = $equipment->registered_date ?: $equipment->tanggal_pengadaan;
+                            $tglMasukParsed = null;
+                            try {
+                                $tglMasukParsed = \Carbon\Carbon::parse($tglMasukRaw);
+                            } catch (\Exception $e) {}
+                            
+                            $dayNamesIndonesian = [
+                                'Sunday' => 'Minggu',
+                                'Monday' => 'Senin',
+                                'Tuesday' => 'Selasa',
+                                'Wednesday' => 'Rabu',
+                                'Thursday' => 'Kamis',
+                                'Friday' => 'Jumat',
+                                'Saturday' => 'Sabtu'
+                            ];
+                            $displayHariMasuk = $tglMasukParsed ? ' (' . ($dayNamesIndonesian[$tglMasukParsed->format('l')] ?? $tglMasukParsed->format('l')) . ')' : '';
+                            $displayTglMasuk = $tglMasukParsed ? $tglMasukParsed->format('d/m/Y') . $displayHariMasuk : ($tglMasukRaw ?: '-');
+
+                            $dynamicLos = '-';
+                            $losIntVal = 0;
+                            if ($tglMasukParsed) {
+                                $losIntVal = (int)$tglMasukParsed->diffInDays(now()->startOfDay());
+                                $dynamicLos = $losIntVal . ' Hari';
+                            }
+                            
+                            $targetLosRaw = $equipment->target_los;
+                            $targetLosInt = (int)preg_replace('/[^0-9]/', '', $targetLosRaw);
+                            $isOverLos = false;
+                            if ($targetLosInt > 0 && $losIntVal > $targetLosInt) {
+                                $isOverLos = true;
+                            }
+
+                            // Dokter Konsul parsing
+                            $rawDokterKonsul = $equipment->dokter_konsul ?? '';
+                            $konsulHistoryMap = [];
+                            if ($equipment->konsul_history) {
+                                $konsulHistoryMap = json_decode($equipment->konsul_history, true) ?: [];
+                            }
+                            $konsulDoctors = [];
+                            if (!empty($rawDokterKonsul)) {
+                                $parts = explode(',', $rawDokterKonsul);
+                                foreach ($parts as $part) {
+                                    $part = trim($part);
+                                    if ($part === '') continue;
+                                    
+                                    $checked = true;
+                                    $name = $part;
+                                    if (strpos($part, '[v] ') === 0) {
+                                        $checked = true;
+                                        $name = substr($part, 4);
+                                    } elseif (strpos($part, '[ ] ') === 0) {
+                                        $checked = false;
+                                        $name = substr($part, 4);
+                                    }
+                                    
+                                    // Get last visit time for this consult doctor
+                                    $docLastVisit = '-';
+                                    if (isset($konsulHistoryMap[$name]) && !empty($konsulHistoryMap[$name])) {
+                                        $docTimestamps = $konsulHistoryMap[$name];
+                                        $lastTs = end($docTimestamps);
+                                        try {
+                                            $docLastVisit = \Carbon\Carbon::parse($lastTs)->format('d/m H:i');
+                                        } catch (\Exception $e) {}
+                                    }
+                                    
+                                    $konsulDoctors[] = [
+                                        'name' => $name,
+                                        'checked' => $checked,
+                                        'last_visit' => $docLastVisit
+                                    ];
+                                }
+                            }
+                            $doctorCount = max(1, min(5, count($konsulDoctors)));
+
                             // Parse planning items for checkboxes
                             $planningItems = array_filter(array_map('trim', explode("\n", $equipment->planning_pasien ?? '')));
                             $labVal = ''; $labChecked = false;
@@ -415,6 +181,7 @@
                             $konVal = ''; $konChecked = false;
                             $tndVal = ''; $tndChecked = false;
                             $eduVal = ''; $eduChecked = false;
+                            $othDetail = '-';
                             foreach($planningItems as $item) {
                                 if (stripos($item, 'lab:') !== false || stripos($item, 'lab -') !== false) {
                                     $labChecked = true;
@@ -431,6 +198,8 @@
                                 } elseif (stripos($item, 'edukasi:') !== false || stripos($item, 'edukasi -') !== false) {
                                     $eduChecked = true;
                                     $eduVal = trim(preg_replace('/^edukasi\s*(:|-)\s*/i', '', $item));
+                                } elseif (stripos($item, 'lain-lain:') !== false || stripos($item, 'lain-lain -') !== false || stripos($item, 'lainnya:') !== false || stripos($item, 'notes:') !== false) {
+                                    $othDetail = trim(preg_replace('/^(lain-lain|lainnya|notes)\s*(:|-)\s*/i', '', $item));
                                 }
                             }
                             if ($labVal === '-') $labVal = '';
@@ -492,6 +261,32 @@
                                             </div>
                                         </div>
                                     </div>
+                                    @php
+                                        $historyLogs = [];
+                                        if ($equipment->visit_history) {
+                                            $historyLogs = json_decode($equipment->visit_history, true) ?: [];
+                                            $historyLogs = array_reverse($historyLogs);
+                                        }
+                                    @endphp
+                                    @if(!empty($historyLogs))
+                                        <div class="mt-2 p-2 bg-white rounded border shadow-xs" style="max-height: 120px; overflow-y: auto;">
+                                            <span class="text-muted fw-bold d-block mb-1" style="font-size: 0.72rem;"><i class="mdi mdi-history"></i> Riwayat Visite DPJP:</span>
+                                            <ul class="list-unstyled mb-0 ps-1" style="font-size: 0.75rem;">
+                                                @foreach($historyLogs as $timestamp)
+                                                    @php
+                                                        $timeParsed = null;
+                                                        try {
+                                                            $timeParsed = \Carbon\Carbon::parse($timestamp);
+                                                        } catch(\Exception $e) {}
+                                                    @endphp
+                                                    <li class="text-dark py-0.5 border-bottom border-light">
+                                                        <i class="mdi mdi-check text-success me-1"></i>
+                                                        {{ $timeParsed ? $timeParsed->translatedFormat('d F Y, H:i') . ' WIB' : $timestamp }}
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    @endif
                                 </div>
 
                                 <div class="row g-2 mb-2">
@@ -532,6 +327,7 @@
                                                     $doc = $konsulDoctors[$i] ?? null;
                                                     $docName = $doc ? $doc['name'] : '';
                                                     $docChecked = $doc ? $doc['checked'] : false;
+                                                    $docLastVisit = $doc ? $doc['last_visit'] : '-';
                                                 @endphp
                                                 <div class="doctor-input-item mb-1.5 align-items-center" id="doc_row_{{ $i }}" style="display: {{ $i < $doctorCount ? 'flex' : 'none' }};">
                                                     <span class="fw-bold me-1.5 small" style="width: 15px; font-size: 0.75rem;">#{{ $i + 1 }}</span>
@@ -543,6 +339,9 @@
                                                                 <label class="form-check-label small fw-bold text-dark mb-0" for="dokter_konsul_check_{{ $i }}">Konsul</label>
                                                             </div>
                                                         </div>
+                                                        @if($docLastVisit !== '-')
+                                                            <span class="input-group-text bg-light text-muted small" style="font-size: 0.72rem;">{{ $docLastVisit }}</span>
+                                                        @endif
                                                     </div>
                                                     @if($i > 0)
                                                         <button type="button" class="btn btn-outline-danger btn-xs ms-1.5 p-1 py-0.5 rounded" onclick="removeDoctorRow({{ $i }})"><i class="mdi mdi-close"></i></button>
@@ -551,12 +350,45 @@
                                             @endfor
                                         </div>
                                         <button type="button" id="btn_add_doctor" class="btn btn-outline-primary btn-xs fw-bold mt-1.5" onclick="addDoctorRow()" style="display: {{ $doctorCount < 5 ? 'inline-block' : 'none' }};"><i class="mdi mdi-plus me-1"></i> Tambah</button>
+
+                                        @if(!empty($konsulHistoryMap))
+                                            <div class="mt-2 p-2 bg-white rounded border shadow-xs" style="max-height: 120px; overflow-y: auto;">
+                                                <span class="text-muted fw-bold d-block mb-1" style="font-size: 0.72rem;"><i class="mdi mdi-history"></i> Riwayat Visite Konsul:</span>
+                                                <ul class="list-unstyled mb-0 ps-1" style="font-size: 0.75rem;">
+                                                    @foreach($konsulHistoryMap as $docName => $timestamps)
+                                                        @if(!empty($timestamps) && !empty($docName))
+                                                            <li class="mb-1 text-dark">
+                                                                <strong class="text-primary">{{ $docName }}:</strong>
+                                                                <div class="ps-2">
+                                                                    @foreach(array_reverse($timestamps) as $ts)
+                                                                        @php
+                                                                            $tsParsed = null;
+                                                                            try {
+                                                                                $tsParsed = \Carbon\Carbon::parse($ts);
+                                                                            } catch(\Exception $e) {}
+                                                                        @endphp
+                                                                        <div class="text-muted border-bottom border-light py-0.5">
+                                                                            <i class="mdi mdi-check text-success me-1"></i>
+                                                                            {{ $tsParsed ? $tsParsed->translatedFormat('d F Y, H:i') . ' WIB' : $ts }}
+                                                                        </div>
+                                                                    @endforeach
+                                                                </div>
+                                                            </li>
+                                                        @endif
+                                                    @endforeach
+                                                </ul>
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
 
                                 <div class="mb-2">
                                     <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-clipboard-text text-dark me-0.5"></i> Diagnosis Medis</label>
                                     <input type="text" name="type" class="form-control form-control-sm" value="{{ $equipment->type }}" placeholder="Diagnosis medis" style="font-size: 0.8rem;">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label text-danger fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-clipboard-text text-danger me-0.5"></i> Diagnosis Lokal</label>
+                                    <textarea name="diagnosis_lokal" class="form-control form-control-sm fw-bold text-dark" rows="2" placeholder="Tulis diagnosis lokal di sini..." style="font-size: 0.8rem;">{{ $equipment->diagnosis_lokal }}</textarea>
                                 </div>
 
                                 <div class="mb-2">
@@ -616,12 +448,25 @@
                                                 <input type="text" name="planning_edukasi" class="form-control form-control-sm" value="{{ $eduVal }}" placeholder="Planning Edukasi" style="font-size: 0.8rem;">
                                             </div>
                                         </div>
+
+                                        <!-- NOTES TAMBAHAN -->
+                                        <div class="mt-2.5 pt-2 border-top">
+                                            <label class="fw-bold text-dark small mb-1" for="planning_lain_lain"><i class="mdi mdi-note-text-outline text-muted me-0.5"></i> Notes Tambahan (Freetext)</label>
+                                            <textarea name="planning_lain_lain" id="planning_lain_lain" class="form-control form-control-sm text-dark fw-bold" rows="2" placeholder="Tulis catatan tambahan lainnya..." style="font-size: 0.8rem;">{{ $othDetail !== '-' ? $othDetail : '' }}</textarea>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div class="mb-2">
-                                    <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-logout text-success me-0.5"></i> Estimasi Pulang (Auto)</label>
-                                    <input type="text" class="form-control form-control-sm bg-light text-muted" value="{{ $displayTglPulang }}" readonly style="cursor: not-allowed; font-size: 0.8rem;">
+                                    <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-logout text-success me-0.5"></i> Rencana Pulang</label>
+                                    @php
+                                        $rpValue = trim($equipment->rencana_pulang ?? '');
+                                    @endphp
+                                    <select name="rencana_pulang" class="form-select form-select-sm fw-bold" style="font-size: 0.8rem;">
+                                        <option value="" {{ $rpValue === '' ? 'selected' : '' }}>-</option>
+                                        <option value="Hari Ini" {{ (stripos($rpValue, 'hari ini') !== false) ? 'selected' : '' }} style="color: #198754; font-weight: bold;">Hari Ini</option>
+                                        <option value="Besok" {{ (stripos($rpValue, 'besok') !== false) ? 'selected' : '' }} style="color: #0d6efd; font-weight: bold;">Besok</option>
+                                    </select>
                                 </div>
 
                                 <div class="mb-2">
@@ -793,7 +638,7 @@
                         </div>
 
                         <div class="mt-3 pt-3 border-top d-flex justify-content-between">
-                            <button type="button" id="btnCancelEdit" class="btn btn-light fw-bold px-4 btn-sm">Batal</button>
+                            <a href="{{ route('maintenances.index') }}" class="btn btn-light fw-bold px-4 btn-sm">Batal</a>
                             <button type="submit" class="btn btn-success text-white fw-bold px-4 btn-sm">
                                 <i class="mdi mdi-content-save me-1"></i> Simpan Perubahan
                             </button>
@@ -807,38 +652,6 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const viewMode = document.getElementById('viewMode');
-        const editMode = document.getElementById('editMode');
-        const btnToggleEdit = document.getElementById('btnToggleEdit');
-        const btnCancelEdit = document.getElementById('btnCancelEdit');
-
-        btnToggleEdit.addEventListener('click', function() {
-            if (viewMode.style.display === 'none') {
-                // Currently in edit mode, cancel it
-                showViewMode();
-            } else {
-                // Switch to edit mode
-                showEditMode();
-            }
-        });
-
-        btnCancelEdit.addEventListener('click', function() {
-            showViewMode();
-        });
-
-        function showViewMode() {
-            viewMode.style.display = 'block';
-            editMode.style.display = 'none';
-            btnToggleEdit.innerHTML = '<i class="mdi mdi-pencil me-1"></i> Ubah Data';
-            btnToggleEdit.className = 'btn btn-primary btn-sm fw-bold px-3 py-2 text-white shadow-sm';
-        }
-
-        function showEditMode() {
-            viewMode.style.display = 'none';
-            editMode.style.display = 'block';
-            btnToggleEdit.innerHTML = '<i class="mdi mdi-eye me-1"></i> Lihat Data';
-            btnToggleEdit.className = 'btn btn-outline-primary btn-sm fw-bold px-3 py-2 shadow-sm';
-        }
 
         // --- Dokter Konsul Row Management ---
         let activeDoctorsCount = {{ $doctorCount }};

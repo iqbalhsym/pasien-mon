@@ -40,11 +40,11 @@
             <!-- Sort Buttons -->
             <div class="btn-group shadow-sm" role="group">
                 <a href="{{ route('maintenances.index', array_merge(request()->except(['sort', 'page']), ['sort' => 'terbaru'])) }}"
-                   class="btn btn-sm fw-bold {{ request('sort', 'terbaru') === 'terbaru' ? 'btn-danger text-white' : 'btn-light border text-dark bg-white' }}" style="font-size: 0.82rem;" title="Urut: Terbaru masuk">
+                   class="btn btn-sm fw-bold {{ request('sort') === 'terbaru' ? 'btn-danger text-white' : 'btn-light border text-dark bg-white' }}" style="font-size: 0.82rem;" title="Urut: Terbaru masuk">
                     <i class="mdi mdi-sort-clock-descending-outline me-1"></i>Terbaru
                 </a>
                 <a href="{{ route('maintenances.index', array_merge(request()->except(['sort', 'page']), ['sort' => 'ruangan'])) }}"
-                   class="btn btn-sm fw-bold {{ request('sort') === 'ruangan' ? 'btn-primary text-white' : 'btn-light border text-dark bg-white' }}" style="font-size: 0.82rem;" title="Urut per Ruangan A-Z">
+                   class="btn btn-sm fw-bold {{ request('sort', 'ruangan') === 'ruangan' ? 'btn-primary text-white' : 'btn-light border text-dark bg-white' }}" style="font-size: 0.82rem;" title="Urut per Ruangan A-Z">
                     <i class="mdi mdi-hospital-building me-1"></i>Ruangan
                 </a>
                 <a href="{{ route('maintenances.index', array_merge(request()->except(['sort', 'page']), ['sort' => 'los_terlama'])) }}"
@@ -203,7 +203,7 @@
                     <table class="table table-hover table-striped align-middle mb-0" style="min-width: 1300px;">
                         <thead class="bg-light border-bottom text-dark">
                             <tr>
-                                <th class="text-center py-3 fw-bold" style="width: 40px; font-size: 0.88rem; color: #4B5563;">No</th>
+                                <th class="text-center py-3 fw-bold" style="width: 80px; font-size: 0.88rem; color: #4B5563;">No. Bed</th>
                                 <th class="py-3 fw-bold" style="width: 250px; font-size: 0.88rem; color: #4B5563;">Nama Pasien<br><span class="text-muted fw-normal" style="font-size: 0.75rem;">No. RM | Jenis Kelamin | Umur<br>Diagnosa Medis</span></th>
                                 <th class="py-3 fw-bold" style="width: 140px; font-size: 0.88rem; color: #4B5563;">Tgl Masuk</th>
                                 <th class="py-3 fw-bold text-center" style="width: 90px; font-size: 0.88rem; color: #4B5563;">LOS</th>
@@ -211,7 +211,7 @@
                                 <th class="py-3 fw-bold" style="width: 220px; font-size: 0.88rem; color: #4B5563;">Handover<br><span class="text-muted fw-normal" style="font-size: 0.75rem;">Pagi | Sore | Malam</span></th>
                                 <th class="py-3 fw-bold" style="width: 220px; font-size: 0.88rem; color: #4B5563;">Planning Selama Perawatan<br><span class="text-muted fw-normal" style="font-size: 0.75rem;">Lab | Radiologi | Konsul | Tindakan | Dll</span></th>
                                 <th class="py-3 fw-bold" style="width: 180px; font-size: 0.88rem; color: #4B5563;">Barrier</th>
-                                <th class="py-3 fw-bold" style="width: 140px; font-size: 0.88rem; color: #4B5563;">Estimasi Pulang</th>
+                                <th class="py-3 fw-bold" style="width: 140px; font-size: 0.88rem; color: #4B5563;">Estimasi /<br>Rencana Pulang</th>
                                 <th class="py-3 fw-bold text-center" style="width: 120px; font-size: 0.88rem; color: #4B5563;">Aksi</th>
                             </tr>
                         </thead>
@@ -281,6 +281,7 @@
                                 $konCheck = false; $konDetail = '-';
                                 $tndCheck = false; $tndDetail = '-';
                                 $eduCheck = false; $eduDetail = '-';
+                                $othDetail = '-';
                                 foreach($planningItems as $item) {
                                     if (stripos($item, 'lab:') !== false || stripos($item, 'lab -') !== false) {
                                         $labCheck = true;
@@ -297,85 +298,110 @@
                                     } elseif (stripos($item, 'edukasi:') !== false || stripos($item, 'edukasi -') !== false) {
                                         $eduCheck = true;
                                         $eduDetail = trim(preg_replace('/^edukasi\s*(:|-)\s*/i', '', $item));
-                                    }
+                                    } elseif (stripos($item, 'lain-lain:') !== false || stripos($item, 'lain-lain -') !== false || stripos($item, 'lainnya:') !== false || stripos($item, 'notes:') !== false) {
+                                         $othDetail = trim(preg_replace('/^(lain-lain|lainnya|notes)\s*(:|-)\s*/i', '', $item));
+                                     }
                                 }
                                 if (!$labCheck && !$radCheck && !$konCheck && !$tndCheck && !$eduCheck && !empty($planningText)) {
                                     $tndCheck = true;
                                     $tndDetail = $planningText;
                                 }
 
-                                // Estimasi Pulang
-                                $tglPulangRaw = $eq->rencana_pulang ?: ($patientsMap[$eq->serial_number]['rencana_pulang'] ?? null);
-                                if ($tglPulangRaw === '-') {
-                                    $tglPulangRaw = null;
+                                // Clean prefix tags like [v] or [ ] from Dokter Konsul string for dashboard display and parse checked status
+                                $rawDokterKonsul = $eq->dokter_konsul ?? '';
+                                $cleanDokterKonsul = '';
+                                $hasCheckedKonsul = false;
+                                $parsedKonsulDoctors = [];
+                                $konsulHistoryMap = [];
+                                if ($eq->konsul_history) {
+                                    $konsulHistoryMap = json_decode($eq->konsul_history, true) ?: [];
                                 }
-                                $tglPulangParsed = null;
-                                if ($tglPulangRaw) {
-                                    try {
-                                        $tglPulangParsed = \Carbon\Carbon::parse($tglPulangRaw);
-                                    } catch (\Exception $e) {}
+
+                                if (!empty($rawDokterKonsul)) {
+                                    $parts = explode(',', $rawDokterKonsul);
+                                    $names = [];
+                                    foreach ($parts as $idx => $part) {
+                                        $part = trim($part);
+                                        $checked = true; // default legacy fallback
+                                        $name = $part;
+                                        if (strpos($part, '[v] ') === 0) {
+                                            $checked = true;
+                                            $name = substr($part, 4);
+                                        } elseif (strpos($part, '[ ] ') === 0) {
+                                            $checked = false;
+                                            $name = substr($part, 4);
+                                        }
+                                        if ($checked) {
+                                            $hasCheckedKonsul = true;
+                                        }
+                                        $names[] = $name;
+
+                                        // Get last visit time for this consult doctor
+                                        $docLastVisit = '-';
+                                        if (isset($konsulHistoryMap[$name]) && !empty($konsulHistoryMap[$name])) {
+                                            $docTimestamps = $konsulHistoryMap[$name];
+                                            $lastTs = end($docTimestamps);
+                                            try {
+                                                $docLastVisit = \Carbon\Carbon::parse($lastTs)->format('d/m H:i');
+                                            } catch (\Exception $e) {}
+                                        }
+
+                                        $parsedKonsulDoctors[] = [
+                                            'index' => $idx,
+                                            'name' => $name,
+                                            'checked' => $checked,
+                                            'last_visit' => $docLastVisit
+                                        ];
+                                    }
+                                    $cleanDokterKonsul = implode(', ', $names);
                                 }
-                                $displayTglPulang = $tglPulangParsed ? $tglPulangParsed->format('d/m/Y') : ($tglPulangRaw ?: '');
-                                $displayHariPulang = $tglPulangParsed ? '(' . ($dayNamesIndonesian[$tglPulangParsed->format('l')] ?? $tglPulangParsed->format('l')) . ')' : '';
 
-                                 // Clean prefix tags like [v] or [ ] from Dokter Konsul string for dashboard display and parse checked status
-                                 $rawDokterKonsul = $eq->dokter_konsul ?? '';
-                                 $cleanDokterKonsul = '';
-                                 $hasCheckedKonsul = false;
-                                 if (!empty($rawDokterKonsul)) {
-                                     $parts = explode(',', $rawDokterKonsul);
-                                     $names = [];
-                                     foreach ($parts as $part) {
-                                         $part = trim($part);
-                                         $checked = true; // default legacy fallback
-                                         $name = $part;
-                                         if (strpos($part, '[v] ') === 0) {
-                                             $checked = true;
-                                             $name = substr($part, 4);
-                                         } elseif (strpos($part, '[ ] ') === 0) {
-                                             $checked = false;
-                                             $name = substr($part, 4);
-                                         }
-                                         if ($checked) {
-                                             $hasCheckedKonsul = true;
-                                         }
-                                         $names[] = $name;
-                                     }
-                                     $cleanDokterKonsul = implode(', ', $names);
-                                 }
+                                // EWS color coding
+                                $ewsColor = null;
+                                $ewsBg = '';
+                                $ewsText = '';
+                                if (!empty($eq->ews)) {
+                                    $ewsLower = strtolower($eq->ews);
+                                    if (stripos($ewsLower, 'hijau') !== false) {
+                                        $ewsColor = '#198754';
+                                        $ewsBg = '#e8f5e9';
+                                        $ewsText = '#198754';
+                                    } elseif (stripos($ewsLower, 'kuning') !== false) {
+                                        $ewsColor = '#ffc107';
+                                        $ewsBg = '#fff9c4';
+                                        $ewsText = '#856404';
+                                    } elseif (stripos($ewsLower, 'oranye') !== false || stripos($ewsLower, 'orange') !== false) {
+                                        $ewsColor = '#fd7e14';
+                                        $ewsBg = '#ffe0b2';
+                                        $ewsText = '#d35400';
+                                    } elseif (stripos($ewsLower, 'merah') !== false) {
+                                        $ewsColor = '#dc3545';
+                                        $ewsBg = '#ffebee';
+                                        $ewsText = '#c62828';
+                                    } elseif (stripos($ewsLower, 'dnr') !== false) {
+                                        $ewsColor = '#6c757d';
+                                        $ewsBg = '#f5f5f5';
+                                        $ewsText = '#495057';
+                                    }
+                                }
 
-                                 // EWS color coding
-                                 $ewsColor = null;
-                                 $ewsBg = '';
-                                 $ewsText = '';
-                                 if (!empty($eq->ews)) {
-                                     $ewsLower = strtolower($eq->ews);
-                                     if (stripos($ewsLower, 'hijau') !== false) {
-                                         $ewsColor = '#198754';
-                                         $ewsBg = '#e8f5e9';
-                                         $ewsText = '#198754';
-                                     } elseif (stripos($ewsLower, 'kuning') !== false) {
-                                         $ewsColor = '#ffc107';
-                                         $ewsBg = '#fff9c4';
-                                         $ewsText = '#856404';
-                                     } elseif (stripos($ewsLower, 'oranye') !== false || stripos($ewsLower, 'orange') !== false) {
-                                         $ewsColor = '#fd7e14';
-                                         $ewsBg = '#ffe0b2';
-                                         $ewsText = '#d35400';
-                                     } elseif (stripos($ewsLower, 'merah') !== false) {
-                                         $ewsColor = '#dc3545';
-                                         $ewsBg = '#ffebee';
-                                         $ewsText = '#c62828';
-                                     } elseif (stripos($ewsLower, 'dnr') !== false) {
-                                         $ewsColor = '#6c757d';
-                                         $ewsBg = '#f5f5f5';
-                                         $ewsText = '#495057';
-                                     }
-                                 }
+                                // DPJP Last Visit Time
+                                $lastVisitTime = '-';
+                                if ($eq->visit_history) {
+                                    $historyArr = json_decode($eq->visit_history, true) ?: [];
+                                    if (!empty($historyArr)) {
+                                        $lastTimestamp = end($historyArr);
+                                        try {
+                                            $lastVisitTime = \Carbon\Carbon::parse($lastTimestamp)->format('d/m H:i');
+                                        } catch (\Exception $e) {}
+                                    }
+                                }
                             @endphp
                             <tr class="border-bottom">
-                                <!-- No -->
-                                <td class="text-center fw-bold text-dark" style="{{ $ewsColor ? 'border-left: 6px solid ' . $ewsColor . ' !important;' : '' }}">{{ $equipmentsPaginator->firstItem() + $key }}</td>
+                                <!-- No. Bed -->
+                                <td class="text-center fw-bold text-dark" style="{{ $ewsColor ? 'border-left: 6px solid ' . $ewsColor . ' !important;' : '' }}">
+                                    {{ $eq->bed ? 'Bed ' . $eq->bed->bed_number : '-' }}
+                                </td>
                                 
                                 <!-- Nama Pasien -->
                                 <td>
@@ -386,9 +412,21 @@
                                         <div class="fw-bold text-uppercase" style="font-size: 0.95rem; color: #0d6efd; line-height: 1.2;">
                                             {{ $eq->merk }}
                                         </div>
-                                        @if($ewsColor)
-                                            <span class="badge shadow-xs" style="background-color: {{ $ewsBg }}; color: {{ $ewsText }}; font-size: 0.72rem; padding: 2px 6px; border: 1px solid {{ $ewsColor }}; font-weight: bold; border-radius: 4px;">{{ $eq->ews }}</span>
-                                        @endif
+                                        
+                                        <!-- EWS Dropdown Form -->
+                                        <form action="{{ route('maintenances.update_patient_detail', $eq->serial_number) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            @method('PUT')
+                                            <select name="ews" onchange="this.form.submit()" class="form-select form-select-xs fw-bold px-2 py-0.5" 
+                                                    style="width: auto; font-size: 0.72rem; border-radius: 4px; display: inline-block; cursor: pointer; background-color: {{ $ewsBg ?: '#ffffff' }}; color: {{ $ewsText ?: '#212529' }}; border: 1px solid {{ $ewsColor ?: '#ced4da' }};">
+                                                <option value="" style="background-color: #ffffff; color: #212529;">- EWS -</option>
+                                                <option value="Hijau" {{ (stripos($eq->ews, 'hijau') !== false) ? 'selected' : '' }} style="background-color: #ffffff; color: #198754; font-weight: bold;">Hijau</option>
+                                                <option value="Kuning" {{ (stripos($eq->ews, 'kuning') !== false) ? 'selected' : '' }} style="background-color: #ffffff; color: #ffc107; font-weight: bold;">Kuning</option>
+                                                <option value="Orange" {{ (stripos($eq->ews, 'oranye') !== false || stripos($eq->ews, 'orange') !== false) ? 'selected' : '' }} style="background-color: #ffffff; color: #fd7e14; font-weight: bold;">Orange</option>
+                                                <option value="Merah" {{ (stripos($eq->ews, 'merah') !== false) ? 'selected' : '' }} style="background-color: #ffffff; color: #dc3545; font-weight: bold;">Merah</option>
+                                                <option value="DNR" {{ (stripos($eq->ews, 'dnr') !== false) ? 'selected' : '' }} style="background-color: #ffffff; color: #6c757d; font-weight: bold;">DNR</option>
+                                            </select>
+                                        </form>
                                     </div>
                                     <div class="text-muted mb-1" style="font-size: 0.85rem; font-weight: 500;">
                                         RM. {{ $eq->serial_number }}
@@ -397,9 +435,14 @@
                                         <i class="mdi {{ $eq->gender == 'Laki-laki' || $eq->gender == 'Male' ? 'mdi-gender-male' : 'mdi-gender-female' }} me-1"></i>
                                         {{ $eq->gender == 'Laki-laki' || $eq->gender == 'Male' ? 'Laki-laki' : 'Perempuan' }} | {{ $eq->tanggal_lahir ? \Carbon\Carbon::parse($eq->tanggal_lahir)->age : '-' }} Th
                                     </div>
-                                    <div class="text-dark fw-bold mb-2" style="font-size: 0.85rem;">
+                                    <div class="text-dark fw-bold mb-1" style="font-size: 0.85rem;">
                                         {{ $eq->type }}
                                     </div>
+                                    @if($eq->diagnosis_lokal)
+                                        <div class="text-muted fw-bold mb-2" style="font-size: 0.82rem; font-style: italic;">
+                                            Diagnosis Lokal: {{ $eq->diagnosis_lokal }}
+                                        </div>
+                                    @endif
 
                                     <!-- Tiny interactive toggle buttons for Lab, Rad, and Obat -->
                                     <div class="d-flex flex-wrap gap-1 mt-1 mb-2">
@@ -473,15 +516,47 @@
                                 <td>
                                     <div style="font-size: 0.88rem; line-height: 1.4;">
                                         <div class="fw-bold text-dark mb-1">{{ $eq->dpjp_utama ?: '-' }}</div>
-                                        <div class="d-flex align-items-center mb-2">
-                                            <span class="text-muted me-2" style="font-size: 0.8rem;">Visite</span>
-                                            <i class="mdi {{ !empty($eq->visit_dpjp) && (stripos($eq->visit_dpjp, 'tidak') === false) && (stripos($eq->visit_dpjp, 'belum') === false) ? 'mdi-checkbox-marked text-success' : 'mdi-checkbox-blank-outline text-muted' }}" style="font-size: 1.1rem;"></i>
-                                        </div>
-                                        <div class="fw-bold text-dark mb-1">{{ $cleanDokterKonsul ?: '-' }}</div>
-                                        <div class="d-flex align-items-center mb-1">
-                                            <span class="text-muted me-2" style="font-size: 0.8rem;">Konsul</span>
-                                            <i class="mdi {{ $hasCheckedKonsul ? 'mdi-checkbox-marked text-success' : 'mdi-checkbox-blank-outline text-muted' }}" style="font-size: 1.1rem;"></i>
-                                        </div>
+                                        
+                                        <!-- Inline Visite Checkbox Form -->
+                                        <form action="{{ route('maintenances.update_patient_detail', $eq->serial_number) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            @method('PUT')
+                                            <div class="d-flex align-items-center mb-2">
+                                                <span class="text-muted me-2" style="font-size: 0.8rem;">Visite</span>
+                                                <input type="hidden" name="visit_dpjp" value="Belum">
+                                                <input type="checkbox" name="visit_dpjp_check" value="Sudah" 
+                                                       {{ (!empty($eq->visit_dpjp) && (stripos($eq->visit_dpjp, 'tidak') === false) && (stripos($eq->visit_dpjp, 'belum') === false)) ? 'checked' : '' }}
+                                                       onchange="this.form.submit()" 
+                                                       class="form-check-input text-success me-1.5" 
+                                                       style="cursor:pointer; width: 1.15rem; height: 1.15rem; border: 1.5px solid #ced4da;">
+                                                @if($lastVisitTime !== '-')
+                                                    <span class="text-muted small" style="font-size: 0.72rem;">({{ $lastVisitTime }})</span>
+                                                @endif
+                                            </div>
+                                        </form>
+
+                                        @if(empty($parsedKonsulDoctors))
+                                            <div class="text-muted" style="font-size: 0.85rem;">-</div>
+                                        @else
+                                            <form action="{{ route('maintenances.update_patient_detail', $eq->serial_number) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                @method('PUT')
+                                                @foreach($parsedKonsulDoctors as $doc)
+                                                    <div class="d-flex align-items-center mb-1 flex-wrap">
+                                                        <input type="hidden" name="dokter_konsul[{{ $doc['index'] }}]" value="{{ $doc['name'] }}">
+                                                        <input type="checkbox" name="dokter_konsul_check[]" value="{{ $doc['index'] }}" 
+                                                               {{ $doc['checked'] ? 'checked' : '' }}
+                                                               onchange="this.form.submit()" 
+                                                               class="form-check-input text-success me-1.5" 
+                                                               style="cursor:pointer; width: 1.05rem; height: 1.05rem; border: 1.5px solid #ced4da;">
+                                                        <span class="fw-bold text-dark me-1" style="font-size: 0.8rem;" title="{{ $doc['name'] }}">{{ \Illuminate\Support\Str::limit($doc['name'], 25) }}</span>
+                                                        @if($doc['last_visit'] !== '-')
+                                                            <span class="text-muted small" style="font-size: 0.68rem;">({{ $doc['last_visit'] }})</span>
+                                                        @endif
+                                                    </div>
+                                                @endforeach
+                                            </form>
+                                        @endif
                                     </div>
                                 </td>
 
@@ -522,10 +597,16 @@
                                             <i class="mdi {{ $tndCheck ? 'mdi-checkbox-marked text-success' : 'mdi-checkbox-blank-outline text-muted' }} me-1.5" style="font-size: 1.1rem;"></i>
                                             <span class="text-dark">Tindakan: <span class="fw-bold">{{ $tndDetail }}</span></span>
                                         </div>
-                                        <div class="d-flex align-items-center">
+                                        <div class="d-flex align-items-center mb-1">
                                             <i class="mdi {{ $eduCheck ? 'mdi-checkbox-marked text-success' : 'mdi-checkbox-blank-outline text-muted' }} me-1.5" style="font-size: 1.1rem;"></i>
                                             <span class="text-dark">Edukasi/Dll: <span class="fw-bold">{{ $eduDetail }}</span></span>
                                         </div>
+                                        @if(!empty($othDetail) && $othDetail !== '-')
+                                            <div class="d-flex align-items-start mt-1 text-muted" style="font-size: 0.78rem;">
+                                                <i class="mdi mdi-note-text-outline me-1.5 mt-0.5" style="font-size: 0.95rem;"></i>
+                                                <span>Notes: <span class="fw-bold text-dark">{{ $othDetail }}</span></span>
+                                            </div>
+                                        @endif
                                     </div>
                                 </td>
 
@@ -536,45 +617,66 @@
                                     </div>
                                 </td>
 
-                                <!-- Estimasi Pulang -->
+                                <!-- Estimasi / Rencana Pulang -->
                                 <td>
-                                    @if($tglPulangRaw && $tglPulangRaw !== '-')
-                                        <div class="d-flex align-items-center text-dark" style="font-size: 0.88rem; font-weight: 500;">
-                                            <i class="mdi mdi-calendar text-muted me-1.5 fs-5"></i>
-                                            <div>
-                                                {{ $displayTglPulang }}<br>
-                                                <span class="text-muted small">{{ $displayHariPulang }}</span>
-                                            </div>
-                                        </div>
-                                    @endif
+                                    <form action="{{ route('maintenances.update_patient_detail', $eq->serial_number) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('PUT')
+                                        @php
+                                            $rpValue = trim($eq->rencana_pulang ?? '');
+                                            $rpBg = '#ffffff';
+                                            $rpText = '#212529';
+                                            $rpBorder = '#ced4da';
+                                            if (stripos($rpValue, 'hari ini') !== false) {
+                                                $rpBg = '#e8f5e9';
+                                                $rpText = '#198754';
+                                                $rpBorder = '#198754';
+                                            } elseif (stripos($rpValue, 'besok') !== false) {
+                                                $rpBg = '#e3f2fd';
+                                                $rpText = '#0d6efd';
+                                                $rpBorder = '#0d6efd';
+                                            }
+                                        @endphp
+                                        <select name="rencana_pulang" onchange="this.form.submit()" class="form-select form-select-sm fw-bold" 
+                                                style="width: 100%; font-size: 0.85rem; border-radius: 6px; cursor: pointer; background-color: {{ $rpBg }}; color: {{ $rpText }}; border: 1px solid {{ $rpBorder }};">
+                                            <option value="" style="background-color: #ffffff; color: #212529;">-</option>
+                                            <option value="Hari Ini" {{ (stripos($rpValue, 'hari ini') !== false) ? 'selected' : '' }} style="background-color: #ffffff; color: #198754; font-weight: bold;">Hari Ini</option>
+                                            <option value="Besok" {{ (stripos($rpValue, 'besok') !== false) ? 'selected' : '' }} style="background-color: #ffffff; color: #0d6efd; font-weight: bold;">Besok</option>
+                                        </select>
+                                    </form>
                                 </td>
 
-                                <!-- Aksi Dropdown input/edit matching screenshot -->
+                                <!-- Aksi -->
                                 <td class="text-center">
-                                    <div class="dropdown">
-                                        <button class="btn btn-outline-primary btn-sm dropdown-toggle fw-bold py-1.5 px-3 shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.85rem; border-radius: 8px;">
-                                            Input / Edit
+                                    <div class="d-flex flex-column gap-1 align-items-center">
+                                        <button class="btn btn-primary btn-sm fw-bold w-100 shadow-sm" type="button" data-bs-toggle="modal" data-bs-target="#quickEditMonitoringModal{{ $eq->id }}" style="font-size: 0.82rem; border-radius: 8px; padding: 6px 12px;">
+                                            <i class="mdi mdi-square-edit-outline me-1"></i> Quick Edit
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="border-radius: 12px; min-width: 150px;">
-                                            <li>
-                                                <a class="dropdown-item fw-bold d-flex align-items-center py-2 px-3 text-info" href="{{ route('maintenances.patient_detail', $eq->serial_number) }}">
-                                                    <i class="mdi mdi-account-card-details me-2 fs-5"></i> Detail Pasien
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item fw-bold d-flex align-items-center py-2 px-3 text-primary" href="{{ route('maintenances.history', $eq->serial_number) }}">
-                                                    <i class="mdi mdi-history me-2 fs-5"></i> Lihat Riwayat
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <hr class="dropdown-divider my-1">
-                                            </li>
-                                            <li>
-                                                <button class="dropdown-item fw-bold d-flex align-items-center py-2 px-3 text-dark border-0 bg-transparent" type="button" data-bs-toggle="modal" data-bs-target="#editEquipmentModal{{ $eq->id }}">
-                                                    <i class="mdi mdi-pencil-outline me-2 fs-5"></i> Edit Profil
-                                                </button>
-                                            </li>
-                                        </ul>
+                                        <div class="dropdown w-100">
+                                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle fw-bold w-100 py-1 shadow-sm text-dark bg-white" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.8rem; border-radius: 8px;">
+                                                Menu
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="border-radius: 12px; min-width: 160px;">
+                                                <li>
+                                                    <a class="dropdown-item fw-bold d-flex align-items-center py-2 px-3 text-info" href="{{ route('maintenances.patient_detail', $eq->serial_number) }}">
+                                                        <i class="mdi mdi-account-card-details me-2 fs-5"></i> Detail Pasien
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item fw-bold d-flex align-items-center py-2 px-3 text-primary" href="{{ route('maintenances.history', $eq->serial_number) }}">
+                                                        <i class="mdi mdi-history me-2 fs-5"></i> Lihat Riwayat
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <hr class="dropdown-divider my-1">
+                                                </li>
+                                                <li>
+                                                    <button class="dropdown-item fw-bold d-flex align-items-center py-2 px-3 text-dark border-0 bg-transparent" type="button" data-bs-toggle="modal" data-bs-target="#editEquipmentModal{{ $eq->id }}">
+                                                        <i class="mdi mdi-pencil-outline me-2 fs-5"></i> Edit Profil
+                                                    </button>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
@@ -904,6 +1006,299 @@
                     <div class="modal-footer bg-white px-4 py-3">
                         <button type="button" class="btn btn-light fw-bold px-4" data-bs-dismiss="modal">BATAL</button>
                         <button type="submit" class="btn btn-dark fw-bold px-4"><i class="mdi mdi-content-save me-1"></i> SIMPAN PERUBAHAN</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- MODAL QUICK EDIT MONITORING --}}
+    <div class="modal fade" id="quickEditMonitoringModal{{ $eq->id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px;">
+                <div class="modal-header bg-primary px-4 py-3 text-white">
+                    <h5 class="modal-title fw-bold text-white fs-4"><i class="mdi mdi-square-edit-outline me-2"></i> Quick Edit Monitoring - Bed {{ $eq->bed ? $eq->bed->bed_number : '-' }}</h5>
+                    <button type="button" class="btn-close btn-close-white text-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('maintenances.update_patient_detail', $eq->serial_number) }}" method="POST">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-body px-4 py-4 bg-light text-dark">
+                        <div class="row">
+                            <!-- Left Column: Patient Profile & Clinical status -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card border-0 shadow-xs p-3 bg-white h-100" style="border-radius: 12px;">
+                                    <h6 class="fw-bold text-primary mb-3"><i class="mdi mdi-account-card-details me-1"></i> Data Pasien & EWS</h6>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Nama Pasien</label>
+                                        <input type="text" class="form-control fw-bold bg-light" value="{{ $eq->merk }}" readonly>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Diagnosis Medis (API)</label>
+                                        <input type="text" class="form-control bg-light" value="{{ $eq->type }}" readonly>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold text-danger small text-uppercase">Diagnosis Lokal</label>
+                                        <textarea name="diagnosis_lokal" class="form-control fw-bold text-dark" rows="2" placeholder="Tulis diagnosis lokal di sini...">{{ $eq->diagnosis_lokal }}</textarea>
+                                    </div>
+
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <label class="form-label fw-bold small text-muted text-uppercase">Early Warning System (EWS)</label>
+                                            <select name="ews" class="form-select fw-bold text-dark">
+                                                <option value="">- Pilih EWS -</option>
+                                                <option value="Hijau" {{ (stripos($eq->ews, 'hijau') !== false) ? 'selected' : '' }}>Hijau</option>
+                                                <option value="Kuning" {{ (stripos($eq->ews, 'kuning') !== false) ? 'selected' : '' }}>Kuning</option>
+                                                <option value="Orange" {{ (stripos($eq->ews, 'oranye') !== false || stripos($eq->ews, 'orange') !== false) ? 'selected' : '' }}>Orange</option>
+                                                <option value="Merah" {{ (stripos($eq->ews, 'merah') !== false) ? 'selected' : '' }}>Merah</option>
+                                                <option value="DNR" {{ (stripos($eq->ews, 'dnr') !== false) ? 'selected' : '' }}>DNR</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-bold small text-muted text-uppercase">Rencana Pulang</label>
+                                            <select name="rencana_pulang" class="form-select fw-bold text-dark">
+                                                <option value="">- Pilih Rencana -</option>
+                                                <option value="Hari Ini" {{ (stripos($eq->rencana_pulang, 'hari ini') !== false) ? 'selected' : '' }}>Hari Ini</option>
+                                                <option value="Besok" {{ (stripos($eq->rencana_pulang, 'besok') !== false) ? 'selected' : '' }}>Besok</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Column: DPJP & Konsul -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card border-0 shadow-xs p-3 bg-white h-100" style="border-radius: 12px;">
+                                    <h6 class="fw-bold text-primary mb-3"><i class="mdi mdi-doctor me-1"></i> DPJP & Konsul</h6>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">DPJP Utama</label>
+                                        <input type="text" name="dpjp_utama" value="{{ $eq->dpjp_utama }}" class="form-control fw-bold" placeholder="Nama DPJP Utama" list="doctors_list">
+                                    </div>
+
+                                    <div class="form-check mb-3">
+                                        <input type="hidden" name="visit_dpjp" value="Belum">
+                                        <input class="form-check-input" type="checkbox" name="visit_dpjp_check" value="Sudah" id="visitDpjpCheckModal{{ $eq->id }}" {{ (!empty($eq->visit_dpjp) && (stripos($eq->visit_dpjp, 'tidak') === false) && (stripos($eq->visit_dpjp, 'belum') === false)) ? 'checked' : '' }}>
+                                        <label class="form-check-label fw-bold text-dark" for="visitDpjpCheckModal{{ $eq->id }}">
+                                            Visite DPJP Hari Ini (Sudah)
+                                        </label>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Dokter Konsul (DPJP Konsul)</label>
+                                        @php
+                                            $rawDokterKonsul = $eq->dokter_konsul ?? '';
+                                            $cleanDokterKonsul = '';
+                                            $hasCheckedKonsul = false;
+                                            $parsedKonsulDoctors = [];
+                                            $konsulHistoryMap = [];
+                                            if ($eq->konsul_history) {
+                                                $konsulHistoryMap = json_decode($eq->konsul_history, true) ?: [];
+                                            }
+
+                                            if (!empty($rawDokterKonsul)) {
+                                                $parts = explode(',', $rawDokterKonsul);
+                                                $names = [];
+                                                foreach ($parts as $idx => $part) {
+                                                    $part = trim($part);
+                                                    $checked = true; 
+                                                    $name = $part;
+                                                    if (strpos($part, '[v] ') === 0) {
+                                                        $checked = true;
+                                                        $name = substr($part, 4);
+                                                    } elseif (strpos($part, '[ ] ') === 0) {
+                                                        $checked = false;
+                                                        $name = substr($part, 4);
+                                                    }
+                                                    if ($checked) {
+                                                        $hasCheckedKonsul = true;
+                                                    }
+                                                    $names[] = $name;
+
+                                                    $docLastVisit = '-';
+                                                    if (isset($konsulHistoryMap[$name]) && !empty($konsulHistoryMap[$name])) {
+                                                        $docTimestamps = $konsulHistoryMap[$name];
+                                                        $lastTs = end($docTimestamps);
+                                                        try {
+                                                            $docLastVisit = \Carbon\Carbon::parse($lastTs)->format('d/m H:i');
+                                                        } catch (\Exception $e) {}
+                                                    }
+
+                                                    $parsedKonsulDoctors[] = [
+                                                        'index' => $idx,
+                                                        'name' => $name,
+                                                        'checked' => $checked,
+                                                        'last_visit' => $docLastVisit
+                                                    ];
+                                                }
+                                                $cleanDokterKonsul = implode(', ', $names);
+                                            }
+                                            $konsulList = [];
+                                            foreach($parsedKonsulDoctors as $p) {
+                                                $konsulList[] = ['name' => $p['name'], 'checked' => $p['checked'], 'last_visit' => $p['last_visit']];
+                                            }
+                                            while (count($konsulList) < 5) {
+                                                $konsulList[] = ['name' => '', 'checked' => false, 'last_visit' => '-'];
+                                            }
+                                        @endphp
+                                        @foreach($konsulList as $i => $item)
+                                            <div class="input-group mb-2 shadow-xs">
+                                                <div class="input-group-text bg-white">
+                                                    <input type="checkbox" name="dokter_konsul_check[]" value="{{ $i }}" {{ $item['checked'] ? 'checked' : '' }} class="form-check-input mt-0">
+                                                </div>
+                                                <input type="text" name="dokter_konsul[]" value="{{ $item['name'] }}" class="form-control fw-bold text-dark bg-white" placeholder="Nama Dokter Konsul {{ $i+1 }}" list="doctors_list">
+                                                @if($item['last_visit'] !== '-')
+                                                    <span class="input-group-text bg-light text-muted small" style="font-size: 0.72rem;">{{ $item['last_visit'] }}</span>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Left Column Bottom: Handover -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card border-0 shadow-xs p-3 bg-white h-100" style="border-radius: 12px;">
+                                    <h6 class="fw-bold text-primary mb-3"><i class="mdi mdi-account-switch-outline me-1"></i> Handover Shifts & Ners</h6>
+                                    
+                                    @php
+                                        // Handover Parsing from spesifikasi
+                                        $handoverLines = array_filter(array_map('trim', explode("\n", $eq->spesifikasi ?? '')));
+                                        $pagiNote = '-';
+                                        $soreNote = '-';
+                                        $malamNote = '-';
+                                        foreach($handoverLines as $line) {
+                                            if (stripos($line, 'pagi:') !== false || stripos($line, 'pagi -') !== false) {
+                                                $pagiNote = trim(preg_replace('/^pagi\s*(:|-)\s*/i', '', $line));
+                                            } elseif (stripos($line, 'sore:') !== false || stripos($line, 'sore -') !== false) {
+                                                $soreNote = trim(preg_replace('/^sore\s*(:|-)\s*/i', '', $line));
+                                            } elseif (stripos($line, 'malam:') !== false || stripos($line, 'malam -') !== false) {
+                                                $malamNote = trim(preg_replace('/^malam\s*(:|-)\s*/i', '', $line));
+                                            }
+                                        }
+                                        if ($pagiNote === '-' && $soreNote === '-' && $malamNote === '-' && !empty($eq->spesifikasi)) {
+                                            $pagiNote = $handoverLines[0] ?? '-';
+                                            $soreNote = $handoverLines[1] ?? '-';
+                                            $malamNote = $handoverLines[2] ?? '-';
+                                        }
+                                    @endphp
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Ners Pagi</label>
+                                        <input type="text" name="ners_pagi" value="{{ $eq->ners_pagi }}" class="form-control" placeholder="Nama Ners Pagi">
+                                        <label class="form-label fw-bold small text-muted text-uppercase mt-1">Catatan Pagi</label>
+                                        <input type="text" name="handover_pagi" value="{{ $pagiNote !== '-' ? $pagiNote : '' }}" class="form-control" placeholder="Isi catatan shift pagi">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Ners Siang</label>
+                                        <input type="text" name="ners_siang" value="{{ $eq->ners_siang }}" class="form-control" placeholder="Nama Ners Siang">
+                                        <label class="form-label fw-bold small text-muted text-uppercase mt-1">Catatan Sore</label>
+                                        <input type="text" name="handover_sore" value="{{ $soreNote !== '-' ? $soreNote : '' }}" class="form-control" placeholder="Isi catatan shift sore">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Ners Malam</label>
+                                        <input type="text" name="ners_malam" value="{{ $eq->ners_malam }}" class="form-control" placeholder="Nama Ners Malam">
+                                        <label class="form-label fw-bold small text-muted text-uppercase mt-1">Catatan Malam</label>
+                                        <input type="text" name="handover_malam" value="{{ $malamNote !== '-' ? $malamNote : '' }}" class="form-control" placeholder="Isi catatan shift malam">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Column Bottom: Planning Selama Perawatan -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card border-0 shadow-xs p-3 bg-white h-100" style="border-radius: 12px;">
+                                    <h6 class="fw-bold text-primary mb-3"><i class="mdi mdi-format-list-checks me-1"></i> Planning Selama Perawatan</h6>
+                                    
+                                    @php
+                                        // Planning Checklist Parsing
+                                        $planningText = $eq->planning_pasien ?? '';
+                                        $planningItems = array_filter(array_map('trim', explode("\n", $planningText)));
+                                        $labCheck = false; $labDetail = '-';
+                                        $radCheck = false; $radDetail = '-';
+                                        $konCheck = false; $konDetail = '-';
+                                        $tndCheck = false; $tndDetail = '-';
+                                        $eduCheck = false; $eduDetail = '-';
+                                        $othDetail = '-';
+                                        foreach($planningItems as $item) {
+                                            if (stripos($item, 'lab:') !== false || stripos($item, 'lab -') !== false) {
+                                                $labCheck = true;
+                                                $labDetail = trim(preg_replace('/^lab\s*(:|-)\s*/i', '', $item));
+                                            } elseif (stripos($item, 'radiologi:') !== false || stripos($item, 'radiologi -') !== false) {
+                                                $radCheck = true;
+                                                $radDetail = trim(preg_replace('/^radiologi\s*(:|-)\s*/i', '', $item));
+                                            } elseif (stripos($item, 'konsul:') !== false || stripos($item, 'konsul -') !== false) {
+                                                $konCheck = true;
+                                                $konDetail = trim(preg_replace('/^konsul\s*(:|-)\s*/i', '', $item));
+                                            } elseif (stripos($item, 'tindakan:') !== false || stripos($item, 'tindakan -') !== false) {
+                                                $tndCheck = true;
+                                                $tndDetail = trim(preg_replace('/^tindakan\s*(:|-)\s*/i', '', $item));
+                                            } elseif (stripos($item, 'edukasi:') !== false || stripos($item, 'edukasi -') !== false) {
+                                                $eduCheck = true;
+                                                $eduDetail = trim(preg_replace('/^edukasi\s*(:|-)\s*/i', '', $item));
+                                            } elseif (stripos($item, 'lain-lain:') !== false || stripos($item, 'lain-lain -') !== false || stripos($item, 'lainnya:') !== false || stripos($item, 'notes:') !== false) {
+                                                $othDetail = trim(preg_replace('/^(lain-lain|lainnya|notes)\s*(:|-)\s*/i', '', $item));
+                                            }
+                                        }
+                                        if (!$labCheck && !$radCheck && !$konCheck && !$tndCheck && !$eduCheck && !empty($planningText)) {
+                                            $tndCheck = true;
+                                            $tndDetail = $planningText;
+                                        }
+                                    @endphp
+                                    <div class="mb-3">
+                                        <div class="form-check d-flex align-items-center mb-1">
+                                            <input class="form-check-input" type="checkbox" name="planning_lab_check" value="1" id="planningLabCheck{{ $eq->id }}" {{ $labCheck ? 'checked' : '' }}>
+                                            <label class="form-check-label fw-bold ms-2" for="planningLabCheck{{ $eq->id }}">Lab</label>
+                                        </div>
+                                        <input type="text" name="planning_lab" value="{{ $labDetail !== '-' ? $labDetail : '' }}" class="form-control" placeholder="Detail pemeriksaan Lab">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="form-check d-flex align-items-center mb-1">
+                                            <input class="form-check-input" type="checkbox" name="planning_radiologi_check" value="1" id="planningRadCheck{{ $eq->id }}" {{ $radCheck ? 'checked' : '' }}>
+                                            <label class="form-check-label fw-bold ms-2" for="planningRadCheck{{ $eq->id }}">Radiologi</label>
+                                        </div>
+                                        <input type="text" name="planning_radiologi" value="{{ $radDetail !== '-' ? $radDetail : '' }}" class="form-control" placeholder="Detail pemeriksaan Radiologi">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="form-check d-flex align-items-center mb-1">
+                                            <input class="form-check-input" type="checkbox" name="planning_konsul_check" value="1" id="planningKonCheck{{ $eq->id }}" {{ $konCheck ? 'checked' : '' }}>
+                                            <label class="form-check-label fw-bold ms-2" for="planningKonCheck{{ $eq->id }}">Konsul</label>
+                                        </div>
+                                        <input type="text" name="planning_konsul" value="{{ $konDetail !== '-' ? $konDetail : '' }}" class="form-control" placeholder="Detail rencana konsul">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="form-check d-flex align-items-center mb-1">
+                                            <input class="form-check-input" type="checkbox" name="planning_tindakan_check" value="1" id="planningTndCheck{{ $eq->id }}" {{ $tndCheck ? 'checked' : '' }}>
+                                            <label class="form-check-label fw-bold ms-2" for="planningTndCheck{{ $eq->id }}">Tindakan</label>
+                                        </div>
+                                        <input type="text" name="planning_tindakan" value="{{ $tndDetail !== '-' ? $tndDetail : '' }}" class="form-control" placeholder="Detail rencana tindakan">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="form-check d-flex align-items-center mb-1">
+                                            <input class="form-check-input" type="checkbox" name="planning_edukasi_check" value="1" id="planningEduCheck{{ $eq->id }}" {{ $eduCheck ? 'checked' : '' }}>
+                                            <label class="form-check-label fw-bold ms-2" for="planningEduCheck{{ $eq->id }}">Edukasi / Dll</label>
+                                        </div>
+                                        <input type="text" name="planning_edukasi" value="{{ $eduDetail !== '-' ? $eduDetail : '' }}" class="form-control" placeholder="Detail rencana edukasi / dll">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Notes Tambahan (Freetext)</label>
+                                        <textarea name="planning_lain_lain" class="form-control text-dark fw-bold" rows="2" placeholder="Tulis catatan tambahan lainnya di sini...">{{ $othDetail !== '-' ? $othDetail : '' }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-white px-4 py-3">
+                        <button type="button" class="btn btn-light fw-bold px-4" data-bs-dismiss="modal">BATAL</button>
+                        <button type="submit" class="btn btn-primary fw-bold px-4 text-white"><i class="mdi mdi-content-save me-1"></i> SIMPAN PERUBAHAN</button>
                     </div>
                 </form>
             </div>

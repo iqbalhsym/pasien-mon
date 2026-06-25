@@ -56,12 +56,13 @@ class MaintenanceController extends Controller
 
     public function index(Request $request)
     {
+        Equipment::resetDailyVisits();
         $search = $request->input('search');
 
-        $sort = $request->input('sort', 'terbaru');
+        $sort = $request->input('sort', 'ruangan');
 
         $query = Equipment::withCount('maintenances')
-            ->with(['media', 'maintenances' => function($q) {
+            ->with(['media', 'bed.room', 'maintenances' => function($q) {
                 $q->latest('tanggal_pelaksanaan');
             }]);
 
@@ -70,7 +71,11 @@ class MaintenanceController extends Controller
         } elseif ($sort === 'alphabetical_desc') {
             $query->orderBy('merk', 'desc');
         } elseif ($sort === 'ruangan') {
-            $query->orderBy('lokasi', 'asc')->orderBy('lantai', 'asc');
+            $query->leftJoin('beds', 'equipments.id', '=', 'beds.equipment_id')
+                ->select('equipments.*')
+                ->orderByRaw('CASE WHEN beds.id IS NULL THEN 1 ELSE 0 END')
+                ->orderBy('equipments.lokasi', 'asc')
+                ->orderBy('beds.bed_number', 'asc');
         } else {
             $query->orderBy('id', 'desc');
         }
@@ -193,6 +198,7 @@ class MaintenanceController extends Controller
 
     public function patientDetail(Request $request, $serial_number)
     {
+        Equipment::resetDailyVisits();
         $equipment = Equipment::where('serial_number', $serial_number)->firstOrFail();
         $patientsMap = $this->fetchApiPatientsMap();
         $apiData = $patientsMap[$equipment->serial_number] ?? null;
@@ -207,6 +213,7 @@ class MaintenanceController extends Controller
         $request->validate([
             'dpjp_utama' => 'nullable|string',
             'visit_dpjp_check' => 'nullable',
+            'visit_dpjp' => 'nullable|string',
             'dokter_konsul' => 'nullable|array',
             'dokter_konsul_check' => 'nullable|array',
             'handover_pagi' => 'nullable|string',
@@ -244,84 +251,160 @@ class MaintenanceController extends Controller
             'ners_pagi' => 'nullable|string',
             'ners_siang' => 'nullable|string',
             'ners_malam' => 'nullable|string',
+            'diagnosis_lokal' => 'nullable|string',
+            'rencana_pulang' => 'nullable|string',
         ]);
 
-        // 1. Combine Dokter Konsul per-doctor with checkbox state
-        $dokterKonsulStr = '';
-        if ($request->filled('dokter_konsul')) {
+        $data = [];
+
+        // 1. DPJP Utama & visit_dpjp with visit_history log
+        if ($request->has('dpjp_utama')) {
+            $data['dpjp_utama'] = $request->input('dpjp_utama');
+        }
+
+        if ($request->has('visit_dpjp_check') || $request->has('visit_dpjp')) {
+            $visitDpjp = $request->has('visit_dpjp_check') ? 'Sudah' : $request->input('visit_dpjp', 'Belum');
+            
+            $history = [];
+            if ($equipment->visit_history) {
+                $history = json_decode($equipment->visit_history, true) ?: [];
+            }
+            $todayStr = now()->toDateString();
+            if ($visitDpjp === 'Sudah') {
+                $hasToday = false;
+                foreach ($history as $timestamp) {
+                    if (date('Y-m-d', strtotime($timestamp)) === $todayStr) {
+                        $hasToday = true;
+                        break;
+                    }
+                }
+                if (!$hasToday) {
+                    $history[] = now()->toDateTimeString();
+                }
+            } else {
+                $history = array_filter($history, function($timestamp) use ($todayStr) {
+                    return date('Y-m-d', strtotime($timestamp)) !== $todayStr;
+                });
+                $history = array_values($history);
+            }
+            $data['visit_history'] = json_encode($history);
+            $data['visit_dpjp'] = $visitDpjp;
+        }
+
+        // 2. Dokter Konsul combine & history log
+        if ($request->has('dokter_konsul')) {
             $dokterKonsulArray = $request->input('dokter_konsul');
             $dokterCheckArray = $request->input('dokter_konsul_check', []);
             $combined = [];
+            
+            $currentHistory = [];
+            if ($equipment->konsul_history) {
+                $currentHistory = json_decode($equipment->konsul_history, true) ?: [];
+            }
+            $todayStr = now()->toDateString();
+
             foreach ($dokterKonsulArray as $index => $name) {
                 $name = trim($name);
                 if ($name !== '') {
                     $isChecked = in_array((string)$index, $dokterCheckArray);
+                    
+                    if (!isset($currentHistory[$name])) {
+                        $currentHistory[$name] = [];
+                    }
+
+                    if ($isChecked) {
+                        $hasToday = false;
+                        foreach ($currentHistory[$name] as $timestamp) {
+                            if (date('Y-m-d', strtotime($timestamp)) === $todayStr) {
+                                $hasToday = true;
+                                break;
+                            }
+                        }
+                        if (!$hasToday) {
+                            $currentHistory[$name][] = now()->toDateTimeString();
+                        }
+                    } else {
+                        $currentHistory[$name] = array_filter($currentHistory[$name], function($timestamp) use ($todayStr) {
+                            return date('Y-m-d', strtotime($timestamp)) !== $todayStr;
+                        });
+                        $currentHistory[$name] = array_values($currentHistory[$name]);
+                    }
+
                     $prefix = $isChecked ? '[v] ' : '[ ] ';
                     $combined[] = $prefix . $name;
                 }
             }
-            $dokterKonsulStr = implode(', ', $combined);
+            $data['dokter_konsul'] = implode(', ', $combined);
+            $data['konsul_history'] = json_encode($currentHistory);
         }
 
-        // 2. Combine Handover shifts into spesifikasi
-        $spesifikasi = '';
-        $spesifikasi .= 'Pagi: ' . ($request->filled('handover_pagi') ? trim($request->input('handover_pagi')) : '-') . "\n";
-        $spesifikasi .= 'Sore: ' . ($request->filled('handover_sore') ? trim($request->input('handover_sore')) : '-') . "\n";
-        $spesifikasi .= 'Malam: ' . ($request->filled('handover_malam') ? trim($request->input('handover_malam')) : '-');
-
-        // 3. Combine Planning checklist into planning_pasien
-        $planning = '';
-        if ($request->has('planning_lab_check')) {
-            $planning .= 'Lab: ' . ($request->filled('planning_lab') ? trim($request->input('planning_lab')) : '-') . "\n";
-        }
-        if ($request->has('planning_radiologi_check')) {
-            $planning .= 'Radiologi: ' . ($request->filled('planning_radiologi') ? trim($request->input('planning_radiologi')) : '-') . "\n";
-        }
-        if ($request->has('planning_konsul_check')) {
-            $planning .= 'Konsul: ' . ($request->filled('planning_konsul') ? trim($request->input('planning_konsul')) : '-') . "\n";
-        }
-        if ($request->has('planning_tindakan_check')) {
-            $planning .= 'Tindakan: ' . ($request->filled('planning_tindakan') ? trim($request->input('planning_tindakan')) : '-') . "\n";
-        }
-        if ($request->has('planning_edukasi_check')) {
-            $planning .= 'Edukasi: ' . ($request->filled('planning_edukasi') ? trim($request->input('planning_edukasi')) : '-') . "\n";
-        }
-        $planning = trim($planning);
-
-        // 4. Handle visit_dpjp value
-        $visitDpjp = $request->has('visit_dpjp_check') ? 'Sudah' : 'Belum';
-
-        // Update data array
-        $data = $request->all();
-        $data['dokter_konsul'] = $dokterKonsulStr;
-        $data['spesifikasi'] = $spesifikasi;
-        $data['planning_pasien'] = $planning;
-        $data['visit_dpjp'] = $visitDpjp;
-
-        // Clean currency amounts for case manager billing and pagu
-        $billingRaw = $request->input('billing_aktual');
-        $paguRaw = $request->input('pagu_budget');
-        $billingClean = $billingRaw !== null && $billingRaw !== '' ? (int)preg_replace('/[^0-9]/', '', $billingRaw) : null;
-        $paguClean = $paguRaw !== null && $paguRaw !== '' ? (int)preg_replace('/[^0-9]/', '', $paguRaw) : null;
-
-        $persentasePagu = '';
-        if ($billingClean !== null && $paguClean !== null && $paguClean > 0) {
-            $persentasePagu = round(($billingClean / $paguClean) * 100) . '%';
+        // 3. Handover spesifikasi
+        if ($request->has('handover_pagi') || $request->has('handover_sore') || $request->has('handover_malam')) {
+            $spesifikasi = '';
+            $spesifikasi .= 'Pagi: ' . ($request->filled('handover_pagi') ? trim($request->input('handover_pagi')) : '-') . "\n";
+            $spesifikasi .= 'Sore: ' . ($request->filled('handover_sore') ? trim($request->input('handover_sore')) : '-') . "\n";
+            $spesifikasi .= 'Malam: ' . ($request->filled('handover_malam') ? trim($request->input('handover_malam')) : '-');
+            $data['spesifikasi'] = $spesifikasi;
         }
 
-        $data['billing_aktual'] = $billingClean;
-        $data['pagu_budget'] = $paguClean;
-        $data['persentase_pagu'] = $persentasePagu;
+        // 4. Planning Selama Perawatan
+        if ($request->has('planning_lab_check') || $request->has('planning_radiologi_check') || $request->has('planning_konsul_check') || $request->has('planning_tindakan_check') || $request->has('planning_edukasi_check') || $request->has('planning_pasien') || $request->has('planning_lain_lain')) {
+            if ($request->has('planning_pasien') && !$request->has('planning_lab_check') && !$request->has('planning_radiologi_check')) {
+                $data['planning_pasien'] = $request->input('planning_pasien');
+            } else {
+                $planning = '';
+                if ($request->has('planning_lab_check')) {
+                    $planning .= 'Lab: ' . ($request->filled('planning_lab') ? trim($request->input('planning_lab')) : '-') . "\n";
+                }
+                if ($request->has('planning_radiologi_check')) {
+                    $planning .= 'Radiologi: ' . ($request->filled('planning_radiologi') ? trim($request->input('planning_radiologi')) : '-') . "\n";
+                }
+                if ($request->has('planning_konsul_check')) {
+                    $planning .= 'Konsul: ' . ($request->filled('planning_konsul') ? trim($request->input('planning_konsul')) : '-') . "\n";
+                }
+                if ($request->has('planning_tindakan_check')) {
+                    $planning .= 'Tindakan: ' . ($request->filled('planning_tindakan') ? trim($request->input('planning_tindakan')) : '-') . "\n";
+                }
+                if ($request->has('planning_edukasi_check')) {
+                    $planning .= 'Edukasi: ' . ($request->filled('planning_edukasi') ? trim($request->input('planning_edukasi')) : '-') . "\n";
+                }
+                if ($request->has('planning_lain_lain')) {
+                    $planning .= 'Lain-lain: ' . ($request->filled('planning_lain_lain') ? trim($request->input('planning_lain_lain')) : '-') . "\n";
+                }
+                $data['planning_pasien'] = trim($planning);
+            }
+        }
 
-        // Strip read-only/disabled and removed fields
-        unset($data['registered_date']);
-        unset($data['los_aktual']);
-        unset($data['rencana_pulang']);
-        unset($data['dpjp_raber']); // DPJP Raber removed
+        // Direct database fields
+        foreach (['npja', 'ews', 'tingkat_ketergantungan', 'ners_bertugas', 'alkes_invasif', 'tindakan_detail', 'type', 'kategori_pasien', 'target_los', 'notes_num', 'notes_case_manager', 'riw_lab', 'riw_rad', 'riw_obat', 'rencana_prosedur', 'rencana_diagnostik', 'rencana_konsul', 'ners_pagi', 'ners_siang', 'ners_malam', 'diagnosis_lokal', 'rencana_pulang'] as $field) {
+            if ($request->has($field)) {
+                $data[$field] = $request->input($field);
+            }
+        }
+
+        // Currency calculations
+        if ($request->has('billing_aktual')) {
+            $billingRaw = $request->input('billing_aktual');
+            $data['billing_aktual'] = $billingRaw !== null && $billingRaw !== '' ? (int)preg_replace('/[^0-9]/', '', $billingRaw) : null;
+        }
+        if ($request->has('pagu_budget')) {
+            $paguRaw = $request->input('pagu_budget');
+            $data['pagu_budget'] = $paguRaw !== null && $paguRaw !== '' ? (int)preg_replace('/[^0-9]/', '', $paguRaw) : null;
+        }
+
+        if (array_key_exists('billing_aktual', $data) || array_key_exists('pagu_budget', $data)) {
+            $billingClean = array_key_exists('billing_aktual', $data) ? $data['billing_aktual'] : $equipment->billing_aktual;
+            $paguClean = array_key_exists('pagu_budget', $data) ? $data['pagu_budget'] : $equipment->pagu_budget;
+            $persentasePagu = '';
+            if ($billingClean !== null && $paguClean !== null && $paguClean > 0) {
+                $persentasePagu = round(($billingClean / $paguClean) * 100) . '%';
+            }
+            $data['persentase_pagu'] = $persentasePagu;
+        }
 
         $equipment->update($data);
 
-        return redirect()->route('maintenances.patient_detail', $serial_number)
+        return redirect()->back()
             ->with('success', 'Detail informasi klinis pasien berhasil diperbarui!');
     }
 
