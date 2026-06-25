@@ -511,8 +511,8 @@
                                         RM. {{ $eq->serial_number }}
                                     </div>
                                     <div class="mb-1" style="font-size: 0.85rem; font-weight: 600; color: #dc3545;">
-                                        <i class="mdi {{ $eq->gender == 'Laki-laki' || $eq->gender == 'Male' ? 'mdi-gender-male' : 'mdi-gender-female' }} me-1"></i>
-                                        {{ $eq->gender == 'Laki-laki' || $eq->gender == 'Male' ? 'Laki-laki' : 'Perempuan' }} | {{ $eq->tanggal_lahir ? \Carbon\Carbon::parse($eq->tanggal_lahir)->age : '-' }} Th
+                                        <i class="mdi {{ in_array(strtolower($eq->gender), ['laki-laki', 'male', 'l']) ? 'mdi-gender-male' : 'mdi-gender-female' }} me-1"></i>
+                                        {{ in_array(strtolower($eq->gender), ['laki-laki', 'male', 'l']) ? 'Laki-laki' : 'Perempuan' }} | {{ $eq->tanggal_lahir ? \Carbon\Carbon::parse($eq->tanggal_lahir)->age : '-' }} Th
                                     </div>
                                     <div class="text-dark fw-bold mb-1" style="font-size: 0.85rem;">
                                         {{ $eq->type }}
@@ -1017,8 +1017,8 @@
                             <div class="col-md-4 mb-3">
                                 <label class="form-label text-dark fw-bold">Jenis Kelamin</label>
                                 <select name="gender" class="form-select fw-bold text-dark">
-                                    <option value="Laki-laki" {{ $eq->gender == 'Laki-laki' || $eq->gender == 'Male' ? 'selected' : '' }}>Laki-laki</option>
-                                    <option value="Perempuan" {{ $eq->gender == 'Perempuan' || $eq->gender == 'Female' ? 'selected' : '' }}>Perempuan</option>
+                                    <option value="Laki-laki" {{ in_array(strtolower($eq->gender), ['laki-laki', 'male', 'l']) ? 'selected' : '' }}>Laki-laki</option>
+                                    <option value="Perempuan" {{ in_array(strtolower($eq->gender), ['perempuan', 'female', 'p']) ? 'selected' : '' }}>Perempuan</option>
                                 </select>
                             </div>
                             <div class="col-md-4 mb-3">
