@@ -189,10 +189,21 @@ class MaintenanceController extends Controller
               ->where('alkes_invasif', '!=', '')
               ->where('alkes_invasif', '!=', '-');
         })->count();
+
+        // Calculate EWS counts
+        $ewsHijau = Equipment::whereRaw('LOWER(ews) LIKE ?', ['%hijau%'])->count();
+        $ewsKuning = Equipment::whereRaw('LOWER(ews) LIKE ?', ['%kuning%'])->count();
+        $ewsOrange = Equipment::where(function($q) {
+            $q->whereRaw('LOWER(ews) LIKE ?', ['%orange%'])
+              ->orWhereRaw('LOWER(ews) LIKE ?', ['%oranye%']);
+        })->count();
+        $ewsMerah = Equipment::whereRaw('LOWER(ews) LIKE ?', ['%merah%'])->count();
+        $ewsDnr = Equipment::whereRaw('LOWER(ews) LIKE ?', ['%dnr%'])->count();
         
         return view('maintenances.index', compact(
             'equipmentsPaginator', 'equipments', 'search', 'sort', 'patientsMap',
-            'totalPasien', 'pasienBaru', 'dalamPerawatan', 'siapPulang', 'adaBarrier'
+            'totalPasien', 'pasienBaru', 'dalamPerawatan', 'siapPulang', 'adaBarrier',
+            'ewsHijau', 'ewsKuning', 'ewsOrange', 'ewsMerah', 'ewsDnr'
         ));
     }
 

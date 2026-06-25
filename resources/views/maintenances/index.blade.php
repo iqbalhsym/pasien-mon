@@ -197,6 +197,85 @@
             </div>
         </div>
 
+        {{-- EWS Cards Panel --}}
+        <div class="row g-3 mb-4">
+            <!-- EWS Hijau -->
+            <div class="col-lg col-md-4 col-6">
+                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff; border-left: 5px solid #198754 !important;">
+                    <div class="card-body py-3 d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 44px; height: 44px; background-color: #e8f5e9; flex-shrink: 0;">
+                            <span class="d-inline-block rounded-circle" style="width: 16px; height: 16px; background-color: #198754;"></span>
+                        </div>
+                        <div>
+                            <p class="text-muted mb-0 small fw-bold text-uppercase" style="font-size: 0.75rem;">EWS Hijau</p>
+                            <h3 class="fw-bold mb-0 text-dark" style="font-size: 1.4rem; line-height: 1.2;">{{ $ewsHijau }}</h3>
+                            <small class="text-muted">pasien</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- EWS Kuning -->
+            <div class="col-lg col-md-4 col-6">
+                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff; border-left: 5px solid #ffc107 !important;">
+                    <div class="card-body py-3 d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 44px; height: 44px; background-color: #fff9c4; flex-shrink: 0;">
+                            <span class="d-inline-block rounded-circle" style="width: 16px; height: 16px; background-color: #ffc107;"></span>
+                        </div>
+                        <div>
+                            <p class="text-muted mb-0 small fw-bold text-uppercase" style="font-size: 0.75rem;">EWS Kuning</p>
+                            <h3 class="fw-bold mb-0 text-dark" style="font-size: 1.4rem; line-height: 1.2;">{{ $ewsKuning }}</h3>
+                            <small class="text-muted">pasien</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- EWS Orange -->
+            <div class="col-lg col-md-4 col-6">
+                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff; border-left: 5px solid #fd7e14 !important;">
+                    <div class="card-body py-3 d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 44px; height: 44px; background-color: #ffe0b2; flex-shrink: 0;">
+                            <span class="d-inline-block rounded-circle" style="width: 16px; height: 16px; background-color: #fd7e14;"></span>
+                        </div>
+                        <div>
+                            <p class="text-muted mb-0 small fw-bold text-uppercase" style="font-size: 0.75rem;">EWS Orange</p>
+                            <h3 class="fw-bold mb-0 text-dark" style="font-size: 1.4rem; line-height: 1.2;">{{ $ewsOrange }}</h3>
+                            <small class="text-muted">pasien</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- EWS Merah -->
+            <div class="col-lg col-md-4 col-6">
+                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff; border-left: 5px solid #dc3545 !important;">
+                    <div class="card-body py-3 d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 44px; height: 44px; background-color: #ffebee; flex-shrink: 0;">
+                            <span class="d-inline-block rounded-circle" style="width: 16px; height: 16px; background-color: #dc3545;"></span>
+                        </div>
+                        <div>
+                            <p class="text-muted mb-0 small fw-bold text-uppercase" style="font-size: 0.75rem;">EWS Merah</p>
+                            <h3 class="fw-bold mb-0 text-dark" style="font-size: 1.4rem; line-height: 1.2;">{{ $ewsMerah }}</h3>
+                            <small class="text-muted">pasien</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- EWS DNR -->
+            <div class="col-lg col-md-4 col-6">
+                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff; border-left: 5px solid #6c757d !important;">
+                    <div class="card-body py-3 d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 44px; height: 44px; background-color: #f5f5f5; flex-shrink: 0;">
+                            <span class="d-inline-block rounded-circle" style="width: 16px; height: 16px; background-color: #6c757d;"></span>
+                        </div>
+                        <div>
+                            <p class="text-muted mb-0 small fw-bold text-uppercase" style="font-size: 0.75rem;">EWS DNR</p>
+                            <h3 class="fw-bold mb-0 text-dark" style="font-size: 1.4rem; line-height: 1.2;">{{ $ewsDnr }}</h3>
+                            <small class="text-muted">pasien</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="card shadow-sm border-0" style="border-radius: 16px; overflow: hidden;">
             <div class="card-body p-0">
                 <div class="table-responsive bg-white">
