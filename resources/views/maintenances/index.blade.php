@@ -105,38 +105,8 @@
 
         {{-- Summary Cards Panel matching screenshot style --}}
         <div class="row g-3 mb-4">
-            <!-- Total Pasien -->
-            <div class="col-xl-2 col-md-4 col-sm-6">
-                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff;">
-                    <div class="card-body py-3 d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 52px; height: 52px; background-color: rgba(31, 59, 179, 0.1); flex-shrink: 0;">
-                            <i class="mdi mdi-account-group text-primary fs-3"></i>
-                        </div>
-                        <div>
-                            <p class="text-muted mb-0 small fw-bold text-uppercase">Total Pasien</p>
-                            <h3 class="fw-bold mb-0 text-dark" style="font-size: 1.6rem; line-height: 1.2;">{{ $totalPasien }}</h3>
-                            <small class="text-muted">pasien</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- Pasien Baru -->
-            <div class="col-xl-2 col-md-4 col-sm-6">
-                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff;">
-                    <div class="card-body py-3 d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 52px; height: 52px; background-color: rgba(25, 135, 84, 0.1); flex-shrink: 0;">
-                            <i class="mdi mdi-calendar-plus text-success fs-3"></i>
-                        </div>
-                        <div>
-                            <p class="text-muted mb-0 small fw-bold text-uppercase">Pasien Baru</p>
-                            <h3 class="fw-bold mb-0 text-dark" style="font-size: 1.6rem; line-height: 1.2;">{{ $pasienBaru }}</h3>
-                            <small class="text-muted">pasien</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
             <!-- Dalam Perawatan -->
-            <div class="col-xl-2 col-md-4 col-sm-6">
+            <div class="col-lg col-md-4 col-sm-6">
                 <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff;">
                     <div class="card-body py-3 d-flex align-items-center">
                         <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 52px; height: 52px; background-color: rgba(253, 126, 20, 0.1); flex-shrink: 0;">
@@ -150,8 +120,23 @@
                     </div>
                 </div>
             </div>
+            <!-- Pasien Baru Hari Ini -->
+            <div class="col-lg col-md-4 col-sm-6">
+                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff;">
+                    <div class="card-body py-3 d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 52px; height: 52px; background-color: rgba(25, 135, 84, 0.1); flex-shrink: 0;">
+                            <i class="mdi mdi-calendar-plus text-success fs-3"></i>
+                        </div>
+                        <div>
+                            <p class="text-muted mb-0 small fw-bold text-uppercase">Pasien Baru Hari Ini</p>
+                            <h3 class="fw-bold mb-0 text-dark" style="font-size: 1.6rem; line-height: 1.2;">{{ $pasienBaru }}</h3>
+                            <small class="text-muted">pasien</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <!-- Siap Pulang -->
-            <div class="col-xl-2 col-md-4 col-sm-6">
+            <div class="col-lg col-md-4 col-sm-6">
                 <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff;">
                     <div class="card-body py-3 d-flex align-items-center">
                         <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 52px; height: 52px; background-color: rgba(111, 66, 193, 0.1); flex-shrink: 0;">
@@ -166,7 +151,7 @@
                 </div>
             </div>
             <!-- Ada Barrier -->
-            <div class="col-xl-2 col-md-4 col-sm-6">
+            <div class="col-lg col-md-4 col-sm-6">
                 <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff;">
                     <div class="card-body py-3 d-flex align-items-center">
                         <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 52px; height: 52px; background-color: rgba(220, 53, 69, 0.1); flex-shrink: 0;">
@@ -181,7 +166,7 @@
                 </div>
             </div>
             <!-- Tanggal -->
-            <div class="col-xl-2 col-md-4 col-sm-6">
+            <div class="col-lg col-md-4 col-sm-6">
                 <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff;">
                     <div class="card-body py-3 d-flex align-items-center">
                         <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 52px; height: 52px; background-color: rgba(108, 117, 125, 0.1); flex-shrink: 0;">
