@@ -636,10 +636,17 @@
             </a>
           </li>
 
-          <li class="nav-item {{ request()->routeIs('maintenances.*') ? 'active' : '' }}">
+          <li class="nav-item {{ request()->routeIs('maintenances.index') || request()->routeIs('maintenances.patient_detail') || request()->routeIs('maintenances.history') ? 'active' : '' }}">
             <a class="nav-link text-decoration-none" href="{{ route('maintenances.index') }}">
               <i class="mdi mdi-account-clock"></i>
               <span class="menu-title">Riwayat Pasien</span>
+            </a>
+          </li>
+
+          <li class="nav-item {{ request()->routeIs('maintenances.pulang') ? 'active' : '' }}">
+            <a class="nav-link text-decoration-none" href="{{ route('maintenances.pulang') }}">
+              <i class="mdi mdi-account-off"></i>
+              <span class="menu-title">Pasien Sudah Pulang</span>
             </a>
           </li>
 

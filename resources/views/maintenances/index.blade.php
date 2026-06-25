@@ -479,7 +479,7 @@
                             <tr class="border-bottom">
                                 <!-- No. Bed -->
                                 <td class="text-center fw-bold text-dark" style="{{ $ewsColor ? 'border-left: 6px solid ' . $ewsColor . ' !important;' : '' }}">
-                                    {{ $eq->bed ? 'Bed ' . $eq->bed->bed_number : '-' }}
+                                    {{ $eq->bed ? 'Bed ' . $eq->bed->bed_number : 'Sudah Pulang' }}
                                 </td>
                                 
                                 <!-- Nama Pasien -->

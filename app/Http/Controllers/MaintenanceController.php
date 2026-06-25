@@ -61,7 +61,8 @@ class MaintenanceController extends Controller
 
         $sort = $request->input('sort', 'ruangan');
 
-        $query = Equipment::withCount('maintenances')
+        $query = Equipment::whereHas('bed')
+            ->withCount('maintenances')
             ->with(['media', 'bed.room', 'maintenances' => function($q) {
                 $q->latest('tanggal_pelaksanaan');
             }]);
@@ -170,35 +171,36 @@ class MaintenanceController extends Controller
         
         $patientsMap = $this->fetchApiPatientsMap();
 
-        // Calculate visual layout summary metrics
-        $totalPasien = Equipment::count();
-        $pasienBaru = Equipment::whereDate('created_at', today())
-            ->orWhereDate('tanggal_pengadaan', today())
-            ->count();
+        // Calculate visual layout summary metrics (active patients only)
+        $totalPasien = Equipment::whereHas('bed')->count();
+        $pasienBaru = Equipment::whereHas('bed')->where(function($q) {
+            $q->whereDate('created_at', today())
+              ->orWhereDate('tanggal_pengadaan', today());
+        })->count();
         $dalamPerawatan = \App\Models\Bed::where('status', 'terisi')->count();
         if ($dalamPerawatan == 0) {
-            $dalamPerawatan = Equipment::whereNotNull('lokasi')->count();
+            $dalamPerawatan = Equipment::whereHas('bed')->whereNotNull('lokasi')->count();
         }
-        $siapPulang = Equipment::where(function($q) {
+        $siapPulang = Equipment::whereHas('bed')->where(function($q) {
             $q->whereNotNull('rencana_pulang')
               ->where('rencana_pulang', '!=', '')
               ->where('rencana_pulang', '!=', '-');
         })->count();
-        $adaBarrier = Equipment::where(function($q) {
+        $adaBarrier = Equipment::whereHas('bed')->where(function($q) {
             $q->whereNotNull('alkes_invasif')
               ->where('alkes_invasif', '!=', '')
               ->where('alkes_invasif', '!=', '-');
         })->count();
 
-        // Calculate EWS counts
-        $ewsHijau = Equipment::whereRaw('LOWER(ews) LIKE ?', ['%hijau%'])->count();
-        $ewsKuning = Equipment::whereRaw('LOWER(ews) LIKE ?', ['%kuning%'])->count();
-        $ewsOrange = Equipment::where(function($q) {
+        // Calculate EWS counts (active patients only)
+        $ewsHijau = Equipment::whereHas('bed')->whereRaw('LOWER(ews) LIKE ?', ['%hijau%'])->count();
+        $ewsKuning = Equipment::whereHas('bed')->whereRaw('LOWER(ews) LIKE ?', ['%kuning%'])->count();
+        $ewsOrange = Equipment::whereHas('bed')->where(function($q) {
             $q->whereRaw('LOWER(ews) LIKE ?', ['%orange%'])
               ->orWhereRaw('LOWER(ews) LIKE ?', ['%oranye%']);
         })->count();
-        $ewsMerah = Equipment::whereRaw('LOWER(ews) LIKE ?', ['%merah%'])->count();
-        $ewsDnr = Equipment::whereRaw('LOWER(ews) LIKE ?', ['%dnr%'])->count();
+        $ewsMerah = Equipment::whereHas('bed')->whereRaw('LOWER(ews) LIKE ?', ['%merah%'])->count();
+        $ewsDnr = Equipment::whereHas('bed')->whereRaw('LOWER(ews) LIKE ?', ['%dnr%'])->count();
         
         return view('maintenances.index', compact(
             'equipmentsPaginator', 'equipments', 'search', 'sort', 'patientsMap',
@@ -567,5 +569,41 @@ class MaintenanceController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    public function pulang(Request $request)
+    {
+        $search = $request->input('search');
+        $sort = $request->input('sort', 'terbaru');
+
+        $query = Equipment::whereDoesntHave('bed')
+            ->withCount('maintenances')
+            ->with(['media', 'maintenances' => function($q) {
+                $q->latest('tanggal_pelaksanaan');
+            }]);
+
+        if ($sort === 'alphabetical') {
+            $query->orderBy('merk', 'asc');
+        } elseif ($sort === 'alphabetical_desc') {
+            $query->orderBy('merk', 'desc');
+        } else {
+            $query->orderBy('id', 'desc');
+        }
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('merk', 'like', "%{$search}%")
+                  ->orWhere('type', 'like', "%{$search}%")
+                  ->orWhere('serial_number', 'like', "%{$search}%")
+                  ->orWhere('lokasi', 'like', "%{$search}%");
+            });
+        }
+
+        $perPage = $request->input('per_page', 10);
+        $equipmentsPaginator = $query->paginate($perPage)->appends($request->all());
+
+        return view('maintenances.pulang', compact(
+            'equipmentsPaginator', 'search', 'sort'
+        ));
     }
 }

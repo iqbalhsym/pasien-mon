@@ -36,6 +36,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/kontrol-pasien/export', [CalibrationController::class, 'exportCsv'])->name('calibrations.export');
     Route::get('/rekam-medis', [MaintenanceController::class, 'index'])->name('maintenances.index');
     Route::get('/rekam-medis/export', [MaintenanceController::class, 'exportCSV'])->name('maintenances.export');
+    Route::get('/pasien-pulang', [MaintenanceController::class, 'pulang'])->name('maintenances.pulang');
     Route::get('/beds', [\App\Http\Controllers\BedController::class, 'index'])->name('beds.index');
     Route::get('/rekam-medis/{serial_number}', [MaintenanceController::class, 'history'])->name('maintenances.history');
     Route::get('/rekam-medis/{serial_number}/detail', [MaintenanceController::class, 'patientDetail'])->name('maintenances.patient_detail');
