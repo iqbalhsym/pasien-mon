@@ -271,11 +271,11 @@
                                 <th class="py-3 fw-bold" style="width: 250px; font-size: 0.88rem; color: #4B5563;">Nama Pasien<br><span class="text-muted fw-normal" style="font-size: 0.75rem;">No. RM | Jenis Kelamin | Umur<br>Diagnosa Medis</span></th>
                                 <th class="py-3 fw-bold" style="width: 140px; font-size: 0.88rem; color: #4B5563;">Tgl Masuk</th>
                                 <th class="py-3 fw-bold text-center" style="width: 90px; font-size: 0.88rem; color: #4B5563;">LOS</th>
+                                <th class="py-3 fw-bold" style="width: 140px; font-size: 0.88rem; color: #4B5563;">Estimasi /<br>Rencana Pulang</th>
                                 <th class="py-3 fw-bold" style="width: 200px; font-size: 0.88rem; color: #4B5563;">DPJP<br><span class="text-muted fw-normal" style="font-size: 0.75rem;">Visite | Konsul (DPJP Konsul)</span></th>
                                 <th class="py-3 fw-bold" style="width: 220px; font-size: 0.88rem; color: #4B5563;">Handover<br><span class="text-muted fw-normal" style="font-size: 0.75rem;">Pagi | Sore | Malam</span></th>
                                 <th class="py-3 fw-bold" style="width: 220px; font-size: 0.88rem; color: #4B5563;">Planning Selama Perawatan<br><span class="text-muted fw-normal" style="font-size: 0.75rem;">Lab | Radiologi | Konsul | Tindakan | Dll</span></th>
                                 <th class="py-3 fw-bold" style="width: 180px; font-size: 0.88rem; color: #4B5563;">Barrier</th>
-                                <th class="py-3 fw-bold" style="width: 140px; font-size: 0.88rem; color: #4B5563;">Estimasi /<br>Rencana Pulang</th>
                                 <th class="py-3 fw-bold text-center" style="width: 120px; font-size: 0.88rem; color: #4B5563;">Aksi</th>
                             </tr>
                         </thead>
@@ -576,6 +576,35 @@
                                     </span>
                                 </td>
 
+                                <!-- Estimasi / Rencana Pulang -->
+                                <td>
+                                    <form action="{{ route('maintenances.update_patient_detail', $eq->serial_number) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('PUT')
+                                        @php
+                                            $rpValue = trim($eq->rencana_pulang ?? '');
+                                            $rpBg = '#ffffff';
+                                            $rpText = '#212529';
+                                            $rpBorder = '#ced4da';
+                                            if (stripos($rpValue, 'hari ini') !== false) {
+                                                $rpBg = '#e8f5e9';
+                                                $rpText = '#198754';
+                                                $rpBorder = '#198754';
+                                            } elseif (stripos($rpValue, 'besok') !== false) {
+                                                $rpBg = '#e3f2fd';
+                                                $rpText = '#0d6efd';
+                                                $rpBorder = '#0d6efd';
+                                            }
+                                        @endphp
+                                        <select name="rencana_pulang" onchange="this.form.submit()" class="form-select form-select-sm fw-bold" 
+                                                style="width: 100%; font-size: 0.85rem; border-radius: 6px; cursor: pointer; background-color: {{ $rpBg }}; color: {{ $rpText }}; border: 1px solid {{ $rpBorder }};">
+                                            <option value="" style="background-color: #ffffff; color: #212529;">-</option>
+                                            <option value="Hari Ini" {{ (stripos($rpValue, 'hari ini') !== false) ? 'selected' : '' }} style="background-color: #ffffff; color: #198754; font-weight: bold;">Hari Ini</option>
+                                            <option value="Besok" {{ (stripos($rpValue, 'besok') !== false) ? 'selected' : '' }} style="background-color: #ffffff; color: #0d6efd; font-weight: bold;">Besok</option>
+                                        </select>
+                                    </form>
+                                </td>
+
                                 <!-- DPJP -->
                                 <td>
                                     <div style="font-size: 0.88rem; line-height: 1.4;">
@@ -679,35 +708,6 @@
                                     <div class="text-dark" style="font-size: 0.88rem; font-weight: 600; line-height: 1.4;">
                                         {{ $eq->alkes_invasif ?: '-' }}
                                     </div>
-                                </td>
-
-                                <!-- Estimasi / Rencana Pulang -->
-                                <td>
-                                    <form action="{{ route('maintenances.update_patient_detail', $eq->serial_number) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        @method('PUT')
-                                        @php
-                                            $rpValue = trim($eq->rencana_pulang ?? '');
-                                            $rpBg = '#ffffff';
-                                            $rpText = '#212529';
-                                            $rpBorder = '#ced4da';
-                                            if (stripos($rpValue, 'hari ini') !== false) {
-                                                $rpBg = '#e8f5e9';
-                                                $rpText = '#198754';
-                                                $rpBorder = '#198754';
-                                            } elseif (stripos($rpValue, 'besok') !== false) {
-                                                $rpBg = '#e3f2fd';
-                                                $rpText = '#0d6efd';
-                                                $rpBorder = '#0d6efd';
-                                            }
-                                        @endphp
-                                        <select name="rencana_pulang" onchange="this.form.submit()" class="form-select form-select-sm fw-bold" 
-                                                style="width: 100%; font-size: 0.85rem; border-radius: 6px; cursor: pointer; background-color: {{ $rpBg }}; color: {{ $rpText }}; border: 1px solid {{ $rpBorder }};">
-                                            <option value="" style="background-color: #ffffff; color: #212529;">-</option>
-                                            <option value="Hari Ini" {{ (stripos($rpValue, 'hari ini') !== false) ? 'selected' : '' }} style="background-color: #ffffff; color: #198754; font-weight: bold;">Hari Ini</option>
-                                            <option value="Besok" {{ (stripos($rpValue, 'besok') !== false) ? 'selected' : '' }} style="background-color: #ffffff; color: #0d6efd; font-weight: bold;">Besok</option>
-                                        </select>
-                                    </form>
                                 </td>
 
                                 <!-- Aksi -->
