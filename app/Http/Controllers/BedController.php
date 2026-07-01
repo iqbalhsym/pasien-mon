@@ -37,6 +37,7 @@ class BedController extends Controller
             $floor->occupied_beds = $activeBeds->where('status', 'terisi')->count();
             $floor->vacant_beds = $activeBeds->where('status', 'kosong')->count();
             $floor->cleaning_beds = $activeBeds->where('status', 'cleaning')->count();
+            $floor->booked_beds = $activeBeds->where('status', 'booking')->count();
             $floor->inactive_beds = $beds->where('is_active', false)->count();
             $floor->occupancy_rate = $floor->total_active_beds > 0 
                 ? round(($floor->occupied_beds / $floor->total_active_beds) * 100, 1) 
@@ -83,6 +84,7 @@ class BedController extends Controller
         $occupiedBeds = Bed::where('status', 'terisi')->where('is_active', true)->count();
         $vacantBeds = Bed::where('status', 'kosong')->where('is_active', true)->count();
         $cleaningBeds = Bed::where('status', 'cleaning')->where('is_active', true)->count();
+        $bookedBeds = Bed::where('status', 'booking')->where('is_active', true)->count();
         $inactiveBeds = Bed::where('is_active', false)->count();
 
         $occupancyRate = $totalBeds > 0 ? round(($occupiedBeds / $totalBeds) * 100, 1) : 0;
@@ -96,6 +98,7 @@ class BedController extends Controller
             'occupiedBeds',
             'vacantBeds',
             'cleaningBeds',
+            'bookedBeds',
             'inactiveBeds',
             'occupancyRate',
             'activeNurses'

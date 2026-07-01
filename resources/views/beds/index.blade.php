@@ -63,6 +63,18 @@
     .hover-underline:hover {
         text-decoration: underline !important;
     }
+    .border-orange {
+        border-color: #fd7e14 !important;
+    }
+    .bg-orange {
+        background-color: #fd7e14 !important;
+    }
+    .bg-orange-opacity-10 {
+        background-color: rgba(253, 126, 20, 0.1) !important;
+    }
+    .text-orange {
+        color: #fd7e14 !important;
+    }
 </style>
 
 <div class="row align-items-center mb-4">
@@ -95,16 +107,16 @@
 <!-- Section 1: Dashboard Statistika -->
 <div id="global-stats-container" class="row mb-4">
     <!-- Occupancy Rate -->
-    <div class="col-xl-3 col-sm-6 grid-margin stretch-card mb-3">
+    <div class="col-xl-2 col-sm-4 grid-margin stretch-card mb-3">
         <div class="card bg-gradient-primary text-white border-0 shadow-sm" style="background: linear-gradient(135deg, #1F3BB3 0%, #0d1e6d 100%); border-radius: 12px;">
             <div class="card-body py-4">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <p class="text-white opacity-75 mb-1 fw-bold" style="font-size: 0.9rem;">Occupancy Rate</p>
-                        <h2 class="display-4 fw-bold text-white mb-0">{{ $occupancyRate }}%</h2>
+                        <h2 class="display-4 fw-bold text-white mb-0" style="font-size: 1.8rem;">{{ $occupancyRate }}%</h2>
                     </div>
-                    <div class="bg-white bg-opacity-25 rounded-circle p-3">
-                        <i class="mdi mdi-chart-donut text-white fs-3"></i>
+                    <div class="bg-white bg-opacity-25 rounded-circle p-2">
+                        <i class="mdi mdi-chart-donut text-white fs-4"></i>
                     </div>
                 </div>
                 <div class="progress progress-md mt-3 bg-white bg-opacity-25" style="height: 6px; border-radius: 3px;">
@@ -124,6 +136,20 @@
                     <i class="mdi mdi-bed text-danger fs-3"></i>
                 </div>
                 <small class="text-muted d-block mt-2">Sedang digunakan pasien</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Terbooking -->
+    <div class="col-xl-2 col-sm-4 grid-margin stretch-card mb-3">
+        <div class="card border-0 shadow-sm" style="border-radius: 12px; border-left: 5px solid #ffc107 !important;">
+            <div class="card-body py-3">
+                <p class="text-muted mb-1 fw-bold" style="font-size: 0.85rem;">BED TERBOOKING</p>
+                <div class="d-flex align-items-center justify-content-between">
+                    <h2 class="fw-bold text-warning mb-0">{{ $bookedBeds }}</h2>
+                    <i class="mdi mdi-calendar-check text-warning fs-3"></i>
+                </div>
+                <small class="text-muted d-block mt-2">Dipesan / terbooking dari API</small>
             </div>
         </div>
     </div>
@@ -157,7 +183,7 @@
     </div>
 
     <!-- Total Active -->
-    <div class="col-xl-3 col-sm-6 grid-margin stretch-card mb-3">
+    <div class="col-xl-2 col-sm-4 grid-margin stretch-card mb-3">
         <div class="card border-0 shadow-sm" style="border-radius: 12px; border-left: 5px solid #6c757d !important; background-color: #f8f9fa;">
             <div class="card-body py-3">
                 <p class="text-muted mb-1 fw-bold" style="font-size: 0.85rem;">TOTAL TEMPAT TIDUR</p>
@@ -166,7 +192,7 @@
                     <i class="mdi mdi-hospital-building text-secondary fs-3"></i>
                 </div>
                 <small class="text-muted d-block mt-2">
-                    Bed Aktif: <b>{{ $totalBeds }}</b> | Non-Aktif: <b>{{ $inactiveBeds }}</b>
+                    Bed Aktif: <b>{{ $totalBeds }}</b> | Non: <b>{{ $inactiveBeds }}</b>
                 </small>
             </div>
         </div>
@@ -230,28 +256,34 @@
 
                         <!-- Floor Stats Grid -->
                         <div class="row g-1 text-center pt-2 border-top border-light">
-                            <div class="col-3">
+                            <div class="col">
                                 <div class="p-1">
-                                    <div class="fw-bold text-danger mb-0" style="font-size: 0.92rem;">{{ $fl->occupied_beds }}</div>
-                                    <div class="text-muted" style="font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1px;">TERISI</div>
+                                    <div class="fw-bold text-danger mb-0" style="font-size: 0.85rem;">{{ $fl->occupied_beds }}</div>
+                                    <div class="text-muted" style="font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1px;">TERISI</div>
                                 </div>
                             </div>
-                            <div class="col-3">
+                            <div class="col">
                                 <div class="p-1">
-                                    <div class="fw-bold text-success mb-0" style="font-size: 0.92rem;">{{ $fl->vacant_beds }}</div>
-                                    <div class="text-muted" style="font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1px;">KOSONG</div>
+                                    <div class="fw-bold text-warning mb-0" style="font-size: 0.85rem;">{{ $fl->booked_beds }}</div>
+                                    <div class="text-muted" style="font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1px;">BOOKED</div>
                                 </div>
                             </div>
-                            <div class="col-3">
+                            <div class="col">
                                 <div class="p-1">
-                                    <div class="fw-bold text-warning mb-0" style="font-size: 0.92rem; color: #fd7e14 !important;">{{ $fl->cleaning_beds }}</div>
-                                    <div class="text-muted" style="font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1px;">CLEANING</div>
+                                    <div class="fw-bold text-success mb-0" style="font-size: 0.85rem;">{{ $fl->vacant_beds }}</div>
+                                    <div class="text-muted" style="font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1px;">KOSONG</div>
                                 </div>
                             </div>
-                            <div class="col-3">
+                            <div class="col">
                                 <div class="p-1">
-                                    <div class="fw-bold text-secondary mb-0" style="font-size: 0.92rem;">{{ $fl->total_active_beds }}</div>
-                                    <div class="text-muted" style="font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1px;">TOTAL</div>
+                                    <div class="fw-bold text-orange mb-0" style="font-size: 0.85rem;">{{ $fl->cleaning_beds }}</div>
+                                    <div class="text-muted" style="font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1px;">CLEAN</div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="p-1">
+                                    <div class="fw-bold text-secondary mb-0" style="font-size: 0.85rem;">{{ $fl->total_active_beds }}</div>
+                                    <div class="text-muted" style="font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1px;">TOTAL</div>
                                 </div>
                             </div>
                         </div>
@@ -323,9 +355,13 @@
                                                         $badgeClass = 'bg-success';
                                                         $badgeLabel = 'KOSONG';
                                                     } elseif ($status == 'cleaning') {
+                                                        $cardBg = 'border-orange bg-orange-opacity-10';
+                                                        $badgeClass = 'bg-orange text-white';
+                                                        $badgeLabel = 'CLEANING';
+                                                    } elseif ($status == 'booking') {
                                                         $cardBg = 'border-warning bg-warning bg-opacity-10';
                                                         $badgeClass = 'bg-warning text-dark';
-                                                        $badgeLabel = 'CLEANING';
+                                                        $badgeLabel = 'TERBOOKING';
                                                     }
                                                 }
                                             @endphp
@@ -340,7 +376,9 @@
                                                     @elseif($status == 'kosong')
                                                         <i class="mdi mdi-bed-empty text-success fs-4"></i>
                                                     @elseif($status == 'cleaning')
-                                                        <i class="mdi mdi-vacuum text-warning fs-4 mdi-spin"></i>
+                                                        <i class="mdi mdi-vacuum text-orange fs-4 mdi-spin"></i>
+                                                    @elseif($status == 'booking')
+                                                        <i class="mdi mdi-calendar-clock text-warning fs-4"></i>
                                                     @endif
 
                                                     <div>
@@ -348,8 +386,8 @@
                                                             Bed {{ $bed->bed_number }}
                                                         </div>
 
-                                                        <!-- Patient Info if occupied -->
-                                                        @if($status == 'terisi' && $patient)
+                                                        <!-- Patient Info if occupied or booked with patient -->
+                                                        @if(($status == 'terisi' || $status == 'booking') && $patient)
                                                             <a href="{{ route('maintenances.patient_detail', $patient->serial_number) }}" class="text-decoration-none">
                                                                 <div class="text-primary mt-1 hover-underline" style="font-size: 0.88rem; font-weight: 700;">
                                                                     {{ $patient->merk }}
@@ -386,7 +424,7 @@
                                                         {{ $badgeLabel }}
                                                     </span>
                                                     
-                                                    @if($status == 'terisi' && $patient)
+                                                    @if(($status == 'terisi' || $status == 'booking') && $patient)
                                                         <a href="{{ route('maintenances.patient_detail', $patient->serial_number) }}" 
                                                            class="btn btn-info btn-sm text-white py-1 px-2.5 d-block mt-1 fw-bold shadow-sm"
                                                            style="font-size: 0.75rem;">

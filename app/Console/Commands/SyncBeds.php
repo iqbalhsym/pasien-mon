@@ -121,6 +121,9 @@ class SyncBeds extends Command
                             // If there is patient data, sync to equipments
                             if (!empty($patientData) && !empty($patientData['no_rm'])) {
                                 $noRm = trim($patientData['no_rm']);
+                                if (strtoupper($noRm) === 'TERDAFTAR') {
+                                    $noRm = 'BOOKING-' . $bedId;
+                                }
                                 $patientName = trim($patientData['name']);
                                 $diagnosa = trim($patientData['diagnosa_medis'] ?? '-');
                                 $guarantor = trim($patientData['guarantor'] ?? 'UMUM');
