@@ -104,78 +104,86 @@
         @endif
 
         {{-- Summary Cards Panel matching screenshot style --}}
-        <div class="row g-3 mb-4">
+        <div class="row g-3 mb-3">
             <!-- Dalam Perawatan -->
             <div class="col-lg col-md-4 col-sm-6">
-                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff;">
-                    <div class="card-body py-3 d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 52px; height: 52px; background-color: rgba(253, 126, 20, 0.1); flex-shrink: 0;">
-                            <i class="mdi mdi-heart-pulse text-warning fs-3" style="color: #fd7e14 !important;"></i>
+                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 8px; background: #ffffff;">
+                    <div class="card-body py-2 px-3 d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2.5" style="width: 40px; height: 40px; background-color: rgba(253, 126, 20, 0.1); flex-shrink: 0;">
+                            <i class="mdi mdi-heart-pulse text-warning fs-4" style="color: #fd7e14 !important;"></i>
                         </div>
                         <div>
-                            <p class="text-muted mb-0 small fw-bold text-uppercase">Dalam Perawatan</p>
-                            <h3 class="fw-bold mb-0 text-dark" style="font-size: 1.6rem; line-height: 1.2;">{{ $dalamPerawatan }}</h3>
-                            <small class="text-muted">pasien</small>
+                            <p class="text-muted mb-0 fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.1px; line-height: 1.2;">Dalam Perawatan</p>
+                            <div class="d-flex align-items-baseline gap-1">
+                                <h4 class="fw-bold mb-0 text-dark" style="font-size: 1.25rem; line-height: 1.2;">{{ $dalamPerawatan }}</h4>
+                                <small class="text-muted" style="font-size: 0.7rem;">pasien</small>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             <!-- Pasien Baru Hari Ini -->
             <div class="col-lg col-md-4 col-sm-6">
-                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff;">
-                    <div class="card-body py-3 d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 52px; height: 52px; background-color: rgba(25, 135, 84, 0.1); flex-shrink: 0;">
-                            <i class="mdi mdi-calendar-plus text-success fs-3"></i>
+                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 8px; background: #ffffff;">
+                    <div class="card-body py-2 px-3 d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2.5" style="width: 40px; height: 40px; background-color: rgba(25, 135, 84, 0.1); flex-shrink: 0;">
+                            <i class="mdi mdi-calendar-plus text-success fs-4"></i>
                         </div>
                         <div>
-                            <p class="text-muted mb-0 small fw-bold text-uppercase">Pasien Baru Hari Ini</p>
-                            <h3 class="fw-bold mb-0 text-dark" style="font-size: 1.6rem; line-height: 1.2;">{{ $pasienBaru }}</h3>
-                            <small class="text-muted">pasien</small>
+                            <p class="text-muted mb-0 fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.1px; line-height: 1.2;">Pasien Baru Hari Ini</p>
+                            <div class="d-flex align-items-baseline gap-1">
+                                <h4 class="fw-bold mb-0 text-dark" style="font-size: 1.25rem; line-height: 1.2;">{{ $pasienBaru }}</h4>
+                                <small class="text-muted" style="font-size: 0.7rem;">pasien</small>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             <!-- Siap Pulang -->
             <div class="col-lg col-md-4 col-sm-6">
-                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff;">
-                    <div class="card-body py-3 d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 52px; height: 52px; background-color: rgba(111, 66, 193, 0.1); flex-shrink: 0;">
-                            <i class="mdi mdi-calendar-check text-purple fs-3" style="color: #6f42c1 !important;"></i>
+                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 8px; background: #ffffff;">
+                    <div class="card-body py-2 px-3 d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2.5" style="width: 40px; height: 40px; background-color: rgba(111, 66, 193, 0.1); flex-shrink: 0;">
+                            <i class="mdi mdi-calendar-check text-purple fs-4" style="color: #6f42c1 !important;"></i>
                         </div>
                         <div>
-                            <p class="text-muted mb-0 small fw-bold text-uppercase">Siap Pulang</p>
-                            <h3 class="fw-bold mb-0 text-dark" style="font-size: 1.6rem; line-height: 1.2;">{{ $siapPulang }}</h3>
-                            <small class="text-muted">pasien</small>
+                            <p class="text-muted mb-0 fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.1px; line-height: 1.2;">Siap Pulang</p>
+                            <div class="d-flex align-items-baseline gap-1">
+                                <h4 class="fw-bold mb-0 text-dark" style="font-size: 1.25rem; line-height: 1.2;">{{ $siapPulang }}</h4>
+                                <small class="text-muted" style="font-size: 0.7rem;">pasien</small>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             <!-- Ada Barrier -->
             <div class="col-lg col-md-4 col-sm-6">
-                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff;">
-                    <div class="card-body py-3 d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 52px; height: 52px; background-color: rgba(220, 53, 69, 0.1); flex-shrink: 0;">
-                            <i class="mdi mdi-alert text-danger fs-3"></i>
+                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 8px; background: #ffffff;">
+                    <div class="card-body py-2 px-3 d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2.5" style="width: 40px; height: 40px; background-color: rgba(220, 53, 69, 0.1); flex-shrink: 0;">
+                            <i class="mdi mdi-alert text-danger fs-4"></i>
                         </div>
                         <div>
-                            <p class="text-muted mb-0 small fw-bold text-uppercase">Ada Barrier</p>
-                            <h3 class="fw-bold mb-0 text-dark" style="font-size: 1.6rem; line-height: 1.2;">{{ $adaBarrier }}</h3>
-                            <small class="text-muted">pasien</small>
+                            <p class="text-muted mb-0 fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.1px; line-height: 1.2;">Ada Barrier</p>
+                            <div class="d-flex align-items-baseline gap-1">
+                                <h4 class="fw-bold mb-0 text-dark" style="font-size: 1.25rem; line-height: 1.2;">{{ $adaBarrier }}</h4>
+                                <small class="text-muted" style="font-size: 0.7rem;">pasien</small>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             <!-- Tanggal -->
             <div class="col-lg col-md-4 col-sm-6">
-                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff;">
-                    <div class="card-body py-3 d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 52px; height: 52px; background-color: rgba(108, 117, 125, 0.1); flex-shrink: 0;">
-                            <i class="mdi mdi-calendar-clock text-secondary fs-3"></i>
+                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 8px; background: #ffffff;">
+                    <div class="card-body py-2 px-3 d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2.5" style="width: 40px; height: 40px; background-color: rgba(108, 117, 125, 0.1); flex-shrink: 0;">
+                            <i class="mdi mdi-calendar-clock text-secondary fs-4"></i>
                         </div>
                         <div>
-                            <p class="text-muted mb-0 small fw-bold text-uppercase">Tanggal</p>
-                            <h5 class="fw-bold mb-0 text-dark" style="font-size: 0.95rem; line-height: 1.2;">{{ now()->translatedFormat('d F Y') }}</h5>
-                            <small class="text-muted">{{ now()->format('H:i') }} WIB</small>
+                            <p class="text-muted mb-0 fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.1px; line-height: 1.2;">Tanggal</p>
+                            <h5 class="fw-bold mb-0 text-dark" style="font-size: 0.85rem; line-height: 1.1;">{{ now()->translatedFormat('d F Y') }}</h5>
+                            <small class="text-muted" style="font-size: 0.68rem;">{{ now()->format('H:i') }} WIB</small>
                         </div>
                     </div>
                 </div>
@@ -186,75 +194,85 @@
         <div class="row g-3 mb-4">
             <!-- EWS Hijau -->
             <div class="col-lg col-md-4 col-6">
-                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff; border-left: 5px solid #198754 !important;">
-                    <div class="card-body py-3 d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 44px; height: 44px; background-color: #e8f5e9; flex-shrink: 0;">
-                            <span class="d-inline-block rounded-circle" style="width: 16px; height: 16px; background-color: #198754;"></span>
+                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 8px; background: #ffffff; border-left: 4px solid #198754 !important;">
+                    <div class="card-body py-2 px-2.5 d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; background-color: #e8f5e9; flex-shrink: 0;">
+                            <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background-color: #198754;"></span>
                         </div>
                         <div>
-                            <p class="text-muted mb-0 small fw-bold text-uppercase" style="font-size: 0.75rem;">EWS Hijau</p>
-                            <h3 class="fw-bold mb-0 text-dark" style="font-size: 1.4rem; line-height: 1.2;">{{ $ewsHijau }}</h3>
-                            <small class="text-muted">pasien</small>
+                            <p class="text-muted mb-0 fw-bold text-uppercase" style="font-size: 0.62rem; letter-spacing: 0.1px; line-height: 1.1;">EWS Hijau</p>
+                            <div class="d-flex align-items-baseline gap-1">
+                                <h4 class="fw-bold mb-0 text-dark" style="font-size: 1.15rem; line-height: 1.1;">{{ $ewsHijau }}</h4>
+                                <small class="text-muted" style="font-size: 0.65rem;">pasien</small>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             <!-- EWS Kuning -->
             <div class="col-lg col-md-4 col-6">
-                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff; border-left: 5px solid #ffc107 !important;">
-                    <div class="card-body py-3 d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 44px; height: 44px; background-color: #fff9c4; flex-shrink: 0;">
-                            <span class="d-inline-block rounded-circle" style="width: 16px; height: 16px; background-color: #ffc107;"></span>
+                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 8px; background: #ffffff; border-left: 4px solid #ffc107 !important;">
+                    <div class="card-body py-2 px-2.5 d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; background-color: #fff9c4; flex-shrink: 0;">
+                            <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background-color: #ffc107;"></span>
                         </div>
                         <div>
-                            <p class="text-muted mb-0 small fw-bold text-uppercase" style="font-size: 0.75rem;">EWS Kuning</p>
-                            <h3 class="fw-bold mb-0 text-dark" style="font-size: 1.4rem; line-height: 1.2;">{{ $ewsKuning }}</h3>
-                            <small class="text-muted">pasien</small>
+                            <p class="text-muted mb-0 fw-bold text-uppercase" style="font-size: 0.62rem; letter-spacing: 0.1px; line-height: 1.1;">EWS Kuning</p>
+                            <div class="d-flex align-items-baseline gap-1">
+                                <h4 class="fw-bold mb-0 text-dark" style="font-size: 1.15rem; line-height: 1.1;">{{ $ewsKuning }}</h4>
+                                <small class="text-muted" style="font-size: 0.65rem;">pasien</small>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             <!-- EWS Orange -->
             <div class="col-lg col-md-4 col-6">
-                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff; border-left: 5px solid #fd7e14 !important;">
-                    <div class="card-body py-3 d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 44px; height: 44px; background-color: #ffe0b2; flex-shrink: 0;">
-                            <span class="d-inline-block rounded-circle" style="width: 16px; height: 16px; background-color: #fd7e14;"></span>
+                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 8px; background: #ffffff; border-left: 4px solid #fd7e14 !important;">
+                    <div class="card-body py-2 px-2.5 d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; background-color: #ffe0b2; flex-shrink: 0;">
+                            <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background-color: #fd7e14;"></span>
                         </div>
                         <div>
-                            <p class="text-muted mb-0 small fw-bold text-uppercase" style="font-size: 0.75rem;">EWS Orange</p>
-                            <h3 class="fw-bold mb-0 text-dark" style="font-size: 1.4rem; line-height: 1.2;">{{ $ewsOrange }}</h3>
-                            <small class="text-muted">pasien</small>
+                            <p class="text-muted mb-0 fw-bold text-uppercase" style="font-size: 0.62rem; letter-spacing: 0.1px; line-height: 1.1;">EWS Orange</p>
+                            <div class="d-flex align-items-baseline gap-1">
+                                <h4 class="fw-bold mb-0 text-dark" style="font-size: 1.15rem; line-height: 1.1;">{{ $ewsOrange }}</h4>
+                                <small class="text-muted" style="font-size: 0.65rem;">pasien</small>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             <!-- EWS Merah -->
             <div class="col-lg col-md-4 col-6">
-                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff; border-left: 5px solid #dc3545 !important;">
-                    <div class="card-body py-3 d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 44px; height: 44px; background-color: #ffebee; flex-shrink: 0;">
-                            <span class="d-inline-block rounded-circle" style="width: 16px; height: 16px; background-color: #dc3545;"></span>
+                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 8px; background: #ffffff; border-left: 4px solid #dc3545 !important;">
+                    <div class="card-body py-2 px-2.5 d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; background-color: #ffebee; flex-shrink: 0;">
+                            <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background-color: #dc3545;"></span>
                         </div>
                         <div>
-                            <p class="text-muted mb-0 small fw-bold text-uppercase" style="font-size: 0.75rem;">EWS Merah</p>
-                            <h3 class="fw-bold mb-0 text-dark" style="font-size: 1.4rem; line-height: 1.2;">{{ $ewsMerah }}</h3>
-                            <small class="text-muted">pasien</small>
+                            <p class="text-muted mb-0 fw-bold text-uppercase" style="font-size: 0.62rem; letter-spacing: 0.1px; line-height: 1.1;">EWS Merah</p>
+                            <div class="d-flex align-items-baseline gap-1">
+                                <h4 class="fw-bold mb-0 text-dark" style="font-size: 1.15rem; line-height: 1.1;">{{ $ewsMerah }}</h4>
+                                <small class="text-muted" style="font-size: 0.65rem;">pasien</small>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             <!-- EWS DNR -->
             <div class="col-lg col-md-4 col-6">
-                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 12px; background: #ffffff; border-left: 5px solid #6c757d !important;">
-                    <div class="card-body py-3 d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 44px; height: 44px; background-color: #f5f5f5; flex-shrink: 0;">
-                            <span class="d-inline-block rounded-circle" style="width: 16px; height: 16px; background-color: #6c757d;"></span>
+                <div class="card border border-light-subtle shadow-sm h-100" style="border-radius: 8px; background: #ffffff; border-left: 4px solid #6c757d !important;">
+                    <div class="card-body py-2 px-2.5 d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; background-color: #f5f5f5; flex-shrink: 0;">
+                            <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background-color: #6c757d;"></span>
                         </div>
                         <div>
-                            <p class="text-muted mb-0 small fw-bold text-uppercase" style="font-size: 0.75rem;">EWS DNR</p>
-                            <h3 class="fw-bold mb-0 text-dark" style="font-size: 1.4rem; line-height: 1.2;">{{ $ewsDnr }}</h3>
-                            <small class="text-muted">pasien</small>
+                            <p class="text-muted mb-0 fw-bold text-uppercase" style="font-size: 0.62rem; letter-spacing: 0.1px; line-height: 1.1;">EWS DNR</p>
+                            <div class="d-flex align-items-baseline gap-1">
+                                <h4 class="fw-bold mb-0 text-dark" style="font-size: 1.15rem; line-height: 1.1;">{{ $ewsDnr }}</h4>
+                                <small class="text-muted" style="font-size: 0.65rem;">pasien</small>
+                            </div>
                         </div>
                     </div>
                 </div>
