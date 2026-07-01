@@ -626,6 +626,18 @@
               <span class="menu-title">Respon e-Konsul DPJP</span>
             </a>
           </li>
+          <li class="nav-item {{ request()->routeIs('mutu.distribusi-dpjp') ? 'active' : '' }}">
+            <a class="nav-link text-decoration-none" href="{{ route('mutu.distribusi-dpjp') }}">
+              <i class="mdi mdi-account-group-outline"></i>
+              <span class="menu-title">Distribusi DPJP & Lantai</span>
+            </a>
+          </li>
+          <li class="nav-item {{ request()->routeIs('mutu.jadwal-ners') ? 'active' : '' }}">
+            <a class="nav-link text-decoration-none" href="{{ route('mutu.jadwal-ners') }}">
+              <i class="mdi mdi-calendar-clock"></i>
+              <span class="menu-title">Laporan Shift Ners</span>
+            </a>
+          </li>
 
           <div class="category-heading">Manajemen Pasien</div>
 
@@ -805,14 +817,23 @@
 
           @endauth
 
-          {{-- Menu Manajemen Akun hanya untuk Admin --}}
-          @if(auth()->check() && auth()->user()->isAdmin())
+          {{-- Menu Pengaturan --}}
+          @if(auth()->check() && (auth()->user()->isAdmin() || auth()->user()->role === 'user'))
             <div class="category-heading">Pengaturan</div>
 
-            <li class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
-              <a class="nav-link text-decoration-none" href="{{ route('users.index') }}">
-                <i class="mdi mdi-account-cog"></i>
-                <span class="menu-title">Manajemen Akun</span>
+            @if(auth()->user()->isAdmin())
+              <li class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                <a class="nav-link text-decoration-none" href="{{ route('users.index') }}">
+                  <i class="mdi mdi-account-cog"></i>
+                  <span class="menu-title">Manajemen Akun</span>
+                </a>
+              </li>
+            @endif
+
+            <li class="nav-item {{ request()->routeIs('nurses.*') ? 'active' : '' }}">
+              <a class="nav-link text-decoration-none" href="{{ route('nurses.index') }}">
+                <i class="mdi mdi-account-group"></i>
+                <span class="menu-title">Manajemen Data Ners</span>
               </a>
             </li>
           @endif

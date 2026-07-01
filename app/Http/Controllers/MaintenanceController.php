@@ -215,8 +215,9 @@ class MaintenanceController extends Controller
         $equipment = Equipment::where('serial_number', $serial_number)->firstOrFail();
         $patientsMap = $this->fetchApiPatientsMap();
         $apiData = $patientsMap[$equipment->serial_number] ?? null;
+        $activeNurses = \App\Models\Nurse::where('is_active', true)->orderBy('name', 'asc')->get();
 
-        return view('maintenances.patient_detail', compact('equipment', 'apiData'));
+        return view('maintenances.patient_detail', compact('equipment', 'apiData', 'activeNurses'));
     }
 
     public function updatePatientDetail(Request $request, $serial_number)

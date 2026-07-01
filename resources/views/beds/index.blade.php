@@ -3,17 +3,88 @@
 @section('title', 'Monitoring Bed & Kamar')
 
 @section('content_header')
+<style>
+    .floor-card {
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        background: #ffffff;
+    }
+    .floor-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08) !important;
+        border-color: #1F3BB3 !important;
+    }
+    .active-floor-card {
+        background-color: #f8f9ff !important;
+        box-shadow: 0 4px 15px rgba(31, 59, 179, 0.08) !important;
+    }
+    .live-dot-pulse {
+        width: 10px;
+        height: 10px;
+        background-color: #198754;
+        border-radius: 50%;
+        position: relative;
+        display: inline-block;
+    }
+    .live-dot-pulse::after {
+        content: '';
+        width: 10px;
+        height: 10px;
+        background-color: #198754;
+        border-radius: 50%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        animation: livePulse 1.8s infinite ease-in-out;
+    }
+    @keyframes livePulse {
+        0% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        100% {
+            transform: scale(2.8);
+            opacity: 0;
+        }
+    }
+    .live-dot-paused {
+        width: 10px;
+        height: 10px;
+        background-color: #6c757d;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    .live-dot-paused::after {
+        display: none !important;
+    }
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    .hover-underline:hover {
+        text-decoration: underline !important;
+    }
+</style>
+
 <div class="row align-items-center mb-4">
-    <div class="col-sm-8">
+    <div class="col-sm-6 col-md-7">
         <h2 class="h2 text-dark font-weight-bold mb-1">
             <i class="mdi mdi-bed text-primary me-2"></i> Monitoring Bed & Kamar
         </h2>
         <p class="text-muted mb-0" style="font-size: 1.05rem;">Status occupancy, ketersediaan tempat tidur, dan penempatan pasien secara real-time.</p>
     </div>
-    <div class="col-sm-4 text-sm-end mt-3 mt-sm-0">
+    <div class="col-sm-6 col-md-5 text-sm-end mt-3 mt-sm-0 d-flex align-items-center justify-content-sm-end gap-2 flex-wrap">
+        <!-- Live Indicator and Auto Refresh Toggle -->
+        <div class="d-flex align-items-center bg-white px-3 py-2 rounded shadow-sm border border-light" style="height: 42px;">
+            <div id="liveIndicator" class="live-dot-pulse me-2"></div>
+            <span id="liveText" class="text-dark fw-bold me-3" style="font-size: 0.85rem; letter-spacing: 0.5px;">LIVE (20s)</span>
+            <div class="form-check form-switch mb-0 p-0 d-flex align-items-center">
+                <input class="form-check-input ms-0 cursor-pointer" type="checkbox" role="switch" id="autoRefreshSwitch" checked style="width: 2.2em; height: 1.1em;">
+            </div>
+        </div>
+
         @if(auth()->user()->role !== 'viewer')
-            <button id="syncBtn" class="btn btn-primary fw-bold px-4 py-2 shadow-sm d-inline-flex align-items-center" style="font-size: 1rem;">
-                <i class="mdi mdi-sync me-2 fs-5"></i> <span>Sinkronisasi Real-Time</span>
+            <button id="syncBtn" class="btn btn-primary fw-bold px-4 py-2 shadow-sm d-inline-flex align-items-center" style="font-size: 1rem; height: 42px; border-radius: 8px;">
+                <i class="mdi mdi-sync me-2 fs-5"></i> <span>Sinkronisasi</span>
             </button>
         @endif
     </div>
@@ -22,7 +93,7 @@
 
 @section('content')
 <!-- Section 1: Dashboard Statistika -->
-<div class="row mb-4">
+<div id="global-stats-container" class="row mb-4">
     <!-- Occupancy Rate -->
     <div class="col-xl-3 col-sm-6 grid-margin stretch-card mb-3">
         <div class="card bg-gradient-primary text-white border-0 shadow-sm" style="background: linear-gradient(135deg, #1F3BB3 0%, #0d1e6d 100%); border-radius: 12px;">
@@ -95,38 +166,104 @@
                     <i class="mdi mdi-hospital-building text-secondary fs-3"></i>
                 </div>
                 <small class="text-muted d-block mt-2">
-                    Aktif: <b>{{ $totalBeds - $inactiveBeds }}</b> | Non-Aktif: <b>{{ $inactiveBeds }}</b>
+                    Bed Aktif: <b>{{ $totalBeds }}</b> | Non-Aktif: <b>{{ $inactiveBeds }}</b>
                 </small>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Section 2: Tab Navigasi Lantai -->
-<div class="row mb-4">
+<!-- Section 2: Dashboard Per Lantai (Floor Dashboards) -->
+<div class="row mb-1">
     <div class="col-12">
-        <div class="card border-0 shadow-sm" style="border-radius: 12px;">
-            <div class="card-body p-2">
-                <div class="d-flex flex-wrap gap-2 justify-content-start">
-                    @foreach($floors as $fl)
-                        @php
-                            $flName = $fl->name;
-                            $displayFl = is_numeric($flName) ? 'Lantai ' . $flName : $flName;
-                            $isActiveTab = $selectedFloorName == $flName;
-                        @endphp
-                        <a href="{{ route('beds.index', ['floor' => $flName]) }}" 
-                           class="btn {{ $isActiveTab ? 'btn-primary' : 'btn-outline-secondary' }} px-4 py-2 fw-bold d-flex align-items-center"
-                           style="border-radius: 8px; font-size: 0.92rem;">
-                            <i class="mdi mdi-layers-outline me-2"></i> {{ $displayFl }}
-                        </a>
-                    @endforeach
-                </div>
-            </div>
-        </div>
+        <h4 class="h4 text-dark font-weight-bold mb-3 d-flex align-items-center">
+            <i class="mdi mdi-layers-outline text-primary me-2"></i> Ringkasan Dashboard Per Lantai
+        </h4>
     </div>
+</div>
+<div id="floor-dashboards-container" class="row mb-4">
+    @foreach($floors as $fl)
+        @php
+            $flName = $fl->name;
+            $displayFl = is_numeric($flName) ? 'Lantai ' . $flName : $flName;
+            $isActiveTab = $selectedFloorName == $flName;
+        @endphp
+        <div class="col-xl-3 col-md-4 col-sm-6 mb-3">
+            <a href="{{ route('beds.index', ['floor' => $flName]) }}" 
+               class="floor-card-link text-decoration-none" 
+               data-floor="{{ $flName }}">
+                <div class="card h-100 border-0 shadow-sm floor-card {{ $isActiveTab ? 'active-floor-card' : '' }}" 
+                     style="border-radius: 12px; transition: all 0.25s ease; position: relative; overflow: hidden; border: 2px solid {{ $isActiveTab ? '#1F3BB3' : 'transparent' }} !important;">
+                    
+                    @if($isActiveTab)
+                        <div class="active-badge shadow-sm" style="position: absolute; top: 0; right: 0; background-color: #1F3BB3; color: white; padding: 2px 10px; font-size: 0.65rem; font-weight: 800; border-bottom-left-radius: 8px; letter-spacing: 0.5px;">
+                            TERPILIH
+                        </div>
+                    @endif
+                    
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h5 class="fw-bold mb-0 text-dark {{ $isActiveTab ? 'text-primary' : '' }}" style="font-size: 1.05rem;">
+                                    {{ $displayFl }}
+                                </h5>
+                                <span class="text-muted" style="font-size: 0.78rem;">Status occupancy</span>
+                            </div>
+                            <div class="p-2 rounded {{ $isActiveTab ? 'bg-primary bg-opacity-10 text-primary' : 'bg-light text-secondary' }}">
+                                <i class="mdi mdi-layers-outline fs-5"></i>
+                            </div>
+                        </div>
+
+                        <!-- Floor Occupancy Rate -->
+                        <div class="d-flex align-items-baseline mb-1">
+                            <h3 class="fw-bold mb-0 text-dark" style="font-size: 1.5rem;">{{ $fl->occupancy_rate }}%</h3>
+                            <span class="text-muted ms-2" style="font-size: 0.78rem;">Occupancy</span>
+                        </div>
+                        <div class="progress progress-sm mb-3 bg-light" style="height: 6px; border-radius: 3px;">
+                            <div class="progress-bar {{ $isActiveTab ? 'bg-primary' : 'bg-secondary bg-opacity-50' }}" 
+                                 role="progressbar" 
+                                 style="width: {{ $fl->occupancy_rate }}%" 
+                                 aria-valuenow="{{ $fl->occupancy_rate }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100"></div>
+                        </div>
+
+                        <!-- Floor Stats Grid -->
+                        <div class="row g-1 text-center pt-2 border-top border-light">
+                            <div class="col-3">
+                                <div class="p-1">
+                                    <div class="fw-bold text-danger mb-0" style="font-size: 0.92rem;">{{ $fl->occupied_beds }}</div>
+                                    <div class="text-muted" style="font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1px;">TERISI</div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="p-1">
+                                    <div class="fw-bold text-success mb-0" style="font-size: 0.92rem;">{{ $fl->vacant_beds }}</div>
+                                    <div class="text-muted" style="font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1px;">KOSONG</div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="p-1">
+                                    <div class="fw-bold text-warning mb-0" style="font-size: 0.92rem; color: #fd7e14 !important;">{{ $fl->cleaning_beds }}</div>
+                                    <div class="text-muted" style="font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1px;">CLEANING</div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="p-1">
+                                    <div class="fw-bold text-secondary mb-0" style="font-size: 0.92rem;">{{ $fl->total_active_beds }}</div>
+                                    <div class="text-muted" style="font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1px;">TOTAL</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    @endforeach
 </div>
 
 <!-- Section 3: Visual Layout Kamar dan Bed -->
+<div id="dashboard-layout-container" style="transition: opacity 0.3s ease;">
 @if($selectedFloor)
     <h3 class="h4 text-dark font-weight-bold mb-3 d-flex align-items-center">
         <i class="mdi mdi-door-open text-primary me-2"></i> Daftar Ruang Rawat & Bed: 
@@ -158,7 +295,7 @@
                                         <span class="badge bg-secondary text-white fs-6 mt-1">{{ $room->class ?? 'Tanpa Kelas' }}</span>
                                     </div>
                                     <span class="badge bg-dark text-white fw-bold px-2.5 py-1">
-                                        {{ $room->beds->where('status', 'terisi')->count() }} / {{ $room->beds->count() }} Bed
+                                        {{ $room->beds->where('status', 'terisi')->where('is_active', true)->count() }} / {{ $room->beds->where('is_active', true)->count() }} Bed
                                     </span>
                                 </div>
 
@@ -224,6 +361,21 @@
                                                             <div class="text-muted text-truncate" style="font-size: 0.8rem; max-width: 180px;" title="{{ $patient->type }}">
                                                                 Diag: {{ $patient->type }}
                                                             </div>
+
+                                                            <!-- Ners Shift Assignment Display -->
+                                                            <div class="mt-2 pt-1" style="font-size: 0.76rem; border-top: 1px dashed #dee2e6 !important;">
+                                                                <div class="d-flex flex-column gap-0.5">
+                                                                    <div class="text-muted text-truncate" style="max-width: 190px;" title="Ners Pagi: {{ $patient->ners_pagi ?: '-' }}">
+                                                                        <span class="text-primary fw-bold">🌅 Pagi:</span> {{ $patient->ners_pagi ?: '-' }}
+                                                                    </div>
+                                                                    <div class="text-muted text-truncate" style="max-width: 190px;" title="Ners Siang: {{ $patient->ners_siang ?: '-' }}">
+                                                                        <span class="text-warning fw-bold">☀️ Siang:</span> {{ $patient->ners_siang ?: '-' }}
+                                                                    </div>
+                                                                    <div class="text-muted text-truncate" style="max-width: 190px;" title="Ners Malam: {{ $patient->ners_malam ?: '-' }}">
+                                                                        <span class="text-info fw-bold">🌙 Malam:</span> {{ $patient->ners_malam ?: '-' }}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         @endif
                                                     </div>
                                                 </div>
@@ -240,6 +392,18 @@
                                                            style="font-size: 0.75rem;">
                                                             <i class="mdi mdi-account-card-details me-1"></i> Detail
                                                         </a>
+                                                        @if(auth()->user()->role !== 'viewer')
+                                                            <button type="button" 
+                                                                    class="btn btn-primary btn-sm text-white py-1 px-2.5 d-block w-100 mt-1 fw-bold shadow-sm edit-ners-btn" 
+                                                                    data-id="{{ $patient->id }}"
+                                                                    data-bed="{{ $bed->bed_number }}"
+                                                                    data-pagi="{{ $patient->ners_pagi }}"
+                                                                    data-siang="{{ $patient->ners_siang }}"
+                                                                    data-malam="{{ $patient->ners_malam }}"
+                                                                    style="font-size: 0.75rem;">
+                                                                <i class="mdi mdi-account-star me-1"></i> Ners
+                                                            </button>
+                                                        @endif
                                                         <a href="{{ route('maintenances.history', $patient->serial_number) }}" 
                                                            class="btn btn-dark btn-sm text-white py-1 px-2.5 d-block mt-1 fw-bold shadow-sm"
                                                            style="font-size: 0.75rem;">
@@ -284,10 +448,55 @@
         <h4 class="mt-3 text-dark fw-bold">Silakan Pilih Lantai Untuk Memulai Monitoring</h4>
     </div>
 @endif
+</div>
 
-<!-- Script AJAX untuk sinkronisasi -->
+<!-- Modal Update Ners -->
+<div class="modal fade" id="nersModal" tabindex="-1" aria-labelledby="nersModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+            <div class="modal-header bg-primary text-white" style="border-top-left-radius: 12px; border-top-right-radius: 12px;">
+                <h5 class="modal-title fw-bold text-white" id="nersModalLabel"><i class="mdi mdi-account-star me-1"></i> Update Ners - Bed <span id="modalBedNum"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="nersForm" method="POST">
+                @csrf
+                <div class="modal-body p-4">
+                    <input type="hidden" id="modalEquipmentId" name="equipment_id">
+                    
+                    <div class="mb-3">
+                        <label for="inputNersPagi" class="form-label fw-bold text-dark"><i class="mdi mdi-white-balance-sunny text-primary me-1"></i> Ners Pagi</label>
+                        <input type="text" class="form-control text-dark fw-bold" id="inputNersPagi" name="ners_pagi" placeholder="Pilih atau ketik nama Ners Pagi" list="nurses_list" autocomplete="off">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="inputNersSiang" class="form-label fw-bold text-dark"><i class="mdi mdi-weather-sunset text-warning me-1"></i> Ners Siang</label>
+                        <input type="text" class="form-control text-dark fw-bold" id="inputNersSiang" name="ners_siang" placeholder="Pilih atau ketik nama Ners Siang" list="nurses_list" autocomplete="off">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="inputNersMalam" class="form-label fw-bold text-dark"><i class="mdi mdi-weather-night text-info me-1"></i> Ners Malam</label>
+                        <input type="text" class="form-control text-dark fw-bold" id="inputNersMalam" name="ners_malam" placeholder="Pilih atau ketik nama Ners Malam" list="nurses_list" autocomplete="off">
+                    </div>
+                </div>
+                <div class="modal-footer bg-light" style="border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+                    <button type="button" class="btn btn-secondary fw-bold px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" id="saveNersBtn" class="btn btn-primary fw-bold px-4">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<datalist id="nurses_list">
+    @foreach($activeNurses as $nurse)
+        <option value="{{ $nurse->name }}"></option>
+    @endforeach
+</datalist>
+
+<!-- Script AJAX untuk sinkronisasi, navigasi lantai, dan polling real-time -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // 1. Integrasi Manual Sinkronisasi Real-Time
         const syncBtn = document.getElementById('syncBtn');
         if (syncBtn) {
             syncBtn.addEventListener('click', function () {
@@ -316,12 +525,13 @@
                 })
                 .then(data => {
                     if (data.success) {
+                        // Reload the current dashboard state via AJAX
+                        updateDashboardContent(window.location.href, true);
                         alert(data.message);
-                        window.location.reload();
                     } else {
                         alert('Gagal: ' + data.message);
-                        resetBtn();
                     }
+                    resetBtn();
                 })
                 .catch(error => {
                     console.error('Error:', error);
@@ -332,8 +542,226 @@
                 function resetBtn() {
                     btn.disabled = false;
                     icon.classList.remove('mdi-spin');
-                    label.innerText = 'Sinkronisasi Real-Time';
+                    label.innerText = 'Sinkronisasi';
                 }
+            });
+        }
+
+        // 2. Real-Time AJAX Polling & Navigation
+        let refreshInterval = null;
+        const POLL_INTERVAL = 20000; // 20 seconds
+
+        function updateDashboardContent(url, showLoading = false) {
+            if (showLoading) {
+                const container = document.getElementById('dashboard-layout-container');
+                if (container) {
+                    container.style.opacity = '0.5';
+                    container.style.pointerEvents = 'none';
+                }
+            }
+
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.text();
+            })
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+
+                // Swap Global Stats
+                const oldStats = document.getElementById('global-stats-container');
+                const newStats = doc.getElementById('global-stats-container');
+                if (oldStats && newStats) {
+                    oldStats.innerHTML = newStats.innerHTML;
+                }
+
+                // Swap Floor Dashboards
+                const oldFloors = document.getElementById('floor-dashboards-container');
+                const newFloors = doc.getElementById('floor-dashboards-container');
+                if (oldFloors && newFloors) {
+                    oldFloors.innerHTML = newFloors.innerHTML;
+                    attachFloorCardListeners(); // Re-attach listeners to new cards
+                }
+
+                // Swap Detailed Layout
+                const oldLayout = document.getElementById('dashboard-layout-container');
+                const newLayout = doc.getElementById('dashboard-layout-container');
+                if (oldLayout && newLayout) {
+                    oldLayout.innerHTML = newLayout.innerHTML;
+                    oldLayout.style.opacity = '1';
+                    oldLayout.style.pointerEvents = 'auto';
+                }
+            })
+            .catch(err => {
+                console.error('Error refreshing dashboard:', err);
+                const container = document.getElementById('dashboard-layout-container');
+                if (container) {
+                    container.style.opacity = '1';
+                    container.style.pointerEvents = 'auto';
+                }
+            });
+        }
+
+        function attachFloorCardListeners() {
+            const links = document.querySelectorAll('.floor-card-link');
+            links.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const url = this.getAttribute('href');
+                    
+                    // Update URL in address bar without reloading
+                    history.pushState(null, '', url);
+                    
+                    // Update content immediately
+                    updateDashboardContent(url, true);
+                });
+            });
+        }
+
+        function startAutoRefresh() {
+            stopAutoRefresh(); // clean up previous
+            
+            const liveIndicator = document.getElementById('liveIndicator');
+            const liveText = document.getElementById('liveText');
+            
+            if (liveIndicator) {
+                liveIndicator.classList.remove('live-dot-paused');
+                liveIndicator.classList.add('live-dot-pulse');
+            }
+            if (liveText) {
+                liveText.innerText = 'LIVE (20s)';
+                liveText.classList.remove('text-muted');
+                liveText.classList.add('text-dark');
+            }
+
+            refreshInterval = setInterval(() => {
+                updateDashboardContent(window.location.href, false);
+            }, POLL_INTERVAL);
+        }
+
+        function stopAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+            }
+            
+            const liveIndicator = document.getElementById('liveIndicator');
+            const liveText = document.getElementById('liveText');
+            
+            if (liveIndicator) {
+                liveIndicator.classList.remove('live-dot-pulse');
+                liveIndicator.classList.add('live-dot-paused');
+            }
+            if (liveText) {
+                liveText.innerText = 'PAUSED';
+                liveText.classList.remove('text-dark');
+                liveText.classList.add('text-muted');
+            }
+        }
+
+        // Initialize listeners
+        attachFloorCardListeners();
+
+        // Handle Browser History Navigation
+        window.addEventListener('popstate', function() {
+            updateDashboardContent(window.location.href, true);
+        });
+
+        // Toggle Switch handler
+        const switchEl = document.getElementById('autoRefreshSwitch');
+        if (switchEl) {
+            if (switchEl.checked) {
+                startAutoRefresh();
+            } else {
+                stopAutoRefresh();
+            }
+            
+            switchEl.addEventListener('change', function() {
+                if (this.checked) {
+                    startAutoRefresh();
+                } else {
+                    stopAutoRefresh();
+                }
+            });
+        }
+
+        // 3. Edit Ners Modal & Form Handlers
+        const nersModalEl = document.getElementById('nersModal');
+        const nersModal = nersModalEl ? new bootstrap.Modal(nersModalEl) : null;
+        const nersForm = document.getElementById('nersForm');
+
+        // We use event delegation since the container layout is swapped dynamically
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.edit-ners-btn');
+            if (btn && nersModal) {
+                e.preventDefault();
+                const id = btn.getAttribute('data-id');
+                const bedNum = btn.getAttribute('data-bed');
+                const pagi = btn.getAttribute('data-pagi') || '';
+                const siang = btn.getAttribute('data-siang') || '';
+                const malam = btn.getAttribute('data-malam') || '';
+
+                document.getElementById('modalEquipmentId').value = id;
+                document.getElementById('modalBedNum').innerText = bedNum;
+                
+                document.getElementById('inputNersPagi').value = pagi;
+                document.getElementById('inputNersSiang').value = siang;
+                document.getElementById('inputNersMalam').value = malam;
+
+                nersModal.show();
+            }
+        });
+
+        if (nersForm) {
+            nersForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const id = document.getElementById('modalEquipmentId').value;
+                const pagi = document.getElementById('inputNersPagi').value;
+                const siang = document.getElementById('inputNersSiang').value;
+                const malam = document.getElementById('inputNersMalam').value;
+                const submitBtn = document.getElementById('saveNersBtn');
+
+                if (submitBtn) submitBtn.disabled = true;
+
+                const url = `{{ url('/beds/nurses') }}/${id}`;
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        ners_pagi: pagi,
+                        ners_siang: siang,
+                        ners_malam: malam
+                    })
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error('Update failed');
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        if (nersModal) nersModal.hide();
+                        // Refresh data in dashboard instantly without page reload
+                        updateDashboardContent(window.location.href, false);
+                    } else {
+                        alert('Gagal: ' + data.message);
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    alert('Gagal memperbarui data ners.');
+                })
+                .finally(() => {
+                    if (submitBtn) submitBtn.disabled = false;
+                });
             });
         }
     });

@@ -244,4 +244,239 @@ class MutuController extends Controller
             'dpjpStats', 'daftarLebih24Jam', 'trendLabels', 'trendData'
         ));
     }
+
+    public function distribusiDpjp(Request $request)
+    {
+        // 1. Ambil data pasien aktif (yang ada di ruangan)
+        $patients = Equipment::whereNotNull('lokasi')
+            ->where('lokasi', '!=', '')
+            ->get();
+
+        $floorReport = [];
+        $dpjpReport = [];
+
+        foreach ($patients as $p) {
+            $floorName = $p->lantai ?: 'Lantai Lain';
+            // Format nama lantai
+            $displayFloor = is_numeric($floorName) ? 'Lantai ' . $floorName : $floorName;
+            $dpjp = $p->dpjp_utama ?: 'Tidak Ada DPJP';
+
+            // Kelompok 1: Lantai -> DPJP -> Pasien
+            if (!isset($floorReport[$displayFloor])) {
+                $floorReport[$displayFloor] = [
+                    'floor_name' => $displayFloor,
+                    'original_name' => $floorName,
+                    'doctors' => []
+                ];
+            }
+
+            if (!isset($floorReport[$displayFloor]['doctors'][$dpjp])) {
+                $floorReport[$displayFloor]['doctors'][$dpjp] = [
+                    'doctor_name' => $dpjp,
+                    'patient_count' => 0,
+                    'patients' => []
+                ];
+            }
+
+            $floorReport[$displayFloor]['doctors'][$dpjp]['patient_count']++;
+            $floorReport[$displayFloor]['doctors'][$dpjp]['patients'][] = [
+                'name' => $p->merk,
+                'serial_number' => $p->serial_number,
+                'room' => $p->lokasi,
+                'class' => $p->hak_kelas ?: '-',
+                'diagnosa' => $p->type ?: '-',
+                'registered_date' => $p->registered_date ? Carbon::parse($p->registered_date)->format('d/m/Y') : '-'
+            ];
+
+            // Kelompok 2: DPJP -> Lantai -> Pasien
+            if (!isset($dpjpReport[$dpjp])) {
+                $dpjpReport[$dpjp] = [
+                    'doctor_name' => $dpjp,
+                    'spesialis' => 'Umum',
+                    'total_patients' => 0,
+                    'floors' => []
+                ];
+
+                // Deteksi spesialisasi sederhana
+                if (stripos($dpjp, 'Sp.PD') !== false) $dpjpReport[$dpjp]['spesialis'] = 'Penyakit Dalam';
+                elseif (stripos($dpjp, 'Sp.OG') !== false) $dpjpReport[$dpjp]['spesialis'] = 'Obstetri & Ginekologi';
+                elseif (stripos($dpjp, 'Sp.B') !== false) $dpjpReport[$dpjp]['spesialis'] = 'Bedah';
+                elseif (stripos($dpjp, 'Sp.JP') !== false) $dpjpReport[$dpjp]['spesialis'] = 'Jantung';
+                elseif (stripos($dpjp, 'Sp.An') !== false) $dpjpReport[$dpjp]['spesialis'] = 'Anestesi';
+                elseif (stripos($dpjp, 'Sp.A') !== false) $dpjpReport[$dpjp]['spesialis'] = 'Anak';
+                elseif (stripos($dpjp, 'Sp.S') !== false) $dpjpReport[$dpjp]['spesialis'] = 'Saraf';
+                elseif (stripos($dpjp, 'Sp.THT') !== false) $dpjpReport[$dpjp]['spesialis'] = 'THT';
+                elseif (stripos($dpjp, 'Sp.M') !== false) $dpjpReport[$dpjp]['spesialis'] = 'Mata';
+                elseif (stripos($dpjp, 'Sp.KJ') !== false) $dpjpReport[$dpjp]['spesialis'] = 'Kedokteran Jiwa';
+                elseif (stripos($dpjp, 'Sp.Rad') !== false) $dpjpReport[$dpjp]['spesialis'] = 'Radiologi';
+                elseif (stripos($dpjp, 'Sp.P') !== false) $dpjpReport[$dpjp]['spesialis'] = 'Paru';
+                elseif (stripos($dpjp, 'Sp.U') !== false) $dpjpReport[$dpjp]['spesialis'] = 'Urologi';
+                elseif (stripos($dpjp, 'Sp.OT') !== false) $dpjpReport[$dpjp]['spesialis'] = 'Ortopedi';
+                elseif (stripos($dpjp, 'Sp.BS') !== false) $dpjpReport[$dpjp]['spesialis'] = 'Bedah Saraf';
+                elseif (stripos($dpjp, 'Sp.BTKV') !== false) $dpjpReport[$dpjp]['spesialis'] = 'Bedah Toraks Kardiovaskular';
+                elseif (stripos($dpjp, 'Sp.DV') !== false || stripos($dpjp, 'Sp.KK') !== false) $dpjpReport[$dpjp]['spesialis'] = 'Dermatologi & Venereologi';
+            }
+
+            if (!isset($dpjpReport[$dpjp]['floors'][$displayFloor])) {
+                $dpjpReport[$dpjp]['floors'][$displayFloor] = [
+                    'floor_name' => $displayFloor,
+                    'patient_count' => 0,
+                    'patients' => []
+                ];
+            }
+
+            $dpjpReport[$dpjp]['total_patients']++;
+            $dpjpReport[$dpjp]['floors'][$displayFloor]['patient_count']++;
+            $dpjpReport[$dpjp]['floors'][$displayFloor]['patients'][] = [
+                'name' => $p->merk,
+                'serial_number' => $p->serial_number,
+                'room' => $p->lokasi,
+                'class' => $p->hak_kelas ?: '-',
+                'diagnosa' => $p->type ?: '-',
+                'registered_date' => $p->registered_date ? Carbon::parse($p->registered_date)->format('d/m/Y') : '-'
+            ];
+        }
+
+        // Urutkan floorReport secara logis (lantai numerik dahulu)
+        uksort($floorReport, function($a, $b) {
+            $numA = preg_replace('/[^0-9]/', '', $a);
+            $numB = preg_replace('/[^0-9]/', '', $b);
+            if ($numA !== '' && $numB !== '') {
+                return (int)$numA <=> (int)$numB;
+            }
+            return strcmp($a, $b);
+        });
+
+        // Urutkan dpjpReport berdasarkan jumlah pasien terbanyak
+        uasort($dpjpReport, function($a, $b) {
+            return $b['total_patients'] <=> $a['total_patients'];
+        });
+
+        return view('mutu.distribusi_dpjp', compact('floorReport', 'dpjpReport', 'patients'));
+    }
+
+    public function jadwalNers(Request $request)
+    {
+        $date = $request->input('date', now()->toDateString());
+
+        // Ambil data pasien aktif pada tanggal yang dipilih
+        $patients = Equipment::whereNotNull('lokasi')
+            ->where('lokasi', '!=', '')
+            ->where(function($q) use ($date) {
+                $q->whereDate('registered_date', '<=', $date)
+                  ->orWhereDate('tanggal_pengadaan', '<=', $date);
+            })
+            ->get();
+
+        $nurseReports = [];
+        $shiftReports = [
+            'Pagi' => [],
+            'Siang' => [],
+            'Malam' => []
+        ];
+        $floorReports = [];
+
+        foreach ($patients as $p) {
+            $floorName = $p->lantai ?: 'Lantai Lain';
+            $displayFloor = is_numeric($floorName) ? 'Lantai ' . $floorName : $floorName;
+
+            $shifts = [
+                'Pagi' => $p->ners_pagi,
+                'Siang' => $p->ners_siang,
+                'Malam' => $p->ners_malam
+            ];
+
+            foreach ($shifts as $shiftName => $nurseName) {
+                $nurseName = trim($nurseName);
+                if (empty($nurseName) || $nurseName === '-') continue;
+
+                // 1. Tampilan Per Ners
+                if (!isset($nurseReports[$nurseName])) {
+                    $nurseReports[$nurseName] = [
+                        'name' => $nurseName,
+                        'shifts' => []
+                    ];
+                }
+
+                if (!isset($nurseReports[$nurseName]['shifts'][$shiftName])) {
+                    $nurseReports[$nurseName]['shifts'][$shiftName] = [
+                        'shift_name' => $shiftName,
+                        'floors' => []
+                    ];
+                }
+
+                if (!isset($nurseReports[$nurseName]['shifts'][$shiftName]['floors'][$displayFloor])) {
+                    $nurseReports[$nurseName]['shifts'][$shiftName]['floors'][$displayFloor] = [
+                        'floor_name' => $displayFloor,
+                        'patients' => []
+                    ];
+                }
+
+                $nurseReports[$nurseName]['shifts'][$shiftName]['floors'][$displayFloor]['patients'][] = [
+                    'name' => $p->merk,
+                    'serial_number' => $p->serial_number,
+                    'room' => $p->lokasi,
+                    'class' => $p->hak_kelas ?: '-',
+                    'diagnosa' => $p->type ?: '-'
+                ];
+
+                // 2. Tampilan Per Shift
+                if (!isset($shiftReports[$shiftName][$displayFloor])) {
+                    $shiftReports[$shiftName][$displayFloor] = [];
+                }
+
+                if (!isset($shiftReports[$shiftName][$displayFloor][$nurseName])) {
+                    $shiftReports[$shiftName][$displayFloor][$nurseName] = [
+                        'nurse_name' => $nurseName,
+                        'patients' => []
+                    ];
+                }
+
+                $shiftReports[$shiftName][$displayFloor][$nurseName]['patients'][] = [
+                    'name' => $p->merk,
+                    'serial_number' => $p->serial_number,
+                    'room' => $p->lokasi,
+                    'class' => $p->hak_kelas ?: '-'
+                ];
+
+                // 3. Tampilan Per Lantai
+                if (!isset($floorReports[$displayFloor])) {
+                    $floorReports[$displayFloor] = [];
+                }
+
+                if (!isset($floorReports[$displayFloor][$shiftName])) {
+                    $floorReports[$displayFloor][$shiftName] = [];
+                }
+
+                if (!isset($floorReports[$displayFloor][$shiftName][$nurseName])) {
+                    $floorReports[$displayFloor][$shiftName][$nurseName] = [
+                        'nurse_name' => $nurseName,
+                        'patients' => []
+                    ];
+                }
+
+                $floorReports[$displayFloor][$shiftName][$nurseName]['patients'][] = [
+                    'name' => $p->merk,
+                    'serial_number' => $p->serial_number,
+                    'room' => $p->lokasi,
+                    'class' => $p->hak_kelas ?: '-'
+                ];
+            }
+        }
+
+        // Urutkan nama ners secara alfabetis
+        ksort($nurseReports);
+
+        // Urutkan lantai secara logis (lantai numerik dahulu)
+        uksort($floorReports, function($a, $b) {
+            $numA = preg_replace('/[^0-9]/', '', $a);
+            $numB = preg_replace('/[^0-9]/', '', $b);
+            if ($numA !== '' && $numB !== '') {
+                return (int)$numA <=> (int)$numB;
+            }
+            return strcmp($a, $b);
+        });
+
+        return view('mutu.jadwal_ners', compact('nurseReports', 'shiftReports', 'floorReports', 'date', 'patients'));
+    }
 }

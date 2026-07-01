@@ -43,11 +43,14 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/rekam-medis/{serial_number}/detail', [MaintenanceController::class, 'updatePatientDetail'])->name('maintenances.update_patient_detail');
     Route::get('/rekam-medis/{serial_number}/qr', [MaintenanceController::class, 'printQr'])->name('maintenances.qr');
     Route::post('/beds/sync', [\App\Http\Controllers\BedController::class, 'sync'])->name('beds.sync');
+    Route::post('/beds/nurses/{equipment}', [\App\Http\Controllers\BedController::class, 'updateNurses'])->name('beds.update_nurses');
 
     // Mutu Dashboards
     Route::prefix('mutu')->name('mutu.')->group(function() {
         Route::get('/kepatuhan-visit', [\App\Http\Controllers\MutuController::class, 'kepatuhanVisit'])->name('kepatuhan-visit');
         Route::get('/respon-konsul', [\App\Http\Controllers\MutuController::class, 'responKonsul'])->name('respon-konsul');
+        Route::get('/distribusi-dpjp', [\App\Http\Controllers\MutuController::class, 'distribusiDpjp'])->name('distribusi-dpjp');
+        Route::get('/jadwal-ners', [\App\Http\Controllers\MutuController::class, 'jadwalNers'])->name('jadwal-ners');
     });
 
     // --- RUTE EDIT/HAPUS/TAMBAH (Admin & User biasa) ---
@@ -82,5 +85,13 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/', [UserController::class, 'store'])->name('store');
         Route::put('/{id}', [UserController::class, 'updateRole'])->name('updateRole');
         Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy');
+    });
+
+    // --- MANAJEMEN DATA NERS: Admin & Editor (user) ---
+    Route::middleware(['role:admin,user'])->prefix('nurses')->name('nurses.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\NurseController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\NurseController::class, 'store'])->name('store');
+        Route::put('/{nurse}', [\App\Http\Controllers\NurseController::class, 'update'])->name('update');
+        Route::delete('/{nurse}', [\App\Http\Controllers\NurseController::class, 'destroy'])->name('destroy');
     });
 });

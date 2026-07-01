@@ -7,37 +7,57 @@ use App\Models\Floor;
 use App\Models\Wing;
 use App\Models\Room;
 use App\Models\Bed;
+use App\Models\Nurse;
 use Illuminate\Support\Facades\Artisan;
 
 class BedController extends Controller
 {
     public function index(Request $request)
     {
-        // Get all floors sorted correctly
-        $floors = Floor::all()->sortBy(function ($floor) {
+        $activeNurses = Nurse::where('is_active', true)->orderBy('name', 'asc')->get();
+
+        // Get all floors with their wings, rooms, and beds to calculate floor-specific statistics
+        $floors = Floor::with(['wings.rooms.beds'])->get()->sortBy(function ($floor) {
             if (is_numeric($floor->name)) {
                 return (int)$floor->name;
             }
             return 1000 + ord($floor->name[0] ?? '');
         });
 
+        // Calculate statistics for each floor
+        foreach ($floors as $floor) {
+            $beds = $floor->wings->flatMap(function ($wing) {
+                return $wing->rooms->flatMap(function ($room) {
+                    return $room->beds;
+                });
+            });
+
+            $activeBeds = $beds->where('is_active', true);
+            $floor->total_active_beds = $activeBeds->count();
+            $floor->occupied_beds = $activeBeds->where('status', 'terisi')->count();
+            $floor->vacant_beds = $activeBeds->where('status', 'kosong')->count();
+            $floor->cleaning_beds = $activeBeds->where('status', 'cleaning')->count();
+            $floor->inactive_beds = $beds->where('is_active', false)->count();
+            $floor->occupancy_rate = $floor->total_active_beds > 0 
+                ? round(($floor->occupied_beds / $floor->total_active_beds) * 100, 1) 
+                : 0;
+        }
+
         // Get selected floor, default to first floor if not provided
         $selectedFloorName = $request->input('floor');
+        $selectedFloor = null;
         if ($selectedFloorName) {
-            $matchedFloor = Floor::where('name', $selectedFloorName)
-                ->orWhere('name', 'Lantai ' . $selectedFloorName)
-                ->first();
-            if ($matchedFloor) {
-                $selectedFloorName = $matchedFloor->name;
-            }
+            $selectedFloor = $floors->first(function ($fl) use ($selectedFloorName) {
+                return $fl->name === $selectedFloorName || $fl->name === 'Lantai ' . $selectedFloorName;
+            });
         }
-        if (!$selectedFloorName && $floors->isNotEmpty()) {
-            $selectedFloorName = $floors->first()->name;
+        if (!$selectedFloor && $floors->isNotEmpty()) {
+            $selectedFloor = $floors->first();
         }
+        
+        $selectedFloorName = $selectedFloor ? $selectedFloor->name : null;
 
-        $selectedFloor = Floor::where('name', $selectedFloorName)->first();
-
-        // Load wings, rooms, and beds for the selected floor
+        // Load wings, rooms, and beds for the selected floor's detailed view
         $wings = collect();
         if ($selectedFloor) {
             $wingsQuery = Wing::where('floor_id', $selectedFloor->id);
@@ -58,16 +78,14 @@ class BedController extends Controller
                 ->get();
         }
 
-        // Calculate global statistics
-        $totalBeds = Bed::count();
-        $occupiedBeds = Bed::where('status', 'terisi')->count();
-        $vacantBeds = Bed::where('status', 'kosong')->count();
-        $cleaningBeds = Bed::where('status', 'cleaning')->count();
+        // Calculate global statistics (TOTAL TEMPAT TIDUR hanya yang aktif, BED KOSONG hanya yang kosong tapi aktif)
+        $totalBeds = Bed::where('is_active', true)->count();
+        $occupiedBeds = Bed::where('status', 'terisi')->where('is_active', true)->count();
+        $vacantBeds = Bed::where('status', 'kosong')->where('is_active', true)->count();
+        $cleaningBeds = Bed::where('status', 'cleaning')->where('is_active', true)->count();
         $inactiveBeds = Bed::where('is_active', false)->count();
 
-        // Active beds are those that are marked active in the system
-        $activeBeds = Bed::where('is_active', true)->count();
-        $occupancyRate = $activeBeds > 0 ? round(($occupiedBeds / $activeBeds) * 100, 1) : 0;
+        $occupancyRate = $totalBeds > 0 ? round(($occupiedBeds / $totalBeds) * 100, 1) : 0;
 
         return view('beds.index', compact(
             'floors',
@@ -79,7 +97,8 @@ class BedController extends Controller
             'vacantBeds',
             'cleaningBeds',
             'inactiveBeds',
-            'occupancyRate'
+            'occupancyRate',
+            'activeNurses'
         ));
     }
 
@@ -107,5 +126,26 @@ class BedController extends Controller
                 'message' => 'Gagal melakukan sinkronisasi: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function updateNurses(\Illuminate\Http\Request $request, $equipmentId)
+    {
+        $request->validate([
+            'ners_pagi' => 'nullable|string|max:255',
+            'ners_siang' => 'nullable|string|max:255',
+            'ners_malam' => 'nullable|string|max:255',
+        ]);
+
+        $equipment = \App\Models\Equipment::findOrFail($equipmentId);
+        $equipment->update([
+            'ners_pagi' => $request->ners_pagi,
+            'ners_siang' => $request->ners_siang,
+            'ners_malam' => $request->ners_malam,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data ners bertugas berhasil diperbarui!'
+        ]);
     }
 }

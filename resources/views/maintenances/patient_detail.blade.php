@@ -21,6 +21,9 @@
 @stop
 
 @section('content')
+@php
+    $activeNurses = $activeNurses ?? \App\Models\Nurse::where('is_active', true)->orderBy('name', 'asc')->get();
+@endphp
 <div class="row">
     @if(session('success'))
         <div class="col-lg-12">
@@ -314,7 +317,7 @@
                                     </div>
                                     <div class="col-6">
                                         <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-account-network text-warning me-0.5"></i> Ners Bertugas</label>
-                                        <input type="text" name="ners_bertugas" class="form-control form-control-sm" value="{{ $equipment->ners_bertugas }}" placeholder="Nama ners" style="font-size: 0.8rem;">
+                                        <input type="text" name="ners_bertugas" class="form-control form-control-sm fw-bold text-dark" value="{{ $equipment->ners_bertugas }}" placeholder="Nama Ners Bertugas" list="nurses_list" autocomplete="off" style="font-size: 0.8rem;">
                                     </div>
                                 </div>
 
@@ -538,7 +541,7 @@
                                             </div>
                                             <div class="col-4">
                                                 <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.72rem;">Ners Pagi</label>
-                                                <input type="text" name="ners_pagi" class="form-control form-control-sm" value="{{ $equipment->ners_pagi }}" placeholder="Ners Pagi" style="font-size: 0.8rem;">
+                                                <input type="text" name="ners_pagi" class="form-control form-control-sm fw-bold text-dark" value="{{ $equipment->ners_pagi }}" placeholder="Nama Ners Pagi" list="nurses_list" autocomplete="off" style="font-size: 0.8rem;">
                                             </div>
                                         </div>
                                         <div class="row g-2 mb-1.5">
@@ -548,7 +551,7 @@
                                             </div>
                                             <div class="col-4">
                                                 <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.72rem;">Ners Siang</label>
-                                                <input type="text" name="ners_siang" class="form-control form-control-sm" value="{{ $equipment->ners_siang }}" placeholder="Ners Siang" style="font-size: 0.8rem;">
+                                                <input type="text" name="ners_siang" class="form-control form-control-sm fw-bold text-dark" value="{{ $equipment->ners_siang }}" placeholder="Nama Ners Siang" list="nurses_list" autocomplete="off" style="font-size: 0.8rem;">
                                             </div>
                                         </div>
                                         <div class="row g-2">
@@ -558,7 +561,7 @@
                                             </div>
                                             <div class="col-4">
                                                 <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.72rem;">Ners Malam</label>
-                                                <input type="text" name="ners_malam" class="form-control form-control-sm" value="{{ $equipment->ners_malam }}" placeholder="Ners Malam" style="font-size: 0.8rem;">
+                                                <input type="text" name="ners_malam" class="form-control form-control-sm fw-bold text-dark" value="{{ $equipment->ners_malam }}" placeholder="Nama Ners Malam" list="nurses_list" autocomplete="off" style="font-size: 0.8rem;">
                                             </div>
                                         </div>
                                     </div>
@@ -837,6 +840,12 @@
 <datalist id="doctors_list">
     @foreach($doctorsList as $doc)
         <option value="{{ $doc->name }}">{{ $doc->ksm }}</option>
+    @endforeach
+</datalist>
+
+<datalist id="nurses_list">
+    @foreach($activeNurses as $nurse)
+        <option value="{{ $nurse->name }}"></option>
     @endforeach
 </datalist>
 @stop
