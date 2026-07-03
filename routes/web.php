@@ -44,6 +44,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/rekam-medis/{serial_number}/qr', [MaintenanceController::class, 'printQr'])->name('maintenances.qr');
     Route::post('/beds/sync', [\App\Http\Controllers\BedController::class, 'sync'])->name('beds.sync');
     Route::post('/beds/nurses/{equipment}', [\App\Http\Controllers\BedController::class, 'updateNurses'])->name('beds.update_nurses');
+    Route::post('/beds/ews/{equipment}', [\App\Http\Controllers\BedController::class, 'updateEws'])->name('beds.update_ews');
 
     // Mutu Dashboards
     Route::prefix('mutu')->name('mutu.')->group(function() {

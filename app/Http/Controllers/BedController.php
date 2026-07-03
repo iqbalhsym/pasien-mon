@@ -151,4 +151,21 @@ class BedController extends Controller
             'message' => 'Data ners bertugas berhasil diperbarui!'
         ]);
     }
+
+    public function updateEws(\Illuminate\Http\Request $request, $equipmentId)
+    {
+        $request->validate([
+            'ews' => 'nullable|string|max:255',
+        ]);
+
+        $equipment = \App\Models\Equipment::findOrFail($equipmentId);
+        $equipment->update([
+            'ews' => $request->ews,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status EWS pasien berhasil diperbarui!'
+        ]);
+    }
 }

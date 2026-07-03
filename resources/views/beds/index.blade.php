@@ -464,6 +464,14 @@
                                                                     style="font-size: 0.75rem;">
                                                                 <i class="mdi mdi-account-star me-1"></i> Ners
                                                             </button>
+                                                            <button type="button" 
+                                                                    class="btn btn-outline-warning btn-sm text-dark py-1 px-2.5 d-block w-100 mt-1 fw-bold shadow-sm edit-ews-btn" 
+                                                                    data-id="{{ $patient->id }}"
+                                                                    data-bed="{{ $bed->bed_number }}"
+                                                                    data-ews="{{ $patient->ews }}"
+                                                                    style="font-size: 0.75rem;">
+                                                                <i class="mdi mdi-heart-pulse text-warning me-1"></i> EWS
+                                                            </button>
                                                         @endif
                                                         <a href="{{ route('maintenances.history', $patient->serial_number) }}" 
                                                            class="btn btn-dark btn-sm text-white py-1 px-2.5 d-block mt-1 fw-bold shadow-sm"
@@ -553,6 +561,40 @@
         <option value="{{ $nurse->name }}"></option>
     @endforeach
 </datalist>
+
+<!-- Modal Update EWS -->
+<div class="modal fade" id="ewsModal" tabindex="-1" aria-labelledby="ewsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+            <div class="modal-header bg-warning text-dark" style="border-top-left-radius: 12px; border-top-right-radius: 12px;">
+                <h5 class="modal-title fw-bold text-dark" id="ewsModalLabel"><i class="mdi mdi-heart-pulse me-1"></i> Update EWS - Bed <span id="modalEwsBedNum"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="ewsForm" method="POST">
+                @csrf
+                <div class="modal-body p-4">
+                    <input type="hidden" id="modalEwsEquipmentId" name="equipment_id">
+                    
+                    <div class="mb-3">
+                        <label for="inputEwsStatus" class="form-label fw-bold text-dark"><i class="mdi mdi-shield-alert-outline text-warning me-1"></i> Status EWS</label>
+                        <select class="form-select text-dark fw-bold" id="inputEwsStatus" name="ews">
+                            <option value="">- Pilih Status EWS -</option>
+                            <option value="Hijau" class="text-success fw-bold">Hijau</option>
+                            <option value="Kuning" class="text-warning fw-bold">Kuning</option>
+                            <option value="Orange" class="text-orange fw-bold">Orange</option>
+                            <option value="Merah" class="text-danger fw-bold">Merah</option>
+                            <option value="DNR" class="text-secondary fw-bold">DNR</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light" style="border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+                    <button type="button" class="btn btn-secondary fw-bold px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" id="saveEwsBtn" class="btn btn-primary fw-bold px-4">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <!-- Script AJAX untuk sinkronisasi, navigasi lantai, dan polling real-time -->
 <script>
@@ -819,6 +861,72 @@
                 .catch(err => {
                     console.error('Error:', err);
                     alert('Gagal memperbarui data ners.');
+                })
+                .finally(() => {
+                    if (submitBtn) submitBtn.disabled = false;
+                });
+            });
+        }
+
+        // 4. Edit EWS Modal & Form Handlers
+        const ewsModalEl = document.getElementById('ewsModal');
+        const ewsModal = ewsModalEl ? new bootstrap.Modal(ewsModalEl) : null;
+        const ewsForm = document.getElementById('ewsForm');
+
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.edit-ews-btn');
+            if (btn && ewsModal) {
+                e.preventDefault();
+                const id = btn.getAttribute('data-id');
+                const bedNum = btn.getAttribute('data-bed');
+                const ews = btn.getAttribute('data-ews') || '';
+
+                document.getElementById('modalEwsEquipmentId').value = id;
+                document.getElementById('modalEwsBedNum').innerText = bedNum;
+                
+                document.getElementById('inputEwsStatus').value = ews;
+
+                ewsModal.show();
+            }
+        });
+
+        if (ewsForm) {
+            ewsForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const id = document.getElementById('modalEwsEquipmentId').value;
+                const ews = document.getElementById('inputEwsStatus').value;
+                const submitBtn = document.getElementById('saveEwsBtn');
+
+                if (submitBtn) submitBtn.disabled = true;
+
+                const url = `{{ url('/beds/ews') }}/${id}`;
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        ews: ews
+                    })
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error('Update failed');
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        if (ewsModal) ewsModal.hide();
+                        // Refresh data in dashboard instantly without page reload
+                        updateDashboardContent(window.location.href, false);
+                    } else {
+                        alert('Gagal: ' + data.message);
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    alert('Gagal memperbarui data EWS.');
                 })
                 .finally(() => {
                     if (submitBtn) submitBtn.disabled = false;
