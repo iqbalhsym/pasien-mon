@@ -31,10 +31,26 @@
                 <input type="text" name="search" class="form-control border-start-0 ps-0 bg-white fw-bold text-dark" placeholder="Cari nama / No. RM / DPJP / Ruangan" value="{{ request('search') }}" style="font-size: 0.92rem;">
             </div>
 
-            <!-- Sort by Ruangan filter input -->
+            <!-- Wing Filter -->
             <div class="input-group shadow-sm" style="min-width: 180px;">
-                <span class="input-group-text bg-white border-end-0 py-0" style="font-size: 0.85rem;"><i class="mdi mdi-bed-outline text-muted"></i></span>
-                <input type="text" name="filter_ruangan" class="form-control border-start-0 ps-0 bg-white fw-bold text-dark" placeholder="Filter ruangan..." value="{{ request('filter_ruangan') }}" style="font-size: 0.88rem;">
+                <span class="input-group-text bg-white border-end-0 py-0" style="font-size: 0.85rem;"><i class="mdi mdi-home-variant-outline text-muted"></i></span>
+                <select name="filter_ruangan" class="form-select border-start-0 ps-0 bg-white fw-bold text-dark" style="font-size: 0.88rem;" onchange="document.getElementById('monitoringFilterForm').submit();">
+                    <option value="">Semua Wing</option>
+                    @foreach($wings as $wName)
+                        <option value="{{ $wName }}" {{ request('filter_ruangan') == $wName ? 'selected' : '' }}>{{ $wName }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Doctor Filter -->
+            <div class="input-group shadow-sm" style="min-width: 180px;">
+                <span class="input-group-text bg-white border-end-0 py-0" style="font-size: 0.85rem;"><i class="mdi mdi-doctor text-muted"></i></span>
+                <select name="filter_dokter" class="form-select border-start-0 ps-0 bg-white fw-bold text-dark" style="font-size: 0.88rem;" onchange="document.getElementById('monitoringFilterForm').submit();">
+                    <option value="">Semua Dokter (DPJP)</option>
+                    @foreach($doctors as $docName)
+                        <option value="{{ $docName }}" {{ request('filter_dokter') == $docName ? 'selected' : '' }}>{{ $docName }}</option>
+                    @endforeach
+                </select>
             </div>
 
             <!-- Sort Buttons -->
@@ -510,8 +526,11 @@
                                             </select>
                                         </form>
                                     </div>
-                                    <div class="text-muted mb-1" style="font-size: 0.85rem; font-weight: 500;">
-                                        RM. {{ $eq->serial_number }}
+                                    <div class="text-muted mb-1 d-flex align-items-center flex-wrap gap-1.5" style="font-size: 0.85rem; font-weight: 500;">
+                                        <span>RM. {{ $eq->serial_number }}</span>
+                                        @if($eq->guarantor)
+                                            <span class="badge bg-light text-dark border py-0.5 px-1.5 fw-bold" style="font-size: 0.72rem; letter-spacing: 0.2px;">{{ $eq->guarantor }}</span>
+                                        @endif
                                     </div>
                                     <div class="mb-1" style="font-size: 0.85rem; font-weight: 600; color: #dc3545;">
                                         <i class="mdi {{ in_array(strtolower($eq->gender), ['laki-laki', 'male', 'l']) ? 'mdi-gender-male' : 'mdi-gender-female' }} me-1"></i>

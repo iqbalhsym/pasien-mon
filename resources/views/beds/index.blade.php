@@ -130,7 +130,7 @@
     <div class="col-xl-2 col-sm-4 grid-margin stretch-card mb-3">
         <div class="card border-0 shadow-sm" style="border-radius: 12px; border-left: 5px solid #dc3545 !important;">
             <div class="card-body py-3">
-                <p class="text-muted mb-1 fw-bold" style="font-size: 0.85rem;">BED TERISI</p>
+                <p class="text-muted mb-1 fw-bold" style="font-size: 0.85rem;">Occupied</p>
                 <div class="d-flex align-items-center justify-content-between">
                     <h2 class="fw-bold text-danger mb-0">{{ $occupiedBeds }}</h2>
                     <i class="mdi mdi-bed text-danger fs-3"></i>
@@ -144,7 +144,7 @@
     <div class="col-xl-2 col-sm-4 grid-margin stretch-card mb-3">
         <div class="card border-0 shadow-sm" style="border-radius: 12px; border-left: 5px solid #ffc107 !important;">
             <div class="card-body py-3">
-                <p class="text-muted mb-1 fw-bold" style="font-size: 0.85rem;">BED TERBOOKING</p>
+                <p class="text-muted mb-1 fw-bold" style="font-size: 0.85rem;">Booked</p>
                 <div class="d-flex align-items-center justify-content-between">
                     <h2 class="fw-bold text-warning mb-0">{{ $bookedBeds }}</h2>
                     <i class="mdi mdi-calendar-check text-warning fs-3"></i>
@@ -158,7 +158,7 @@
     <div class="col-xl-2 col-sm-4 grid-margin stretch-card mb-3">
         <div class="card border-0 shadow-sm" style="border-radius: 12px; border-left: 5px solid #198754 !important;">
             <div class="card-body py-3">
-                <p class="text-muted mb-1 fw-bold" style="font-size: 0.85rem;">BED KOSONG</p>
+                <p class="text-muted mb-1 fw-bold" style="font-size: 0.85rem;">Available</p>
                 <div class="d-flex align-items-center justify-content-between">
                     <h2 class="fw-bold text-success mb-0">{{ $vacantBeds }}</h2>
                     <i class="mdi mdi-bed-empty text-success fs-3"></i>
@@ -172,7 +172,7 @@
     <div class="col-xl-2 col-sm-4 grid-margin stretch-card mb-3">
         <div class="card border-0 shadow-sm" style="border-radius: 12px; border-left: 5px solid #fd7e14 !important;">
             <div class="card-body py-3">
-                <p class="text-muted mb-1 fw-bold" style="font-size: 0.85rem;">PEMBERSIHAN</p>
+                <p class="text-muted mb-1 fw-bold" style="font-size: 0.85rem;">Cleaning</p>
                 <div class="d-flex align-items-center justify-content-between">
                     <h2 class="fw-bold text-warning mb-0" style="color: #fd7e14 !important;">{{ $cleaningBeds }}</h2>
                     <i class="mdi mdi-vacuum text-warning fs-3" style="color: #fd7e14 !important;"></i>
@@ -186,7 +186,7 @@
     <div class="col-xl-2 col-sm-4 grid-margin stretch-card mb-3">
         <div class="card border-0 shadow-sm" style="border-radius: 12px; border-left: 5px solid #6c757d !important; background-color: #f8f9fa;">
             <div class="card-body py-3">
-                <p class="text-muted mb-1 fw-bold" style="font-size: 0.85rem;">TOTAL TEMPAT TIDUR</p>
+                <p class="text-muted mb-1 fw-bold" style="font-size: 0.85rem;">Total Bed</p>
                 <div class="d-flex align-items-center justify-content-between">
                     <h2 class="fw-bold text-dark mb-0">{{ $totalBeds }}</h2>
                     <i class="mdi mdi-hospital-building text-secondary fs-3"></i>
@@ -259,7 +259,7 @@
                             <div class="col">
                                 <div class="p-1">
                                     <div class="fw-bold text-danger mb-0" style="font-size: 0.85rem;">{{ $fl->occupied_beds }}</div>
-                                    <div class="text-muted" style="font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1px;">TERISI</div>
+                                    <div class="text-muted" style="font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1px;">OCCUPIED</div>
                                 </div>
                             </div>
                             <div class="col">
@@ -271,19 +271,19 @@
                             <div class="col">
                                 <div class="p-1">
                                     <div class="fw-bold text-success mb-0" style="font-size: 0.85rem;">{{ $fl->vacant_beds }}</div>
-                                    <div class="text-muted" style="font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1px;">KOSONG</div>
+                                    <div class="text-muted" style="font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1px;">AVAILABLE</div>
                                 </div>
                             </div>
                             <div class="col">
                                 <div class="p-1">
                                     <div class="fw-bold text-orange mb-0" style="font-size: 0.85rem;">{{ $fl->cleaning_beds }}</div>
-                                    <div class="text-muted" style="font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1px;">CLEAN</div>
+                                    <div class="text-muted" style="font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1px;">CLEANING</div>
                                 </div>
                             </div>
                             <div class="col">
                                 <div class="p-1">
                                     <div class="fw-bold text-secondary mb-0" style="font-size: 0.85rem;">{{ $fl->total_active_beds }}</div>
-                                    <div class="text-muted" style="font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1px;">TOTAL</div>
+                                    <div class="text-muted" style="font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1px;">TOTAL BED</div>
                                 </div>
                             </div>
                         </div>
@@ -349,11 +349,11 @@
                                                     if ($status == 'terisi') {
                                                         $cardBg = 'border-danger bg-danger bg-opacity-10';
                                                         $badgeClass = 'bg-danger';
-                                                        $badgeLabel = 'TERISI';
+                                                        $badgeLabel = 'OCCUPIED';
                                                     } elseif ($status == 'kosong') {
                                                         $cardBg = 'border-success bg-success bg-opacity-10';
                                                         $badgeClass = 'bg-success';
-                                                        $badgeLabel = 'KOSONG';
+                                                        $badgeLabel = 'AVAILABLE';
                                                     } elseif ($status == 'cleaning') {
                                                         $cardBg = 'border-orange bg-orange-opacity-10';
                                                         $badgeClass = 'bg-orange text-white';
@@ -361,7 +361,7 @@
                                                     } elseif ($status == 'booking') {
                                                         $cardBg = 'border-warning bg-warning bg-opacity-10';
                                                         $badgeClass = 'bg-warning text-dark';
-                                                        $badgeLabel = 'TERBOOKING';
+                                                        $badgeLabel = 'BOOKED';
                                                     }
                                                 }
                                             @endphp
@@ -395,10 +395,33 @@
                                                             </a>
                                                             <div class="text-muted" style="font-size: 0.8rem;">
                                                                 No. RM: <b>{{ $patient->serial_number }}</b>
+                                                                @if($patient->guarantor)
+                                                                    <span class="badge bg-light text-dark border ms-1 py-0.5 px-1.5 fw-bold" style="font-size: 0.7rem;">{{ $patient->guarantor }}</span>
+                                                                @endif
                                                             </div>
                                                             <div class="text-muted text-truncate" style="font-size: 0.8rem; max-width: 180px;" title="{{ $patient->type }}">
                                                                 Diag: {{ $patient->type }}
                                                             </div>
+                                                            @if($patient->ews)
+                                                                @php
+                                                                    $ewsLower = strtolower($patient->ews);
+                                                                    $ewsBadgeClass = 'bg-secondary text-white';
+                                                                    if (str_contains($ewsLower, 'hijau')) {
+                                                                        $ewsBadgeClass = 'bg-success text-white';
+                                                                    } elseif (str_contains($ewsLower, 'kuning')) {
+                                                                        $ewsBadgeClass = 'bg-warning text-dark';
+                                                                    } elseif (str_contains($ewsLower, 'orange') || str_contains($ewsLower, 'oranye')) {
+                                                                        $ewsBadgeClass = 'bg-orange text-white';
+                                                                    } elseif (str_contains($ewsLower, 'merah')) {
+                                                                        $ewsBadgeClass = 'bg-danger text-white';
+                                                                    } elseif (str_contains($ewsLower, 'dnr')) {
+                                                                        $ewsBadgeClass = 'bg-dark text-white';
+                                                                    }
+                                                                @endphp
+                                                                <div class="mt-1" style="font-size: 0.78rem;">
+                                                                    EWS: <span class="badge {{ $ewsBadgeClass }} py-0.5 px-1.5 fw-bold" style="font-size: 0.72rem;">{{ $patient->ews }}</span>
+                                                                </div>
+                                                            @endif
 
                                                             <!-- Ners Shift Assignment Display -->
                                                             <div class="mt-2 pt-1" style="font-size: 0.76rem; border-top: 1px dashed #dee2e6 !important;">

@@ -12,7 +12,7 @@ class MutuController extends Controller
     {
         Equipment::resetDailyVisits();
         // 1. Ambil data pasien aktif (yang ada di ruangan)
-        $patients = Equipment::whereNotNull('lokasi')->where('lokasi', '!=', '')->get();
+        $patients = Equipment::whereHas('bed')->whereNotNull('lokasi')->where('lokasi', '!=', '')->get();
 
         $totalPasien = $patients->count();
         $sudahVisit = 0;
@@ -248,7 +248,8 @@ class MutuController extends Controller
     public function distribusiDpjp(Request $request)
     {
         // 1. Ambil data pasien aktif (yang ada di ruangan)
-        $patients = Equipment::whereNotNull('lokasi')
+        $patients = Equipment::whereHas('bed')
+            ->whereNotNull('lokasi')
             ->where('lokasi', '!=', '')
             ->get();
 
@@ -360,7 +361,8 @@ class MutuController extends Controller
         $date = $request->input('date', now()->toDateString());
 
         // Ambil data pasien aktif pada tanggal yang dipilih
-        $patients = Equipment::whereNotNull('lokasi')
+        $patients = Equipment::whereHas('bed')
+            ->whereNotNull('lokasi')
             ->where('lokasi', '!=', '')
             ->where(function($q) use ($date) {
                 $q->whereDate('registered_date', '<=', $date)

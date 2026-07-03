@@ -115,6 +115,10 @@ class MaintenanceController extends Controller
             });
         }
 
+        if ($request->filled('filter_dokter')) {
+            $query->where('dpjp_utama', $request->input('filter_dokter'));
+        }
+
         if ($search) {
             $query->where(function($q) use ($search) {
                 $q->where('merk', 'like', "%{$search}%")
@@ -202,10 +206,17 @@ class MaintenanceController extends Controller
         $ewsMerah = Equipment::whereHas('bed')->whereRaw('LOWER(ews) LIKE ?', ['%merah%'])->count();
         $ewsDnr = Equipment::whereHas('bed')->whereRaw('LOWER(ews) LIKE ?', ['%dnr%'])->count();
         
+        $wings = \App\Models\Wing::distinct()->orderBy('name', 'asc')->pluck('name');
+        $doctors = Equipment::whereNotNull('dpjp_utama')
+            ->where('dpjp_utama', '!=', '')
+            ->distinct()
+            ->orderBy('dpjp_utama', 'asc')
+            ->pluck('dpjp_utama');
+
         return view('maintenances.index', compact(
             'equipmentsPaginator', 'equipments', 'search', 'sort', 'patientsMap',
             'totalPasien', 'pasienBaru', 'dalamPerawatan', 'siapPulang', 'adaBarrier',
-            'ewsHijau', 'ewsKuning', 'ewsOrange', 'ewsMerah', 'ewsDnr'
+            'ewsHijau', 'ewsKuning', 'ewsOrange', 'ewsMerah', 'ewsDnr', 'wings', 'doctors'
         ));
     }
 
