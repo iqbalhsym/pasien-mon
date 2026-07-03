@@ -1288,21 +1288,21 @@
                                     @endphp
                                     <div class="mb-3">
                                         <label class="form-label fw-bold small text-muted text-uppercase">Ners Pagi</label>
-                                        <input type="text" name="ners_pagi" value="{{ $eq->ners_pagi }}" class="form-control" placeholder="Nama Ners Pagi">
+                                        <input type="text" name="ners_pagi" value="{{ $eq->ners_pagi }}" class="form-control fw-bold" placeholder="Nama Ners Pagi" list="nurses_list" autocomplete="off">
                                         <label class="form-label fw-bold small text-muted text-uppercase mt-1">Catatan Pagi</label>
                                         <input type="text" name="handover_pagi" value="{{ $pagiNote !== '-' ? $pagiNote : '' }}" class="form-control" placeholder="Isi catatan shift pagi">
                                     </div>
 
                                     <div class="mb-3">
                                         <label class="form-label fw-bold small text-muted text-uppercase">Ners Siang</label>
-                                        <input type="text" name="ners_siang" value="{{ $eq->ners_siang }}" class="form-control" placeholder="Nama Ners Siang">
+                                        <input type="text" name="ners_siang" value="{{ $eq->ners_siang }}" class="form-control fw-bold" placeholder="Nama Ners Siang" list="nurses_list" autocomplete="off">
                                         <label class="form-label fw-bold small text-muted text-uppercase mt-1">Catatan Sore</label>
                                         <input type="text" name="handover_sore" value="{{ $soreNote !== '-' ? $soreNote : '' }}" class="form-control" placeholder="Isi catatan shift sore">
                                     </div>
 
                                     <div class="mb-3">
                                         <label class="form-label fw-bold small text-muted text-uppercase">Ners Malam</label>
-                                        <input type="text" name="ners_malam" value="{{ $eq->ners_malam }}" class="form-control" placeholder="Nama Ners Malam">
+                                        <input type="text" name="ners_malam" value="{{ $eq->ners_malam }}" class="form-control fw-bold" placeholder="Nama Ners Malam" list="nurses_list" autocomplete="off">
                                         <label class="form-label fw-bold small text-muted text-uppercase mt-1">Catatan Malam</label>
                                         <input type="text" name="handover_malam" value="{{ $malamNote !== '-' ? $malamNote : '' }}" class="form-control" placeholder="Isi catatan shift malam">
                                     </div>
@@ -1510,6 +1510,11 @@
 <datalist id="doctors_list">
     @foreach($doctorsList as $doc)
         <option value="{{ $doc->name }}">{{ $doc->ksm }}</option>
+    @endforeach
+</datalist>
+<datalist id="nurses_list">
+    @foreach($activeNurses as $nurse)
+        <option value="{{ $nurse->name }}"></option>
     @endforeach
 </datalist>
 @stop

@@ -213,10 +213,12 @@ class MaintenanceController extends Controller
             ->orderBy('dpjp_utama', 'asc')
             ->pluck('dpjp_utama');
 
+        $activeNurses = \App\Models\Nurse::where('is_active', true)->orderBy('name', 'asc')->get();
+
         return view('maintenances.index', compact(
             'equipmentsPaginator', 'equipments', 'search', 'sort', 'patientsMap',
             'totalPasien', 'pasienBaru', 'dalamPerawatan', 'siapPulang', 'adaBarrier',
-            'ewsHijau', 'ewsKuning', 'ewsOrange', 'ewsMerah', 'ewsDnr', 'wings', 'doctors'
+            'ewsHijau', 'ewsKuning', 'ewsOrange', 'ewsMerah', 'ewsDnr', 'wings', 'doctors', 'activeNurses'
         ));
     }
 
