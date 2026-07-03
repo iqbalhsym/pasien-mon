@@ -303,7 +303,7 @@
                             <tr>
                                 <th class="text-center py-3 fw-bold" style="width: 80px; font-size: 0.88rem; color: #4B5563;">No. Bed</th>
                                 <th class="py-3 fw-bold" style="width: 250px; font-size: 0.88rem; color: #4B5563;">Nama Pasien<br><span class="text-muted fw-normal" style="font-size: 0.75rem;">No. RM | Jenis Kelamin | Umur<br>Diagnosa Medis</span></th>
-                                <th class="py-3 fw-bold" style="width: 140px; font-size: 0.88rem; color: #4B5563;">Tgl Masuk</th>
+                                <th class="py-3 fw-bold" style="width: 140px; font-size: 0.88rem; color: #4B5563;">Registered Pasien</th>
                                 <th class="py-3 fw-bold text-center" style="width: 90px; font-size: 0.88rem; color: #4B5563;">LOS</th>
                                 <th class="py-3 fw-bold" style="width: 140px; font-size: 0.88rem; color: #4B5563;">Estimasi /<br>Rencana Pulang</th>
                                 <th class="py-3 fw-bold" style="width: 200px; font-size: 0.88rem; color: #4B5563;">DPJP<br><span class="text-muted fw-normal" style="font-size: 0.75rem;">Visite | Konsul (DPJP Konsul)</span></th>

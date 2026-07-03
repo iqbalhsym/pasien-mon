@@ -151,6 +151,22 @@ class SyncBeds extends Command
                                 // Search for existing patient/equipment
                                 $equipment = Equipment::where('serial_number', $noRm)->first();
 
+                                // Try fetching actual registration details from Afya registration list API
+                                $apiRegDate = null;
+                                $apiDpjp = null;
+                                if (strpos($noRm, 'BOOKING-') !== 0) {
+                                    try {
+                                        $regService = new \App\Services\AfyaRegistrationService();
+                                        $regInfo = $regService->getRegistrationDetails($noRm);
+                                        if ($regInfo) {
+                                            $apiRegDate = $regInfo['registered_date'];
+                                            $apiDpjp = $regInfo['dpjp_utama'];
+                                        }
+                                    } catch (\Exception $e) {
+                                        \Illuminate\Support\Facades\Log::error("Error calling AfyaRegistrationService for RM: $noRm: " . $e->getMessage());
+                                    }
+                                }
+
                                 $apiRencanaPulang = $patientData['rencana_pulang'] ?? $patientData['estimasi_pulang'] ?? $patientData['estimated_discharge'] ?? $patientData['discharge_date'] ?? $patientData['tgl_pulang'] ?? null;
 
                                 if ($equipment) {
@@ -166,10 +182,13 @@ class SyncBeds extends Command
                                         'gender' => $patientData['gender'] ?? null,
                                         'guarantor' => $patientData['guarantor'] ?? null,
                                         'hak_kelas' => $roomClass,
-                                        'registered_date' => $equipment->registered_date ?: now()->format('Y-m-d'),
+                                        'registered_date' => $apiRegDate ?: ($equipment->registered_date ?: now()->format('Y-m-d')),
                                     ];
                                     if ($apiRencanaPulang) {
                                         $updateData['rencana_pulang'] = $apiRencanaPulang;
+                                    }
+                                    if ($apiDpjp) {
+                                        $updateData['dpjp_utama'] = $apiDpjp;
                                     }
                                     $equipment->update($updateData);
 
@@ -208,10 +227,13 @@ class SyncBeds extends Command
                                         'gender' => $patientData['gender'] ?? null,
                                         'guarantor' => $patientData['guarantor'] ?? null,
                                         'hak_kelas' => $roomClass,
-                                        'registered_date' => now()->format('Y-m-d'),
+                                        'registered_date' => $apiRegDate ?: now()->format('Y-m-d'),
                                     ];
                                     if ($apiRencanaPulang) {
                                         $createData['rencana_pulang'] = $apiRencanaPulang;
+                                    }
+                                    if ($apiDpjp) {
+                                        $createData['dpjp_utama'] = $apiDpjp;
                                     }
                                     $equipment = Equipment::create($createData);
                                 }
