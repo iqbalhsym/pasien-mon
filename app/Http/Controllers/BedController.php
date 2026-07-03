@@ -117,7 +117,7 @@ class BedController extends Controller
 
         try {
             \Illuminate\Support\Facades\Cache::put($cacheKey, true, 30);
-            Artisan::call('sync:beds');
+            Artisan::call('sync:beds', ['--force' => true]);
             return response()->json([
                 'success' => true,
                 'message' => 'Sinkronisasi data tempat tidur berhasil diselesaikan!'

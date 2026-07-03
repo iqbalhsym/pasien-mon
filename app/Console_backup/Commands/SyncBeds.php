@@ -20,7 +20,7 @@ class SyncBeds extends Command
      *
      * @var string
      */
-    protected $signature = 'sync:beds {--force : Force sync and bypass cache}';
+    protected $signature = 'sync:beds';
 
     /**
      * The console command description.
@@ -58,83 +58,6 @@ class SyncBeds extends Command
 
             $floorsData = $body['data'];
 
-            $force = $this->option('force');
-
-            // Get already cached/populated patient details from the local database
-            $existingMrnMap = [];
-            if (!$force) {
-                $existingMrnMap = Equipment::whereNotNull('registered_date')
-                    ->where('registered_date', '!=', '')
-                    ->whereNotNull('dpjp_utama')
-                    ->where('dpjp_utama', '!=', '')
-                    ->pluck('serial_number')
-                    ->toArray();
-                $existingMrnMap = array_flip($existingMrnMap);
-            }
-
-            // 1. Collect all unique patient MRNs to pre-fetch outside database transaction
-            $patientRmList = [];
-            foreach ($floorsData as $floorData) {
-                foreach ($floorData['wings'] ?? [] as $wingData) {
-                    foreach ($wingData['rooms'] ?? [] as $roomData) {
-                        foreach ($roomData['beds'] ?? [] as $bedData) {
-                            $patientData = $bedData['patient'] ?? null;
-                            if (!empty($patientData) && !empty($patientData['no_rm'])) {
-                                $noRm = trim($patientData['no_rm']);
-                                if (strtoupper($noRm) !== 'TERDAFTAR' && strpos($noRm, 'BOOKING-') !== 0) {
-                                    if ($force || !isset($existingMrnMap[$noRm])) {
-                                        $patientRmList[] = $noRm;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            $patientRmList = array_unique($patientRmList);
-
-            // 2. Pre-fetch registration details from Afya API (outside transaction)
-            $patientRegDetails = [];
-            if (!empty($patientRmList)) {
-                $regService = new \App\Services\AfyaRegistrationService();
-                foreach ($patientRmList as $noRm) {
-                    $cacheKey = 'afya_reg_details_' . $noRm;
-                    
-                    if ($force) {
-                        try {
-                            $regInfo = $regService->getRegistrationDetails($noRm);
-                            $cacheData = [
-                                'fetched' => true,
-                                'registered_date' => $regInfo['registered_date'] ?? null,
-                                'dpjp_utama' => $regInfo['dpjp_utama'] ?? null
-                            ];
-                            \Illuminate\Support\Facades\Cache::put($cacheKey, $cacheData, 300); // 5 minutes
-                            $patientRegDetails[$noRm] = $cacheData;
-                        } catch (\Exception $e) {
-                            \Illuminate\Support\Facades\Log::error("Error calling AfyaRegistrationService for RM: $noRm (forced): " . $e->getMessage());
-                        }
-                    } else {
-                        if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
-                            $patientRegDetails[$noRm] = \Illuminate\Support\Facades\Cache::get($cacheKey);
-                        } else {
-                            try {
-                                $regInfo = $regService->getRegistrationDetails($noRm);
-                                $cacheData = [
-                                    'fetched' => true,
-                                    'registered_date' => $regInfo['registered_date'] ?? null,
-                                    'dpjp_utama' => $regInfo['dpjp_utama'] ?? null
-                                ];
-                                \Illuminate\Support\Facades\Cache::put($cacheKey, $cacheData, 300); // 5 minutes
-                                $patientRegDetails[$noRm] = $cacheData;
-                            } catch (\Exception $e) {
-                                \Illuminate\Support\Facades\Log::error("Error calling AfyaRegistrationService for RM: $noRm: " . $e->getMessage());
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 3. Start the transaction only after all network requests are complete
             DB::beginTransaction();
 
             $activeBedIds = [];
@@ -228,12 +151,20 @@ class SyncBeds extends Command
                                 // Search for existing patient/equipment
                                 $equipment = Equipment::where('serial_number', $noRm)->first();
 
-                                // Read registration details from the pre-fetched local associative array
+                                // Try fetching actual registration details from Afya registration list API
                                 $apiRegDate = null;
                                 $apiDpjp = null;
-                                if (strpos($noRm, 'BOOKING-') !== 0 && isset($patientRegDetails[$noRm])) {
-                                    $apiRegDate = $patientRegDetails[$noRm]['registered_date'] ?? null;
-                                    $apiDpjp = $patientRegDetails[$noRm]['dpjp_utama'] ?? null;
+                                if (strpos($noRm, 'BOOKING-') !== 0) {
+                                    try {
+                                        $regService = new \App\Services\AfyaRegistrationService();
+                                        $regInfo = $regService->getRegistrationDetails($noRm);
+                                        if ($regInfo) {
+                                            $apiRegDate = $regInfo['registered_date'];
+                                            $apiDpjp = $regInfo['dpjp_utama'];
+                                        }
+                                    } catch (\Exception $e) {
+                                        \Illuminate\Support\Facades\Log::error("Error calling AfyaRegistrationService for RM: $noRm: " . $e->getMessage());
+                                    }
                                 }
 
                                 $apiRencanaPulang = $patientData['rencana_pulang'] ?? $patientData['estimasi_pulang'] ?? $patientData['estimated_discharge'] ?? $patientData['discharge_date'] ?? $patientData['tgl_pulang'] ?? null;
