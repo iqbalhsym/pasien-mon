@@ -63,7 +63,26 @@ class Equipment extends Model implements HasMedia
         $konsulVisited = self::where('dokter_konsul', 'like', '%[v]%')->get();
         foreach ($konsulVisited as $eq) {
             $rawDokterKonsul = $eq->dokter_konsul;
-            $parts = explode(',', $rawDokterKonsul);
+            $parts = [];
+            if (!empty($rawDokterKonsul)) {
+                if (strpos($rawDokterKonsul, '[v]') !== false || strpos($rawDokterKonsul, '[ ]') !== false) {
+                    $rawParts = preg_split('/(?=\[[v ]\])/', $rawDokterKonsul);
+                    foreach ($rawParts as $part) {
+                        $part = trim($part, " \t\n\r\0\x0B,");
+                        if ($part !== '') {
+                            $parts[] = $part;
+                        }
+                    }
+                } else {
+                    $rawParts = explode(',', $rawDokterKonsul);
+                    foreach ($rawParts as $part) {
+                        $part = trim($part);
+                        if ($part !== '') {
+                            $parts[] = $part;
+                        }
+                    }
+                }
+            }
             $updatedParts = [];
             $changed = false;
             

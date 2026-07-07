@@ -416,7 +416,24 @@
                                 }
 
                                 if (!empty($rawDokterKonsul)) {
-                                    $parts = explode(',', $rawDokterKonsul);
+                                     $parts = [];
+                                     if (strpos($rawDokterKonsul, '[v]') !== false || strpos($rawDokterKonsul, '[ ]') !== false) {
+                                         $rawParts = preg_split('/(?=\[[v ]\])/', $rawDokterKonsul);
+                                         foreach ($rawParts as $part) {
+                                             $part = trim($part, " \t\n\r\0\x0B,");
+                                             if ($part !== '') {
+                                                 $parts[] = $part;
+                                             }
+                                         }
+                                     } else {
+                                         $rawParts = explode(',', $rawDokterKonsul);
+                                         foreach ($rawParts as $part) {
+                                             $part = trim($part);
+                                             if ($part !== '') {
+                                                 $parts[] = $part;
+                                             }
+                                         }
+                                     }
                                     $names = [];
                                     foreach ($parts as $idx => $part) {
                                         $part = trim($part);
@@ -1201,7 +1218,24 @@
                                             }
 
                                             if (!empty($rawDokterKonsul)) {
-                                                $parts = explode(',', $rawDokterKonsul);
+                                                $parts = [];
+                                                if (strpos($rawDokterKonsul, '[v]') !== false || strpos($rawDokterKonsul, '[ ]') !== false) {
+                                                    $rawParts = preg_split('/(?=\[[v ]\])/', $rawDokterKonsul);
+                                                    foreach ($rawParts as $part) {
+                                                        $part = trim($part, " \t\n\r\0\x0B,");
+                                                        if ($part !== '') {
+                                                            $parts[] = $part;
+                                                        }
+                                                    }
+                                                } else {
+                                                    $rawParts = explode(',', $rawDokterKonsul);
+                                                    foreach ($rawParts as $part) {
+                                                        $part = trim($part);
+                                                        if ($part !== '') {
+                                                            $parts[] = $part;
+                                                        }
+                                                    }
+                                                }
                                                 $names = [];
                                                 foreach ($parts as $idx => $part) {
                                                     $part = trim($part);

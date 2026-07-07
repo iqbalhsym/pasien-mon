@@ -151,23 +151,40 @@
                                     $tndDetail = $planningText;
                                 }
 
-                                // Dokter Konsul Parsing
-                                $rawDokterKonsul = $eq->dokter_konsul ?? '';
-                                $cleanDokterKonsul = '';
-                                if (!empty($rawDokterKonsul)) {
-                                    $parts = explode(',', $rawDokterKonsul);
-                                    $names = [];
-                                    foreach($parts as $part) {
-                                        $part = trim($part);
-                                        if ($part === '') continue;
-                                        $name = $part;
-                                        if (strpos($part, '[v] ') === 0 || strpos($part, '[ ] ') === 0) {
-                                            $name = substr($part, 4);
-                                        }
-                                        $names[] = $name;
-                                    }
-                                    $cleanDokterKonsul = implode(', ', $names);
-                                }
+                                 // Dokter Konsul Parsing
+                                 $rawDokterKonsul = $eq->dokter_konsul ?? '';
+                                 $cleanDokterKonsul = '';
+                                 if (!empty($rawDokterKonsul)) {
+                                     $parts = [];
+                                     if (strpos($rawDokterKonsul, '[v]') !== false || strpos($rawDokterKonsul, '[ ]') !== false) {
+                                         $rawParts = preg_split('/(?=\[[v ]\])/', $rawDokterKonsul);
+                                         foreach ($rawParts as $part) {
+                                             $part = trim($part, " \t\n\r\0\x0B,");
+                                             if ($part !== '') {
+                                                 $parts[] = $part;
+                                             }
+                                         }
+                                     } else {
+                                         $rawParts = explode(',', $rawDokterKonsul);
+                                         foreach ($rawParts as $part) {
+                                             $part = trim($part);
+                                             if ($part !== '') {
+                                                 $parts[] = $part;
+                                             }
+                                         }
+                                     }
+                                     $names = [];
+                                     foreach($parts as $part) {
+                                         $part = trim($part);
+                                         if ($part === '') continue;
+                                         $name = $part;
+                                         if (strpos($part, '[v] ') === 0 || strpos($part, '[ ] ') === 0) {
+                                             $name = substr($part, 4);
+                                         }
+                                         $names[] = $name;
+                                     }
+                                     $cleanDokterKonsul = implode(', ', $names);
+                                 }
                             @endphp
                             <tr class="border-bottom">
                                 <!-- Status Bed -->

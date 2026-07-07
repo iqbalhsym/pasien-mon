@@ -131,7 +131,27 @@ class MutuController extends Controller
             $lamaJam = $tglRespon->diffInHours($tglOrder);
             $isLebih24 = $lamaJam > 24;
 
-            $parts = explode(',', $p->dokter_konsul);
+            $rawDokterKonsul = $p->dokter_konsul;
+            $parts = [];
+            if (!empty($rawDokterKonsul)) {
+                if (strpos($rawDokterKonsul, '[v]') !== false || strpos($rawDokterKonsul, '[ ]') !== false) {
+                    $rawParts = preg_split('/(?=\[[v ]\])/', $rawDokterKonsul);
+                    foreach ($rawParts as $part) {
+                        $part = trim($part, " \t\n\r\0\x0B,");
+                        if ($part !== '') {
+                            $parts[] = $part;
+                        }
+                    }
+                } else {
+                    $rawParts = explode(',', $rawDokterKonsul);
+                    foreach ($rawParts as $part) {
+                        $part = trim($part);
+                        if ($part !== '') {
+                            $parts[] = $part;
+                        }
+                    }
+                }
+            }
             foreach ($parts as $part) {
                 $part = trim($part);
                 if ($part === '') continue;
