@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Equipment;
+use App\Models\Wing;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -11,8 +12,32 @@ class MutuController extends Controller
     public function kepatuhanVisit(Request $request)
     {
         Equipment::resetDailyVisits();
+
+        // Load all wings for filter dropdown
+        $wings = Wing::orderBy('name')->get();
+        $selectedWing = $request->input('wing');
+        $selectedRoom = $request->input('room');
+        $selectedRooms = collect();
+        if ($selectedWing) {
+            $wingObj = $wings->firstWhere('name', $selectedWing);
+            if ($wingObj) {
+                $selectedRooms = $wingObj->rooms()->orderBy('name')->get();
+            }
+        }
+
         // 1. Ambil data pasien aktif (yang ada di ruangan)
-        $patients = Equipment::whereHas('bed')->whereNotNull('lokasi')->where('lokasi', '!=', '')->get();
+        $patientsQuery = Equipment::whereHas('bed')->whereNotNull('lokasi')->where('lokasi', '!=', '');
+
+        // Filter by wing/room via lokasi field pattern: "WING - ROOM (BED)"
+        if ($selectedWing) {
+            $patientsQuery->where('lokasi', 'like', $selectedWing . ' - %');
+        }
+        if ($selectedRoom) {
+            $patientsQuery->where('lokasi', 'like', '% - ' . $selectedRoom . ' %')
+                          ->orWhere('lokasi', 'like', '% - ' . $selectedRoom . ' (%');
+        }
+
+        $patients = $patientsQuery->get();
 
         $totalPasien = $patients->count();
         $sudahVisit = 0;
@@ -106,14 +131,39 @@ class MutuController extends Controller
 
         return view('mutu.kepatuhan_visit', compact(
             'totalPasien', 'sudahVisit', 'belumVisit', 'persentaseKepatuhan', 
-            'dpjpStats', 'daftarBelumVisit', 'chartLabels', 'chartData'
+            'dpjpStats', 'daftarBelumVisit', 'chartLabels', 'chartData',
+            'wings', 'selectedWing', 'selectedRoom', 'selectedRooms'
         ));
     }
 
     public function responKonsul(Request $request)
     {
+        // Load all wings for filter dropdown
+        $wings = Wing::orderBy('name')->get();
+        $selectedWing = $request->input('wing');
+        $selectedRoom = $request->input('room');
+        $selectedRooms = collect();
+        if ($selectedWing) {
+            $wingObj = $wings->firstWhere('name', $selectedWing);
+            if ($wingObj) {
+                $selectedRooms = $wingObj->rooms()->orderBy('name')->get();
+            }
+        }
+
         // Ambil data pasien yang memiliki permintaan e-konsul (dari field dokter_konsul)
-        $patients = Equipment::whereNotNull('dokter_konsul')->where('dokter_konsul', '!=', '')->get();
+        $patientsQuery = Equipment::whereNotNull('dokter_konsul')->where('dokter_konsul', '!=', '');
+
+        if ($selectedWing) {
+            $patientsQuery->where('lokasi', 'like', $selectedWing . ' - %');
+        }
+        if ($selectedRoom) {
+            $patientsQuery->where(function($q) use ($selectedRoom) {
+                $q->where('lokasi', 'like', '% - ' . $selectedRoom . ' %')
+                  ->orWhere('lokasi', 'like', '% - ' . $selectedRoom . ' (%');
+            });
+        }
+
+        $patients = $patientsQuery->get();
 
         $totalKonsul = 0;
         $kurang24Jam = 0;
@@ -261,7 +311,8 @@ class MutuController extends Controller
 
         return view('mutu.respon_konsul', compact(
             'totalKonsul', 'kurang24Jam', 'lebih24Jam', 'persentaseKepatuhan',
-            'dpjpStats', 'daftarLebih24Jam', 'trendLabels', 'trendData'
+            'dpjpStats', 'daftarLebih24Jam', 'trendLabels', 'trendData',
+            'wings', 'selectedWing', 'selectedRoom', 'selectedRooms'
         ));
     }
 
@@ -378,15 +429,28 @@ class MutuController extends Controller
 
     public function jadwalNers(Request $request)
     {
-        $date = $request->input('date', now()->toDateString());
+        $dateFrom = $request->input('date_from', now()->toDateString());
+        $dateTo   = $request->input('date_to',   now()->toDateString());
 
-        // Ambil data pasien aktif pada tanggal yang dipilih
+        // Normalkan agar date_from <= date_to
+        if ($dateFrom > $dateTo) {
+            [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
+        }
+
+        // Pertahankan kompatibilitas ($date) untuk tampilan default
+        $date = $dateFrom;
+
+        // Ambil data pasien aktif pada rentang tanggal yang dipilih
         $patients = Equipment::whereHas('bed')
             ->whereNotNull('lokasi')
             ->where('lokasi', '!=', '')
-            ->where(function($q) use ($date) {
-                $q->whereDate('registered_date', '<=', $date)
-                  ->orWhereDate('tanggal_pengadaan', '<=', $date);
+            ->where(function($q) use ($dateFrom, $dateTo) {
+                $q->where(function($inner) use ($dateFrom, $dateTo) {
+                    $inner->whereDate('registered_date', '<=', $dateTo);
+                })->where(function($inner) use ($dateFrom) {
+                    $inner->whereDate('registered_date', '>=', $dateFrom)
+                          ->orWhereDate('tanggal_pengadaan', '<=', $dateFrom);
+                });
             })
             ->get();
 
@@ -499,6 +563,6 @@ class MutuController extends Controller
             return strcmp($a, $b);
         });
 
-        return view('mutu.jadwal_ners', compact('nurseReports', 'shiftReports', 'floorReports', 'date', 'patients'));
+        return view('mutu.jadwal_ners', compact('nurseReports', 'shiftReports', 'floorReports', 'date', 'dateFrom', 'dateTo', 'patients'));
     }
 }

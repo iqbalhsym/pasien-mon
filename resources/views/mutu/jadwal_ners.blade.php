@@ -53,12 +53,28 @@
     <div class="col-12">
         <div class="card card-mutu border-0">
             <div class="card-body p-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
-                <form action="{{ route('mutu.jadwal-ners') }}" method="GET" class="d-flex align-items-center gap-2" id="filterForm">
-                    <label for="datePicker" class="fw-bold text-dark mb-0"><i class="mdi mdi-calendar-text text-primary me-1"></i> Pilih Tanggal:</label>
-                    <input type="date" name="date" id="datePicker" class="form-control form-control-sm text-dark fw-bold" value="{{ $date }}" onchange="document.getElementById('filterForm').submit();" style="width: 180px;">
+                <form action="{{ route('mutu.jadwal-ners') }}" method="GET" id="filterForm" class="d-flex align-items-center gap-3 flex-wrap">
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="dateFrom" class="fw-bold text-dark mb-0 text-nowrap"><i class="mdi mdi-calendar-range text-primary me-1"></i> Dari:</label>
+                        <input type="date" name="date_from" id="dateFrom" class="form-control form-control-sm text-dark fw-bold" value="{{ $dateFrom }}" onchange="document.getElementById('filterForm').submit();" style="width: 160px;">
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="dateTo" class="fw-bold text-dark mb-0 text-nowrap"><i class="mdi mdi-calendar-range text-primary me-1"></i> Sampai:</label>
+                        <input type="date" name="date_to" id="dateTo" class="form-control form-control-sm text-dark fw-bold" value="{{ $dateTo }}" onchange="document.getElementById('filterForm').submit();" style="width: 160px;">
+                    </div>
+                    @if($dateFrom !== now()->toDateString() || $dateTo !== now()->toDateString())
+                        <a href="{{ route('mutu.jadwal-ners') }}" class="btn btn-sm btn-light border fw-bold shadow-sm">
+                            <i class="mdi mdi-refresh me-1"></i> Reset
+                        </a>
+                    @endif
                 </form>
                 
                 <div class="d-flex flex-wrap gap-2">
+                    @if($dateFrom !== $dateTo)
+                        <span class="badge bg-warning text-dark p-2.5 fw-bold fs-7 rounded shadow-xs">
+                            <i class="mdi mdi-calendar-range me-1"></i> {{ \Carbon\Carbon::parse($dateFrom)->format('d M') }} – {{ \Carbon\Carbon::parse($dateTo)->format('d M Y') }}
+                        </span>
+                    @endif
                     <span class="badge bg-primary text-white p-2.5 fw-bold fs-7 rounded shadow-xs">
                         <i class="mdi mdi-account-multiple me-1"></i> {{ count($nurseReports) }} Ners Tugas
                     </span>
@@ -70,6 +86,7 @@
         </div>
     </div>
 </div>
+
 
 <!-- TABS NAVIGATION -->
 <div class="row mb-4">

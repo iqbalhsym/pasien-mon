@@ -96,39 +96,60 @@
 <div class="row mb-4">
     <div class="col-12">
         <div class="card card-mutu">
-            <div class="card-body p-3 d-flex flex-wrap gap-3 align-items-end">
-                <div style="min-width: 200px;">
-                    <div class="input-group">
-                        <input type="text" class="form-control" value="01/{{ now()->format('m/Y') }} - {{ now()->format('d/m/Y') }}" style="font-size: 0.9rem;" readonly>
-                        <span class="input-group-text bg-white"><i class="mdi mdi-calendar-blank"></i></span>
+            <div class="card-body p-3">
+                <form action="{{ route('mutu.kepatuhan-visit') }}" method="GET" id="filterFormVisit" class="d-flex flex-wrap gap-3 align-items-end">
+                    <div style="min-width: 200px;">
+                        <label class="filter-label"><i class="mdi mdi-home-variant me-1"></i>Wings / Bagian</label>
+                        <select name="wing" id="wingSelectVisit" class="form-select fw-bold" style="font-size: 0.9rem;" onchange="updateRoomsVisit(this.value); this.form.submit();">
+                            <option value="">Semua Wings</option>
+                            @foreach($wings as $w)
+                                <option value="{{ $w->name }}" {{ $selectedWing == $w->name ? 'selected' : '' }}>{{ $w->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
-                </div>
-                
-                <div style="min-width: 200px;">
-                    <select class="form-select fw-bold" style="font-size: 0.9rem;">
-                        <option>Semua Unit</option>
-                        <option>ICU / NICU</option>
-                        <option>Rawat Inap Umum</option>
-                    </select>
-                </div>
-                
-                <div style="min-width: 200px;">
-                    <select class="form-select fw-bold" style="font-size: 0.9rem;">
-                        <option>Semua Spesialis</option>
-                        <option>Penyakit Dalam</option>
-                        <option>Bedah</option>
-                    </select>
-                </div>
-                
-                <div class="ms-auto">
-                    <button class="btn btn-light border bg-white fw-bold shadow-sm" style="font-size: 0.9rem;">
-                        <i class="mdi mdi-refresh me-1"></i> Reset Filter
-                    </button>
-                </div>
+
+                    <div style="min-width: 200px;">
+                        <label class="filter-label"><i class="mdi mdi-door me-1"></i>Ruangan</label>
+                        <select name="room" id="roomSelectVisit" class="form-select fw-bold" style="font-size: 0.9rem;" onchange="this.form.submit();">
+                            <option value="">Semua Ruangan</option>
+                            @foreach($selectedRooms as $r)
+                                <option value="{{ $r->name }}" {{ $selectedRoom == $r->name ? 'selected' : '' }}>Kamar {{ $r->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="ms-auto d-flex gap-2">
+                        @if($selectedWing || $selectedRoom)
+                            <a href="{{ route('mutu.kepatuhan-visit') }}" class="btn btn-light border bg-white fw-bold shadow-sm" style="font-size: 0.9rem;">
+                                <i class="mdi mdi-refresh me-1"></i> Reset Filter
+                            </a>
+                        @else
+                            <button type="button" class="btn btn-light border bg-white fw-bold shadow-sm disabled" style="font-size: 0.9rem;">
+                                <i class="mdi mdi-refresh me-1"></i> Reset Filter
+                            </button>
+                        @endif
+                    </div>
+                </form>
+
+                @if($selectedWing || $selectedRoom)
+                    <div class="mt-2 d-flex flex-wrap gap-2">
+                        @if($selectedWing)
+                            <span class="badge bg-primary text-white fw-bold px-2 py-1" style="font-size: 0.78rem;">
+                                <i class="mdi mdi-home-variant me-1"></i>Wing: {{ $selectedWing }}
+                            </span>
+                        @endif
+                        @if($selectedRoom)
+                            <span class="badge bg-info text-white fw-bold px-2 py-1" style="font-size: 0.78rem;">
+                                <i class="mdi mdi-door me-1"></i>Ruangan: {{ $selectedRoom }}
+                            </span>
+                        @endif
+                    </div>
+                @endif
             </div>
         </div>
     </div>
 </div>
+
 
 <!-- SCORECARDS -->
 <div class="row mb-4 g-3">
