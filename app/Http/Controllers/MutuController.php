@@ -184,14 +184,6 @@ class MutuController extends Controller
         // Ambil data pasien yang memiliki permintaan e-konsul (dari field dokter_konsul)
         $patientsQuery = Equipment::whereNotNull('dokter_konsul')->where('dokter_konsul', '!=', '');
 
-        // Date Range filter
-        if ($dateFrom && $dateTo) {
-            $patientsQuery->where(function($q) use ($dateFrom, $dateTo) {
-                $q->whereBetween('registered_date', [$dateFrom, $dateTo])
-                  ->orWhereBetween('tanggal_pengadaan', [$dateFrom, $dateTo]);
-            });
-        }
-
         // Filter by floor
         if ($selectedFloor) {
             $cleanFloor = trim(str_ireplace('Lantai', '', $selectedFloor));
@@ -231,13 +223,13 @@ class MutuController extends Controller
         $daftarLebih24Jam = [];
 
         foreach ($patients as $p) {
-            // Asumsi waktu order adalah saat pasien masuk (registered_date atau created_at)
-            $tglOrder = $p->registered_date ? Carbon::parse($p->registered_date) : $p->created_at;
-            // Asumsi waktu respon adalah update terakhir
-            $tglRespon = $p->updated_at;
+            // Asumsi waktu order awal adalah saat pasien masuk (registered_date atau created_at)
+            $tglOrderAwal = $p->registered_date ? Carbon::parse($p->registered_date) : $p->created_at;
             
-            $lamaJam = $tglRespon->diffInHours($tglOrder);
-            $isLebih24 = $lamaJam > 24;
+            $konsulHistoryMap = [];
+            if ($p->konsul_history) {
+                $konsulHistoryMap = json_decode($p->konsul_history, true) ?: [];
+            }
 
             $rawDokterKonsul = $p->dokter_konsul;
             $parts = [];
@@ -288,6 +280,68 @@ class MutuController extends Controller
                     if (!$isMatch) continue; // Skip this consul row if it doesn't match
                 }
 
+                // Tentukan keikutsertaan data berdasarkan filter rentang tanggal
+                $shouldInclude = false;
+                $tglRespon = null;
+                $tglOrder = $tglOrderAwal;
+
+                if ($isResponded) {
+                    $timestampsInRange = [];
+                    if (isset($konsulHistoryMap[$namaDokter]) && !empty($konsulHistoryMap[$namaDokter])) {
+                        $docTimestamps = $konsulHistoryMap[$namaDokter];
+                        foreach ($docTimestamps as $ts) {
+                            $tsDate = date('Y-m-d', strtotime($ts));
+                            if ($dateFrom && $dateTo) {
+                                if ($tsDate >= $dateFrom && $tsDate <= $dateTo) {
+                                    $timestampsInRange[] = $ts;
+                                }
+                            } else {
+                                $timestampsInRange[] = $ts;
+                            }
+                        }
+                    }
+
+                    if (!empty($timestampsInRange)) {
+                        $shouldInclude = true;
+                        // Ambil respon terakhir dalam rentang tanggal
+                        $lastTs = end($timestampsInRange);
+                        $tglRespon = Carbon::parse($lastTs);
+                        
+                        // Cari order date: timestamp sebelum $lastTs di riwayat lengkap
+                        $docTimestamps = $konsulHistoryMap[$namaDokter];
+                        $lastTsIndex = array_search($lastTs, $docTimestamps);
+                        if ($lastTsIndex !== false && $lastTsIndex > 0) {
+                            $tglOrder = Carbon::parse($docTimestamps[$lastTsIndex - 1]);
+                        }
+                    } else {
+                        // Jika tidak ada data riwayat, gunakan updated_at sebagai fallback
+                        $fallbackDate = $p->updated_at->toDateString();
+                        if ($dateFrom && $dateTo) {
+                            if ($fallbackDate >= $dateFrom && $fallbackDate <= $dateTo) {
+                                $shouldInclude = true;
+                                $tglRespon = $p->updated_at;
+                            }
+                        } else {
+                            $shouldInclude = true;
+                            $tglRespon = $p->updated_at;
+                        }
+                    }
+                } else {
+                    // Jika belum direspon, filter berdasarkan tanggal order
+                    $orderDateStr = $tglOrder->toDateString();
+                    if ($dateFrom && $dateTo) {
+                        if ($orderDateStr >= $dateFrom && $orderDateStr <= $dateTo) {
+                            $shouldInclude = true;
+                        }
+                    } else {
+                        $shouldInclude = true;
+                    }
+                }
+
+                if (!$shouldInclude) {
+                    continue; // Skip jika di luar rentang tanggal filter
+                }
+
                 $totalKonsul++;
 
                 // Inisialisasi stat DPJP jika belum ada
@@ -313,6 +367,9 @@ class MutuController extends Controller
                 $dpjpStats[$namaDokter]['total']++;
 
                 if ($isResponded) {
+                    $lamaJam = $tglRespon->diffInHours($tglOrder);
+                    $isLebih24 = $lamaJam > 24;
+
                     if ($isLebih24) {
                         $lebih24Jam++;
                         $dpjpStats[$namaDokter]['lebih24']++;
@@ -337,7 +394,9 @@ class MutuController extends Controller
                         $dpjpStats[$namaDokter]['kurang24']++;
                     }
                 } else {
-                    // Jika belum direspon sama sekali, cek apakah sudah lewat 24 jam sejak order
+                    $lamaJam = now()->diffInHours($tglOrder);
+                    $isLebih24 = $lamaJam > 24;
+
                     if ($isLebih24) {
                         $lebih24Jam++;
                         $dpjpStats[$namaDokter]['lebih24']++;
@@ -359,9 +418,9 @@ class MutuController extends Controller
                     } else {
                         $kurang24Jam++;
                         $dpjpStats[$namaDokter]['kurang24']++;
-                    }
                 }
             }
+        }
         }
 
         $persentaseKepatuhan = $totalKonsul > 0 ? round(($kurang24Jam / $totalKonsul) * 100, 1) : 0;
