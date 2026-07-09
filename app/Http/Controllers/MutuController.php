@@ -13,22 +13,13 @@ class MutuController extends Controller
     {
         Equipment::resetDailyVisits();
 
-        // Load all wings for filter dropdown
-        $wings = Wing::orderBy('name')->get();
-        $selectedWing = $request->input('wing');
-        $selectedRoom = $request->input('room');
+        // Load all floors for filter dropdown
+        $floors = \App\Models\Floor::orderBy('name')->get();
+        $selectedFloor = $request->input('floor');
         $selectedSpesialis = $request->input('spesialis');
         
         $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
         $dateTo = $request->input('date_to', now()->toDateString());
-
-        $selectedRooms = collect();
-        if ($selectedWing) {
-            $wingObj = $wings->firstWhere('name', $selectedWing);
-            if ($wingObj) {
-                $selectedRooms = $wingObj->rooms()->orderBy('name')->get();
-            }
-        }
 
         // 1. Ambil data pasien aktif (yang ada di ruangan)
         $patientsQuery = Equipment::whereHas('bed')->whereNotNull('lokasi')->where('lokasi', '!=', '');
@@ -41,14 +32,13 @@ class MutuController extends Controller
             });
         }
 
-        // Filter by wing/room via lokasi field pattern: "WING - ROOM (BED)"
-        if ($selectedWing) {
-            $patientsQuery->where('lokasi', 'like', $selectedWing . ' - %');
-        }
-        if ($selectedRoom) {
-            $patientsQuery->where(function($q) use ($selectedRoom) {
-                $q->where('lokasi', 'like', '% - ' . $selectedRoom . ' %')
-                  ->orWhere('lokasi', 'like', '% - ' . $selectedRoom . ' (%');
+        // Filter by floor
+        if ($selectedFloor) {
+            $cleanFloor = trim(str_ireplace('Lantai', '', $selectedFloor));
+            $patientsQuery->where(function($q) use ($selectedFloor, $cleanFloor) {
+                $q->where('lantai', $selectedFloor)
+                  ->orWhere('lantai', $cleanFloor)
+                  ->orWhere('lantai', 'like', '%' . $cleanFloor . '%');
             });
         }
 
@@ -177,29 +167,19 @@ class MutuController extends Controller
         return view('mutu.kepatuhan_visit', compact(
             'totalPasien', 'sudahVisit', 'belumVisit', 'persentaseKepatuhan', 
             'dpjpStats', 'daftarBelumVisit', 'chartLabels', 'chartData',
-            'wings', 'selectedWing', 'selectedRoom', 'selectedRooms',
-            'selectedSpesialis', 'dateFrom', 'dateTo'
+            'floors', 'selectedFloor', 'selectedSpesialis', 'dateFrom', 'dateTo'
         ));
     }
 
     public function responKonsul(Request $request)
     {
-        // Load all wings for filter dropdown
-        $wings = Wing::orderBy('name')->get();
-        $selectedWing = $request->input('wing');
-        $selectedRoom = $request->input('room');
+        // Load all floors for filter dropdown
+        $floors = \App\Models\Floor::orderBy('name')->get();
+        $selectedFloor = $request->input('floor');
         $selectedSpesialis = $request->input('spesialis');
         
         $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
         $dateTo = $request->input('date_to', now()->toDateString());
-
-        $selectedRooms = collect();
-        if ($selectedWing) {
-            $wingObj = $wings->firstWhere('name', $selectedWing);
-            if ($wingObj) {
-                $selectedRooms = $wingObj->rooms()->orderBy('name')->get();
-            }
-        }
 
         // Ambil data pasien yang memiliki permintaan e-konsul (dari field dokter_konsul)
         $patientsQuery = Equipment::whereNotNull('dokter_konsul')->where('dokter_konsul', '!=', '');
@@ -212,13 +192,13 @@ class MutuController extends Controller
             });
         }
 
-        if ($selectedWing) {
-            $patientsQuery->where('lokasi', 'like', $selectedWing . ' - %');
-        }
-        if ($selectedRoom) {
-            $patientsQuery->where(function($q) use ($selectedRoom) {
-                $q->where('lokasi', 'like', '% - ' . $selectedRoom . ' %')
-                  ->orWhere('lokasi', 'like', '% - ' . $selectedRoom . ' (%');
+        // Filter by floor
+        if ($selectedFloor) {
+            $cleanFloor = trim(str_ireplace('Lantai', '', $selectedFloor));
+            $patientsQuery->where(function($q) use ($selectedFloor, $cleanFloor) {
+                $q->where('lantai', $selectedFloor)
+                  ->orWhere('lantai', $cleanFloor)
+                  ->orWhere('lantai', 'like', '%' . $cleanFloor . '%');
             });
         }
 
@@ -284,13 +264,14 @@ class MutuController extends Controller
                 $part = trim($part);
                 if ($part === '') continue;
 
-                $isResponded = false;
+                $isResponded = true; // default legacy fallback is responded/checked
                 $namaDokter = $part;
 
                 if (strpos($part, '[v] ') === 0) {
                     $isResponded = true;
                     $namaDokter = substr($part, 4);
                 } elseif (strpos($part, '[ ] ') === 0) {
+                    $isResponded = false;
                     $namaDokter = substr($part, 4);
                 }
 
@@ -401,8 +382,7 @@ class MutuController extends Controller
         return view('mutu.respon_konsul', compact(
             'totalKonsul', 'kurang24Jam', 'lebih24Jam', 'persentaseKepatuhan',
             'dpjpStats', 'daftarLebih24Jam', 'trendLabels', 'trendData',
-            'wings', 'selectedWing', 'selectedRoom', 'selectedRooms',
-            'selectedSpesialis', 'dateFrom', 'dateTo'
+            'floors', 'selectedFloor', 'selectedSpesialis', 'dateFrom', 'dateTo'
         ));
     }
 

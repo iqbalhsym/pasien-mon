@@ -104,22 +104,14 @@
                         <input type="date" name="date_to" class="form-control fw-bold" style="font-size: 0.9rem;" value="{{ $dateTo }}" onchange="this.form.submit();">
                     </div>
 
-                    <div style="min-width: 160px;">
-                        <label class="filter-label-konsul"><i class="mdi mdi-home-variant me-1"></i>Wings / Bagian</label>
-                        <select name="wing" class="form-select fw-bold" style="font-size: 0.9rem;" onchange="this.form.submit();">
-                            <option value="">Semua Wings</option>
-                            @foreach($wings as $w)
-                                <option value="{{ $w->name }}" {{ $selectedWing == $w->name ? 'selected' : '' }}>{{ $w->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div style="min-width: 160px;">
-                        <label class="filter-label-konsul"><i class="mdi mdi-door me-1"></i>Ruangan</label>
-                        <select name="room" class="form-select fw-bold" style="font-size: 0.9rem;" onchange="this.form.submit();">
-                            <option value="">Semua Ruangan</option>
-                            @foreach($selectedRooms as $r)
-                                <option value="{{ $r->name }}" {{ $selectedRoom == $r->name ? 'selected' : '' }}>Kamar {{ $r->name }}</option>
+                    <div style="min-width: 200px;">
+                        <label class="filter-label-konsul"><i class="mdi mdi-layers-outline me-1"></i>Lantai / Ruangan</label>
+                        <select name="floor" class="form-select fw-bold" style="font-size: 0.9rem;" onchange="this.form.submit();">
+                            <option value="">Semua Lantai</option>
+                            @foreach($floors as $f)
+                                <option value="{{ $f->name }}" {{ $selectedFloor == $f->name ? 'selected' : '' }}>
+                                    {{ is_numeric($f->name) ? 'Lantai ' . $f->name : $f->name }}
+                                </option>
                             @endforeach
                         </select>
                     </div>
@@ -135,7 +127,7 @@
                     </div>
 
                     <div class="ms-auto d-flex gap-2">
-                        @if($selectedWing || $selectedRoom || $selectedSpesialis || $dateFrom !== now()->startOfMonth()->toDateString() || $dateTo !== now()->toDateString())
+                        @if($selectedFloor || $selectedSpesialis || $dateFrom !== now()->startOfMonth()->toDateString() || $dateTo !== now()->toDateString())
                             <a href="{{ route('mutu.respon-konsul') }}" class="btn btn-light border bg-white fw-bold shadow-sm" style="font-size: 0.9rem;">
                                 <i class="mdi mdi-refresh me-1"></i> Reset Filter
                             </a>
@@ -147,19 +139,14 @@
                     </div>
                 </form>
 
-                @if($selectedWing || $selectedRoom || $selectedSpesialis || $dateFrom !== now()->startOfMonth()->toDateString() || $dateTo !== now()->toDateString())
+                @if($selectedFloor || $selectedSpesialis || $dateFrom !== now()->startOfMonth()->toDateString() || $dateTo !== now()->toDateString())
                     <div class="mt-2 d-flex flex-wrap gap-2">
                         <span class="badge bg-secondary text-white fw-bold px-2 py-1" style="font-size: 0.78rem;">
                             <i class="mdi mdi-calendar me-1"></i>Periode: {{ date('d/m/Y', strtotime($dateFrom)) }} - {{ date('d/m/Y', strtotime($dateTo)) }}
                         </span>
-                        @if($selectedWing)
+                        @if($selectedFloor)
                             <span class="badge bg-primary text-white fw-bold px-2 py-1" style="font-size: 0.78rem;">
-                                <i class="mdi mdi-home-variant me-1"></i>Wing: {{ $selectedWing }}
-                            </span>
-                        @endif
-                        @if($selectedRoom)
-                            <span class="badge bg-info text-white fw-bold px-2 py-1" style="font-size: 0.78rem;">
-                                <i class="mdi mdi-door me-1"></i>Ruangan: Kamar {{ $selectedRoom }}
+                                <i class="mdi mdi-layers-outline me-1"></i>Lantai: {{ is_numeric($selectedFloor) ? 'Lantai ' . $selectedFloor : $selectedFloor }}
                             </span>
                         @endif
                         @if($selectedSpesialis)
