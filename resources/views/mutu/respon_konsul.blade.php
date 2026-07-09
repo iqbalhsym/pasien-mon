@@ -94,7 +94,17 @@
         <div class="card card-mutu">
             <div class="card-body p-3">
                 <form action="{{ route('mutu.respon-konsul') }}" method="GET" id="filterFormKonsul" class="d-flex flex-wrap gap-3 align-items-end">
-                    <div style="min-width: 200px;">
+                    <div style="min-width: 150px;">
+                        <label class="filter-label-konsul"><i class="mdi mdi-calendar-range me-1"></i>Dari Tanggal</label>
+                        <input type="date" name="date_from" class="form-control fw-bold" style="font-size: 0.9rem;" value="{{ $dateFrom }}" onchange="this.form.submit();">
+                    </div>
+                    
+                    <div style="min-width: 150px;">
+                        <label class="filter-label-konsul"><i class="mdi mdi-calendar-range me-1"></i>Sampai Tanggal</label>
+                        <input type="date" name="date_to" class="form-control fw-bold" style="font-size: 0.9rem;" value="{{ $dateTo }}" onchange="this.form.submit();">
+                    </div>
+
+                    <div style="min-width: 160px;">
                         <label class="filter-label-konsul"><i class="mdi mdi-home-variant me-1"></i>Wings / Bagian</label>
                         <select name="wing" class="form-select fw-bold" style="font-size: 0.9rem;" onchange="this.form.submit();">
                             <option value="">Semua Wings</option>
@@ -104,7 +114,7 @@
                         </select>
                     </div>
 
-                    <div style="min-width: 200px;">
+                    <div style="min-width: 160px;">
                         <label class="filter-label-konsul"><i class="mdi mdi-door me-1"></i>Ruangan</label>
                         <select name="room" class="form-select fw-bold" style="font-size: 0.9rem;" onchange="this.form.submit();">
                             <option value="">Semua Ruangan</option>
@@ -114,8 +124,18 @@
                         </select>
                     </div>
 
+                    <div style="min-width: 180px;">
+                        <label class="filter-label-konsul"><i class="mdi mdi-doctor me-1"></i>Spesialis</label>
+                        <select name="spesialis" class="form-select fw-bold" style="font-size: 0.9rem;" onchange="this.form.submit();">
+                            <option value="">Semua Spesialis</option>
+                            @foreach(['Penyakit Dalam', 'Obstetri & Ginekologi', 'Bedah', 'Jantung', 'Anestesi', 'Anak'] as $sp)
+                                <option value="{{ $sp }}" {{ $selectedSpesialis == $sp ? 'selected' : '' }}>{{ $sp }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
                     <div class="ms-auto d-flex gap-2">
-                        @if($selectedWing || $selectedRoom)
+                        @if($selectedWing || $selectedRoom || $selectedSpesialis || $dateFrom !== now()->startOfMonth()->toDateString() || $dateTo !== now()->toDateString())
                             <a href="{{ route('mutu.respon-konsul') }}" class="btn btn-light border bg-white fw-bold shadow-sm" style="font-size: 0.9rem;">
                                 <i class="mdi mdi-refresh me-1"></i> Reset Filter
                             </a>
@@ -127,8 +147,11 @@
                     </div>
                 </form>
 
-                @if($selectedWing || $selectedRoom)
+                @if($selectedWing || $selectedRoom || $selectedSpesialis || $dateFrom !== now()->startOfMonth()->toDateString() || $dateTo !== now()->toDateString())
                     <div class="mt-2 d-flex flex-wrap gap-2">
+                        <span class="badge bg-secondary text-white fw-bold px-2 py-1" style="font-size: 0.78rem;">
+                            <i class="mdi mdi-calendar me-1"></i>Periode: {{ date('d/m/Y', strtotime($dateFrom)) }} - {{ date('d/m/Y', strtotime($dateTo)) }}
+                        </span>
                         @if($selectedWing)
                             <span class="badge bg-primary text-white fw-bold px-2 py-1" style="font-size: 0.78rem;">
                                 <i class="mdi mdi-home-variant me-1"></i>Wing: {{ $selectedWing }}
@@ -136,7 +159,12 @@
                         @endif
                         @if($selectedRoom)
                             <span class="badge bg-info text-white fw-bold px-2 py-1" style="font-size: 0.78rem;">
-                                <i class="mdi mdi-door me-1"></i>Ruangan: {{ $selectedRoom }}
+                                <i class="mdi mdi-door me-1"></i>Ruangan: Kamar {{ $selectedRoom }}
+                            </span>
+                        @endif
+                        @if($selectedSpesialis)
+                            <span class="badge bg-success text-white fw-bold px-2 py-1" style="font-size: 0.78rem;">
+                                <i class="mdi mdi-doctor me-1"></i>Spesialis: {{ $selectedSpesialis }}
                             </span>
                         @endif
                     </div>

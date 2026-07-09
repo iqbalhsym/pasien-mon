@@ -140,11 +140,40 @@ class BedController extends Controller
         ]);
 
         $equipment = \App\Models\Equipment::findOrFail($equipmentId);
+        $oldPagi = $equipment->ners_pagi;
+        $oldSiang = $equipment->ners_siang;
+        $oldMalam = $equipment->ners_malam;
+
         $equipment->update([
             'ners_pagi' => $request->ners_pagi,
             'ners_siang' => $request->ners_siang,
             'ners_malam' => $request->ners_malam,
         ]);
+
+        // Log to Maintenance for history
+        $shifts = [
+            'Pagi' => ['old' => $oldPagi, 'new' => $request->ners_pagi],
+            'Siang' => ['old' => $oldSiang, 'new' => $request->ners_siang],
+            'Malam' => ['old' => $oldMalam, 'new' => $request->ners_malam],
+        ];
+
+        foreach ($shifts as $shiftName => $names) {
+            $newNers = trim($names['new']);
+            if (!empty($newNers) && $newNers !== '-' && $newNers !== trim($names['old'])) {
+                \App\Models\Maintenance::create([
+                    'equipment_id' => $equipment->id,
+                    'jenis_pemeliharaan' => 'Penugasan Ners',
+                    'tanggal_pelaksanaan' => now()->format('Y-m-d'),
+                    'tanggal_jadwal_berikutnya' => now()->format('Y-m-d'),
+                    'tindakan_hasil' => "Ditugaskan sebagai Ners {$shiftName} untuk pasien {$equipment->merk}.",
+                    'petugas' => $newNers, // The nurse name
+                    'diagnosa_gejala' => $equipment->type,
+                    'lokasi_rawat' => $equipment->lokasi,
+                    'kondisi_klinis' => $equipment->kondisi ?: 'Stabil EWS',
+                    'metode_pembayaran' => $equipment->status_kepemilikan ?: 'Milik RS',
+                ]);
+            }
+        }
 
         return response()->json([
             'success' => true,

@@ -107,6 +107,11 @@
                     <i class="mdi mdi-office-building me-1.5 text-success"></i> Laporan Per Lantai
                 </button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold text-dark fs-5 py-2.5 px-4" id="logbook-tab" data-bs-toggle="tab" data-bs-target="#logbook-pane" type="button" role="tab" aria-controls="logbook-pane" aria-selected="false">
+                    <i class="mdi mdi-book-open-page-variant me-1.5 text-info"></i> Histori & Logbook Ners
+                </button>
+            </li>
         </ul>
     </div>
 </div>
@@ -272,6 +277,163 @@
         </div>
     </div>
 
+    <!-- PANE 4: HISTORI & LOGBOOK NERS -->
+    <div class="tab-pane fade" id="logbook-pane" role="tabpanel" aria-labelledby="logbook-tab" tabindex="0">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card card-mutu border-0">
+                    <div class="card-body p-4">
+                        <form action="{{ route('mutu.jadwal-ners') }}" method="GET" id="logbookFilterForm" class="d-flex flex-wrap align-items-end gap-3">
+                            <input type="hidden" name="date_from" value="{{ $dateFrom }}">
+                            <input type="hidden" name="date_to" value="{{ $dateTo }}">
+                            <input type="hidden" name="tab" value="logbook">
+
+                            <div style="min-width: 250px;">
+                                <label class="fw-bold text-dark mb-1.5"><i class="mdi mdi-account-star text-primary me-1"></i> Pilih Personal Ners:</label>
+                                <select name="nurse_name" class="form-select fw-bold text-dark" style="font-size: 0.9rem;" onchange="document.getElementById('logbookFilterForm').submit();">
+                                    <option value="">-- Pilih Ners --</option>
+                                    @foreach($nursesList as $nr)
+                                        <option value="{{ $nr->name }}" {{ $selectedNurse == $nr->name ? 'selected' : '' }}>{{ $nr->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div style="min-width: 200px;">
+                                <label class="fw-bold text-dark mb-1.5"><i class="mdi mdi-calendar-month text-primary me-1"></i> Pilih Bulan:</label>
+                                <input type="month" name="month" class="form-control fw-bold text-dark" style="font-size: 0.9rem;" value="{{ $selectedMonth }}" onchange="document.getElementById('logbookFilterForm').submit();">
+                            </div>
+
+                            <div>
+                                <button type="submit" class="btn btn-primary fw-bold text-white shadow-sm" style="height: 38px;">
+                                    <i class="mdi mdi-magnify me-1"></i> Tampilkan Logbook
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if($selectedNurse)
+            <!-- SCORECARDS LOGBOOK -->
+            <div class="row mb-4 g-3">
+                <div class="col-md-3">
+                    <div class="card card-mutu h-100 border-0 bg-primary text-white" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); border-radius: 12px;">
+                        <div class="card-body p-4 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-white opacity-75 fw-bold mb-1" style="font-size: 0.85rem;">Total Pasien Dipegang</h6>
+                                <h2 class="fw-bolder mb-0 text-white" style="font-size: 2.3rem;">{{ $totalLogbookPatients }}</h2>
+                                <p class="text-white opacity-75 fw-bold mb-0 mt-1" style="font-size: 0.8rem;">Bulan: {{ Carbon\Carbon::parse($selectedMonth.'-01')->format('F Y') }}</p>
+                            </div>
+                            <i class="mdi mdi-account-multiple text-white opacity-25 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card card-mutu h-100 border-0 bg-success text-white" style="background: linear-gradient(135deg, #198754 0%, #146c43 100%); border-radius: 12px;">
+                        <div class="card-body p-4 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-white opacity-75 fw-bold mb-1" style="font-size: 0.85rem;">Shift Pagi</h6>
+                                <h2 class="fw-bolder mb-0 text-white" style="font-size: 2.1rem;">{{ $shiftCounts['Pagi'] }}</h2>
+                                <p class="text-white opacity-75 fw-bold mb-0 mt-1" style="font-size: 0.8rem;">Pasien dipegang</p>
+                            </div>
+                            <span class="fs-1 opacity-25">🌅</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card card-mutu h-100 border-0 bg-warning text-dark" style="background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); border-radius: 12px;">
+                        <div class="card-body p-4 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-dark opacity-75 fw-bold mb-1" style="font-size: 0.85rem;">Shift Siang</h6>
+                                <h2 class="fw-bolder mb-0 text-dark" style="font-size: 2.1rem;">{{ $shiftCounts['Siang'] }}</h2>
+                                <p class="text-dark opacity-75 fw-bold mb-0 mt-1" style="font-size: 0.8rem;">Pasien dipegang</p>
+                            </div>
+                            <span class="fs-1 opacity-25">☀️</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card card-mutu h-100 border-0 bg-dark text-white" style="background: linear-gradient(135deg, #212529 0%, #1c1f23 100%); border-radius: 12px;">
+                        <div class="card-body p-4 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-white opacity-75 fw-bold mb-1" style="font-size: 0.85rem;">Shift Malam</h6>
+                                <h2 class="fw-bolder mb-0 text-white" style="font-size: 2.1rem;">{{ $shiftCounts['Malam'] }}</h2>
+                                <p class="text-white opacity-75 fw-bold mb-0 mt-1" style="font-size: 0.8rem;">Pasien dipegang</p>
+                            </div>
+                            <span class="fs-1 opacity-25">🌙</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABEL LOGBOOK -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card card-mutu border-0">
+                        <div class="card-header bg-white border-bottom-0 py-3.5 px-4 d-flex justify-content-between align-items-center" style="border-top-left-radius: 12px; border-top-right-radius: 12px;">
+                            <h4 class="mb-0 fw-bold text-dark"><i class="mdi mdi-book-open-page-variant text-info me-2"></i> Logbook Pasien Ners: {{ $selectedNurse }}</h4>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle border">
+                                    <thead style="background: #f8f9fa;">
+                                        <tr>
+                                            <th class="text-center" style="width: 50px;">No</th>
+                                            <th style="width: 130px;">Tanggal</th>
+                                            <th style="width: 120px;">Shift</th>
+                                            <th>No. RM</th>
+                                            <th>Nama Pasien</th>
+                                            <th>Lokasi Rawat (Bed)</th>
+                                            <th>Diagnosa Medis</th>
+                                            <th>Keterangan Tugas</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($logbookData as $idx => $log)
+                                            @php
+                                                $pillClass = $log['shift'] === 'Pagi' ? 'shift-pagi' : ($log['shift'] === 'Siang' ? 'shift-siang' : 'shift-malam');
+                                                $icon = $log['shift'] === 'Pagi' ? '🌅' : ($log['shift'] === 'Siang' ? '☀️' : '🌙');
+                                            @endphp
+                                            <tr>
+                                                <td class="text-center fw-bold">{{ $idx + 1 }}</td>
+                                                <td>{{ date('d/m/Y', strtotime($log['tanggal'])) }}</td>
+                                                <td><span class="shift-pill {{ $pillClass }}">{{ $icon }} Shift {{ $log['shift'] }}</span></td>
+                                                <td class="fw-bold">{{ $log['no_rm'] }}</td>
+                                                <td class="text-primary fw-bold">{{ $log['nama'] }}</td>
+                                                <td><span class="text-muted"><i class="mdi mdi-hotel text-info me-1"></i> {{ $log['ruangan'] }}</span></td>
+                                                <td>{{ $log['diagnosa'] }}</td>
+                                                <td><code class="small text-muted">{{ $log['keterangan'] }}</code></td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="8" class="text-center py-5">
+                                                    <i class="mdi mdi-book-remove text-muted" style="font-size: 3.5rem;"></i>
+                                                    <h5 class="text-muted mt-3">Tidak ada data logbook pasien untuk Ners ini pada bulan ini.</h5>
+                                                </td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @else
+            <div class="row">
+                <div class="col-12 text-center py-5">
+                    <i class="mdi mdi-book-search text-muted" style="font-size: 4.5rem;"></i>
+                    <h4 class="mt-3 text-dark fw-bold">Silakan Pilih Personal Ners Terlebih Dahulu</h4>
+                    <p class="text-muted fs-6">Pilih nama Ners dan bulan di dropdown atas untuk melihat logbook & histori pasien yang ditangani.</p>
+                </div>
+            </div>
+        @endif
+    </div>
+
 </div>
 
 <!-- JavaScript Filtering -->
@@ -289,6 +451,21 @@
             }
         });
     }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // Switch tab on load if specified in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab');
+        const hasNurse = urlParams.has('nurse_name');
+        
+        if (tabParam === 'logbook' || hasNurse) {
+            const logbookTab = document.querySelector('#logbook-tab');
+            if (logbookTab) {
+                const tab = new bootstrap.Tab(logbookTab);
+                tab.show();
+            }
+        }
+    });
 </script>
 
 @stop
