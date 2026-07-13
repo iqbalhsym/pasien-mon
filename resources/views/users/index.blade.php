@@ -56,6 +56,7 @@
                                 <th class="text-white">NAMA & USERNAME</th>
                                 <th class="text-white">EMAIL</th>
                                 <th class="text-white">PERAN / ROLE</th>
+                                <th class="text-white">TUGAS LANTAI</th>
                                 <th class="text-white">TERAKHIR LOGIN</th>
                                 <th class="text-white text-center">AKSI</th>
                             </tr>
@@ -88,6 +89,17 @@
                                     @endif
                                 </td>
                                 <td>
+                                    @if($user->role === 'admin')
+                                        <span class="badge bg-light text-muted border px-2.5 py-1.5 fw-bold">Semua Lantai</span>
+                                    @elseif($user->floor)
+                                        <span class="badge bg-info text-white px-2.5 py-1.5 fw-bold">
+                                            Lantai {{ $user->floor }}
+                                        </span>
+                                    @else
+                                        <span class="badge bg-light text-dark border px-2.5 py-1.5 fw-bold">Semua Lantai</span>
+                                    @endif
+                                </td>
+                                <td>
                                     <div class="text-dark" style="font-size:0.88rem;">
                                         <i class="mdi mdi-calendar-check text-success me-1"></i>
                                         {{ $user->updated_at->format('d/m/Y H:i') }}
@@ -102,12 +114,26 @@
                                                 <form action="{{ route('users.updateRole', $user->id) }}" method="POST" class="d-flex gap-1 align-items-center">
                                                     @csrf
                                                     @method('PUT')
-                                                    <select name="role" class="form-select form-select-sm" style="width:130px; font-size:0.82rem;">
+                                                    <select name="role" class="form-select form-select-sm" style="width:110px; font-size:0.82rem;">
                                                         <option value="viewer" {{ $user->role == 'viewer' ? 'selected' : '' }}>View Only</option>
                                                         <option value="user"   {{ $user->role == 'user'   ? 'selected' : '' }}>Editor</option>
                                                         <option value="admin"  {{ $user->role == 'admin'  ? 'selected' : '' }}>Admin</option>
                                                     </select>
-                                                    <button type="submit" class="btn btn-primary btn-sm px-2" title="Simpan Role">
+                                                    <select name="floor" class="form-select form-select-sm" style="width:120px; font-size:0.82rem;">
+                                                        <option value="">Semua Lantai</option>
+                                                        @foreach($globalFloors as $fl)
+                                                            @php
+                                                                $flName = $fl->name;
+                                                                if (preg_match('/Lantai\s+(\d+)/i', $flName, $matches)) {
+                                                                    $flName = $matches[1];
+                                                                }
+                                                            @endphp
+                                                            <option value="{{ $flName }}" {{ $user->floor == $flName ? 'selected' : '' }}>
+                                                                Lantai {{ $flName }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                    <button type="submit" class="btn btn-primary btn-sm px-2" title="Simpan Akses">
                                                         <i class="mdi mdi-content-save"></i>
                                                     </button>
                                                 </form>

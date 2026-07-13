@@ -15,11 +15,11 @@ class UserController extends Controller
         return view('users.index', compact('users'));
     }
 
-    // Update role user (oleh Admin) — akses penuh
     public function updateRole(Request $request, $id)
     {
         $request->validate([
             'role' => 'required|in:admin,user,viewer',
+            'floor' => 'nullable|string|max:50',
         ]);
 
         $user = User::findOrFail($id);
@@ -30,9 +30,10 @@ class UserController extends Controller
         }
 
         $user->role = $request->role;
+        $user->floor = $request->role === 'admin' ? null : ($request->floor ?: null);
         $user->save();
 
-        return back()->with('success', "Role {$user->name} berhasil diubah menjadi {$user->role}.");
+        return back()->with('success', "Role dan tugas lantai {$user->name} berhasil diupdate.");
     }
 
     // Promote viewer → editor (oleh Editor) — akses terbatas

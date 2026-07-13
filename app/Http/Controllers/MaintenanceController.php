@@ -54,6 +54,21 @@ class MaintenanceController extends Controller
         });
     }
 
+    private function authorizeFloor($floor)
+    {
+        $userFloor = (auth()->check() && auth()->user()->floor && auth()->user()->role !== 'admin') ? auth()->user()->floor : null;
+        if ($userFloor && $floor) {
+            $userFloorClean = strtolower(trim($userFloor));
+            $floorClean = strtolower(trim($floor));
+            if (preg_match('/Lantai\s+(\d+)/i', $floorClean, $matches)) {
+                $floorClean = $matches[1];
+            }
+            if ($userFloorClean !== $floorClean) {
+                abort(403, 'Akses terbatas pada lantai tugas Anda.');
+            }
+        }
+    }
+
     public function index(Request $request)
     {
         Equipment::resetDailyVisits();
@@ -61,11 +76,17 @@ class MaintenanceController extends Controller
 
         $sort = $request->input('sort', 'ruangan');
 
+        $userFloor = (auth()->check() && auth()->user()->floor && auth()->user()->role !== 'admin') ? auth()->user()->floor : null;
+
         $query = Equipment::whereHas('bed')
             ->withCount('maintenances')
             ->with(['media', 'bed.room', 'maintenances' => function($q) {
                 $q->latest('tanggal_pelaksanaan');
             }]);
+
+        if ($userFloor) {
+            $query->where('lantai', $userFloor);
+        }
 
         if ($sort === 'alphabetical') {
             $query->orderBy('merk', 'asc');
@@ -174,47 +195,69 @@ class MaintenanceController extends Controller
             // Jika bukan sort LOS, pakai paginasi SQL biasa (lebih cepat)
             $equipmentsPaginator = $query->paginate($perPage)->appends($request->all());
         }
-        $equipments = Equipment::all(); // untuk modal daftar pilihan dropdown
+        $eqQueryAll = Equipment::query();
+        if ($userFloor) {
+            $eqQueryAll->where('lantai', $userFloor);
+        }
+        $equipments = $eqQueryAll->get();
         
         $patientsMap = $this->fetchApiPatientsMap();
 
         // Calculate visual layout summary metrics (active patients only)
-        $totalPasien = Equipment::whereHas('bed')->count();
-        $pasienBaru = Equipment::whereHas('bed')->where(function($q) {
+        $statQuery = Equipment::whereHas('bed');
+        if ($userFloor) {
+            $statQuery->where('lantai', $userFloor);
+        }
+
+        $totalPasien = (clone $statQuery)->count();
+        $pasienBaru = (clone $statQuery)->where(function($q) {
             $q->whereDate('created_at', today())
               ->orWhereDate('tanggal_pengadaan', today());
         })->count();
-        $dalamPerawatan = \App\Models\Bed::where('status', 'terisi')->count();
-        if ($dalamPerawatan == 0) {
-            $dalamPerawatan = Equipment::whereHas('bed')->whereNotNull('lokasi')->count();
+
+        // Count occupied beds for the floor/system
+        if ($userFloor) {
+            $dalamPerawatan = \App\Models\Bed::where('status', 'terisi')
+                ->whereHas('room.wing.floor', function($q) use ($userFloor) {
+                    $q->where('name', $userFloor)->orWhere('name', 'Lantai ' . $userFloor);
+                })->count();
+        } else {
+            $dalamPerawatan = \App\Models\Bed::where('status', 'terisi')->count();
         }
-        $siapPulang = Equipment::whereHas('bed')->where(function($q) {
+        if ($dalamPerawatan == 0) {
+            $dalamPerawatan = (clone $statQuery)->whereNotNull('lokasi')->count();
+        }
+
+        $siapPulang = (clone $statQuery)->where(function($q) {
             $q->whereNotNull('rencana_pulang')
               ->where('rencana_pulang', '!=', '')
               ->where('rencana_pulang', '!=', '-');
         })->count();
-        $adaBarrier = Equipment::whereHas('bed')->where(function($q) {
+        $adaBarrier = (clone $statQuery)->where(function($q) {
             $q->whereNotNull('alkes_invasif')
               ->where('alkes_invasif', '!=', '')
               ->where('alkes_invasif', '!=', '-');
         })->count();
 
         // Calculate EWS counts (active patients only)
-        $ewsHijau = Equipment::whereHas('bed')->whereRaw('LOWER(ews) LIKE ?', ['%hijau%'])->count();
-        $ewsKuning = Equipment::whereHas('bed')->whereRaw('LOWER(ews) LIKE ?', ['%kuning%'])->count();
-        $ewsOrange = Equipment::whereHas('bed')->where(function($q) {
+        $ewsHijau = (clone $statQuery)->whereRaw('LOWER(ews) LIKE ?', ['%hijau%'])->count();
+        $ewsKuning = (clone $statQuery)->whereRaw('LOWER(ews) LIKE ?', ['%kuning%'])->count();
+        $ewsOrange = (clone $statQuery)->where(function($q) {
             $q->whereRaw('LOWER(ews) LIKE ?', ['%orange%'])
               ->orWhereRaw('LOWER(ews) LIKE ?', ['%oranye%']);
         })->count();
-        $ewsMerah = Equipment::whereHas('bed')->whereRaw('LOWER(ews) LIKE ?', ['%merah%'])->count();
-        $ewsDnr = Equipment::whereHas('bed')->whereRaw('LOWER(ews) LIKE ?', ['%dnr%'])->count();
+        $ewsMerah = (clone $statQuery)->whereRaw('LOWER(ews) LIKE ?', ['%merah%'])->count();
+        $ewsDnr = (clone $statQuery)->whereRaw('LOWER(ews) LIKE ?', ['%dnr%'])->count();
         
         $wings = \App\Models\Wing::distinct()->orderBy('name', 'asc')->pluck('name');
-        $doctors = Equipment::whereNotNull('dpjp_utama')
+        
+        $doctorsQuery = Equipment::whereNotNull('dpjp_utama')
             ->where('dpjp_utama', '!=', '')
-            ->distinct()
-            ->orderBy('dpjp_utama', 'asc')
-            ->pluck('dpjp_utama');
+            ->distinct();
+        if ($userFloor) {
+            $doctorsQuery->where('lantai', $userFloor);
+        }
+        $doctors = $doctorsQuery->orderBy('dpjp_utama', 'asc')->pluck('dpjp_utama');
 
         $activeNurses = \App\Models\Nurse::where('is_active', true)->orderBy('name', 'asc')->get();
 
@@ -229,6 +272,8 @@ class MaintenanceController extends Controller
     {
         Equipment::resetDailyVisits();
         $equipment = Equipment::where('serial_number', $serial_number)->firstOrFail();
+        $this->authorizeFloor($equipment->lantai);
+
         $patientsMap = $this->fetchApiPatientsMap();
         $apiData = $patientsMap[$equipment->serial_number] ?? null;
         $activeNurses = \App\Models\Nurse::where('is_active', true)->orderBy('name', 'asc')->get();
@@ -239,6 +284,7 @@ class MaintenanceController extends Controller
     public function updatePatientDetail(Request $request, $serial_number)
     {
         $equipment = Equipment::where('serial_number', $serial_number)->firstOrFail();
+        $this->authorizeFloor($equipment->lantai);
 
         $request->validate([
             'dpjp_utama' => 'nullable|string',
@@ -441,12 +487,18 @@ class MaintenanceController extends Controller
     public function history(Request $request, $serial_number)
     {
         $equipment = Equipment::where('serial_number', $serial_number)->firstOrFail();
+        $this->authorizeFloor($equipment->lantai);
         
         $maintenances = Maintenance::where('equipment_id', $equipment->id)
             ->latest('tanggal_pelaksanaan')
             ->paginate(10);
             
-        $equipments = Equipment::all(); // untuk modal Tambah (jika user mau ganti alat)
+        $userFloor = (auth()->check() && auth()->user()->floor && auth()->user()->role !== 'admin') ? auth()->user()->floor : null;
+        $eqQuery = Equipment::query();
+        if ($userFloor) {
+            $eqQuery->where('lantai', $userFloor);
+        }
+        $equipments = $eqQuery->get();
 
         return view('maintenances.history', compact('equipment', 'maintenances', 'equipments'));
     }
@@ -486,6 +538,8 @@ class MaintenanceController extends Controller
     public function printQr($serial_number)
     {
         $equipment = Equipment::where('serial_number', $serial_number)->firstOrFail();
+        $this->authorizeFloor($equipment->lantai);
+        
         $url = route('alat.public', $equipment->serial_number);
         
         return view('maintenances.qrcode', compact('equipment', 'url'));
@@ -543,7 +597,14 @@ class MaintenanceController extends Controller
 
     public function exportCSV()
     {
-        $maintenances = Maintenance::with('equipment')->lazy();
+        $userFloor = (auth()->check() && auth()->user()->floor && auth()->user()->role !== 'admin') ? auth()->user()->floor : null;
+        $query = Maintenance::with('equipment');
+        if ($userFloor) {
+            $query->whereHas('equipment', function($q) use ($userFloor) {
+                $q->where('lantai', $userFloor);
+            });
+        }
+        $maintenances = $query->lazy();
         $filename = "laporan_pemeliharaan_alat_" . date('Y-m-d') . ".csv";
 
         $headers = array(
@@ -593,11 +654,17 @@ class MaintenanceController extends Controller
         $search = $request->input('search');
         $sort = $request->input('sort', 'terbaru');
 
+        $userFloor = (auth()->check() && auth()->user()->floor && auth()->user()->role !== 'admin') ? auth()->user()->floor : null;
+
         $query = Equipment::whereDoesntHave('bed')
             ->withCount('maintenances')
             ->with(['media', 'maintenances' => function($q) {
                 $q->latest('tanggal_pelaksanaan');
             }]);
+
+        if ($userFloor) {
+            $query->where('lantai', $userFloor);
+        }
 
         if ($sort === 'alphabetical') {
             $query->orderBy('merk', 'asc');

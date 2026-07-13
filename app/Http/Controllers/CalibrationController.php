@@ -11,8 +11,16 @@ class CalibrationController extends Controller
 {
     public function index(Request $request)
     {
+        $userFloor = (auth()->check() && auth()->user()->floor && auth()->user()->role !== 'admin') ? auth()->user()->floor : null;
+
         $search = $request->input('search');
         $query = Calibration::with('equipment', 'media');
+
+        if ($userFloor) {
+            $query->whereHas('equipment', function($q) use ($userFloor) {
+                $q->where('lantai', $userFloor);
+            });
+        }
 
         if ($search) {
             $query->whereHas('equipment', function($q) use ($search) {
@@ -24,7 +32,12 @@ class CalibrationController extends Controller
         }
 
         $calibrations = $query->latest('tanggal_kalibrasi')->paginate(10);
-        $equipments = Equipment::all(); // For the dropdown in the 'Add Calibration' modal
+        
+        $eqQuery = Equipment::query();
+        if ($userFloor) {
+            $eqQuery->where('lantai', $userFloor);
+        }
+        $equipments = $eqQuery->get();
         
         return view('calibrations.index', compact('calibrations', 'equipments', 'search'));
     }
@@ -86,7 +99,14 @@ class CalibrationController extends Controller
 
     public function exportCsv()
     {
-        $calibrations = Calibration::with('equipment')->latest('tanggal_kalibrasi')->get();
+        $userFloor = (auth()->check() && auth()->user()->floor && auth()->user()->role !== 'admin') ? auth()->user()->floor : null;
+        $query = Calibration::with('equipment');
+        if ($userFloor) {
+            $query->whereHas('equipment', function($q) use ($userFloor) {
+                $q->where('lantai', $userFloor);
+            });
+        }
+        $calibrations = $query->latest('tanggal_kalibrasi')->get();
         $filename = "arsip_kalibrasi_alkes_" . date('Y-m-d') . ".csv";
 
         $headers = array(

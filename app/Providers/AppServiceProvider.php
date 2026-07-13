@@ -41,12 +41,36 @@ class AppServiceProvider extends ServiceProvider
                 });
             });
 
-            view()->share('globalFloors', $globalFloors);
+            view()->composer('*', function ($view) use ($globalFloors) {
+                if (auth()->check() && auth()->user()->floor && auth()->user()->role !== 'admin') {
+                    $userFloor = auth()->user()->floor;
+                    $filteredFloors = $globalFloors->filter(function ($floor) use ($userFloor) {
+                        $flName = $floor->name;
+                        if (preg_match('/Lantai\s+(\d+)/i', $flName, $matches)) {
+                            $flName = $matches[1];
+                        }
+                        return strtolower(trim($flName)) === strtolower(trim($userFloor));
+                    });
+                    $view->with('globalFloors', $filteredFloors);
+                } else {
+                    $view->with('globalFloors', $globalFloors);
+                }
+            });
         } else {
             $fallbackFloors = collect(['3', '5', '6', '10', '11', '12', '13', '14'])->map(function($fl) {
                 return (object)['name' => $fl];
             });
-            view()->share('globalFloors', $fallbackFloors);
+            view()->composer('*', function ($view) use ($fallbackFloors) {
+                if (auth()->check() && auth()->user()->floor && auth()->user()->role !== 'admin') {
+                    $userFloor = auth()->user()->floor;
+                    $filteredFloors = $fallbackFloors->filter(function ($floor) use ($userFloor) {
+                        return strtolower(trim($floor->name)) === strtolower(trim($userFloor));
+                    });
+                    $view->with('globalFloors', $filteredFloors);
+                } else {
+                    $view->with('globalFloors', $fallbackFloors);
+                }
+            });
         }
     }
 }

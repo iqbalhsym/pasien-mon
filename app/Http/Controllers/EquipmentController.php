@@ -48,6 +48,17 @@ class EquipmentController extends Controller
     public function update(Request $request, $id)
     {
         $equipment = Equipment::findOrFail($id);
+        
+        $userFloor = (auth()->check() && auth()->user()->floor && auth()->user()->role !== 'admin') ? auth()->user()->floor : null;
+        if ($userFloor) {
+            $equipmentFloor = $equipment->lantai;
+            if (preg_match('/Lantai\s+(\d+)/i', $equipmentFloor, $matches)) {
+                $equipmentFloor = $matches[1];
+            }
+            if (strtolower(trim($userFloor)) !== strtolower(trim($equipmentFloor))) {
+                abort(403, 'Akses terbatas pada lantai tugas Anda.');
+            }
+        }
 
         $request->validate([
             'merk' => 'required',
@@ -101,6 +112,18 @@ class EquipmentController extends Controller
     public function destroy($id)
     {
         $equipment = Equipment::findOrFail($id);
+        
+        $userFloor = (auth()->check() && auth()->user()->floor && auth()->user()->role !== 'admin') ? auth()->user()->floor : null;
+        if ($userFloor) {
+            $equipmentFloor = $equipment->lantai;
+            if (preg_match('/Lantai\s+(\d+)/i', $equipmentFloor, $matches)) {
+                $equipmentFloor = $matches[1];
+            }
+            if (strtolower(trim($userFloor)) !== strtolower(trim($equipmentFloor))) {
+                abort(403, 'Akses terbatas pada lantai tugas Anda.');
+            }
+        }
+        
         $equipment->clearMediaCollection('equipments');
         $equipment->delete();
 
@@ -110,7 +133,13 @@ class EquipmentController extends Controller
     public function exportCsv()
     {
         $fileName = 'inventaris_alkes_export.csv';
-        $equipments = Equipment::lazy();
+        
+        $userFloor = (auth()->check() && auth()->user()->floor && auth()->user()->role !== 'admin') ? auth()->user()->floor : null;
+        $query = Equipment::query();
+        if ($userFloor) {
+            $query->where('lantai', $userFloor);
+        }
+        $equipments = $query->lazy();
 
         $headers = array(
             "Content-type" => "text/csv",

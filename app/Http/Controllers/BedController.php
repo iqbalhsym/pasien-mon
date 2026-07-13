@@ -16,6 +16,8 @@ class BedController extends Controller
     {
         $activeNurses = Nurse::where('is_active', true)->orderBy('name', 'asc')->get();
 
+        $userFloor = (auth()->check() && auth()->user()->floor && auth()->user()->role !== 'admin') ? auth()->user()->floor : null;
+
         // Get all floors with their wings, rooms, and beds to calculate floor-specific statistics
         $floors = Floor::with(['wings.rooms.beds'])->get()->sortBy(function ($floor) {
             if (is_numeric($floor->name)) {
@@ -23,6 +25,16 @@ class BedController extends Controller
             }
             return 1000 + ord($floor->name[0] ?? '');
         });
+
+        if ($userFloor) {
+            $floors = $floors->filter(function ($floor) use ($userFloor) {
+                $flName = $floor->name;
+                if (preg_match('/Lantai\s+(\d+)/i', $flName, $matches)) {
+                    $flName = $matches[1];
+                }
+                return strtolower(trim($flName)) === strtolower(trim($userFloor));
+            });
+        }
 
         // Calculate statistics for each floor
         foreach ($floors as $floor) {
@@ -45,7 +57,12 @@ class BedController extends Controller
         }
 
         // Get selected floor, default to first floor if not provided
-        $selectedFloorName = $request->input('floor');
+        if ($userFloor) {
+            $selectedFloorName = $userFloor;
+        } else {
+            $selectedFloorName = $request->input('floor');
+        }
+
         $selectedFloor = null;
         if ($selectedFloorName) {
             $selectedFloor = $floors->first(function ($fl) use ($selectedFloorName) {
@@ -80,12 +97,23 @@ class BedController extends Controller
         }
 
         // Calculate global statistics (TOTAL TEMPAT TIDUR hanya yang aktif, BED KOSONG hanya yang kosong tapi aktif)
-        $totalBeds = Bed::where('is_active', true)->count();
-        $occupiedBeds = Bed::where('status', 'terisi')->where('is_active', true)->count();
-        $vacantBeds = Bed::where('status', 'kosong')->where('is_active', true)->count();
-        $cleaningBeds = Bed::where('status', 'cleaning')->where('is_active', true)->count();
-        $bookedBeds = Bed::where('status', 'booking')->where('is_active', true)->count();
-        $inactiveBeds = Bed::where('is_active', false)->count();
+        $statQuery = Bed::where('is_active', true);
+        $inactiveQuery = Bed::where('is_active', false);
+        if ($userFloor) {
+            $statQuery->whereHas('room.wing.floor', function($q) use ($userFloor) {
+                $q->where('name', $userFloor)->orWhere('name', 'Lantai ' . $userFloor);
+            });
+            $inactiveQuery->whereHas('room.wing.floor', function($q) use ($userFloor) {
+                $q->where('name', $userFloor)->orWhere('name', 'Lantai ' . $userFloor);
+            });
+        }
+
+        $totalBeds = $statQuery->count();
+        $occupiedBeds = (clone $statQuery)->where('status', 'terisi')->count();
+        $vacantBeds = (clone $statQuery)->where('status', 'kosong')->count();
+        $cleaningBeds = (clone $statQuery)->where('status', 'cleaning')->count();
+        $bookedBeds = (clone $statQuery)->where('status', 'booking')->count();
+        $inactiveBeds = $inactiveQuery->count();
 
         $occupancyRate = $totalBeds > 0 ? round(($occupiedBeds / $totalBeds) * 100, 1) : 0;
 
