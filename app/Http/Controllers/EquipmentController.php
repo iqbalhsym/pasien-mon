@@ -110,7 +110,7 @@ class EquipmentController extends Controller
     public function exportCsv()
     {
         $fileName = 'inventaris_alkes_export.csv';
-        $equipments = Equipment::all();
+        $equipments = Equipment::lazy();
 
         $headers = array(
             "Content-type" => "text/csv",

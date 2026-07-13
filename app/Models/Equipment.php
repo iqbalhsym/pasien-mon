@@ -36,7 +36,7 @@ class Equipment extends Model implements HasMedia
 
     public function bed()
     {
-        return $this->hasOne(Bed::class);
+        return $this->hasOne(Bed::class)->orderByRaw("CASE WHEN status = 'terisi' THEN 0 ELSE 1 END");
     }
 
     public static function resetDailyVisits()

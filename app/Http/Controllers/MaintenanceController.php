@@ -72,7 +72,10 @@ class MaintenanceController extends Controller
         } elseif ($sort === 'alphabetical_desc') {
             $query->orderBy('merk', 'desc');
         } elseif ($sort === 'ruangan') {
-            $query->leftJoin('beds', 'equipments.id', '=', 'beds.equipment_id')
+            $query->leftJoinSub(function($q) {
+                $q->from('beds')
+                  ->whereRaw("id = (SELECT id FROM beds b2 WHERE b2.equipment_id = beds.equipment_id ORDER BY CASE WHEN status = 'terisi' THEN 0 ELSE 1 END, id ASC LIMIT 1)");
+            }, 'beds', 'equipments.id', '=', 'beds.equipment_id')
                 ->select('equipments.*')
                 ->orderByRaw('CASE WHEN beds.id IS NULL THEN 1 ELSE 0 END')
                 ->orderBy('equipments.lokasi', 'asc')
@@ -540,7 +543,7 @@ class MaintenanceController extends Controller
 
     public function exportCSV()
     {
-        $maintenances = Maintenance::with('equipment')->get();
+        $maintenances = Maintenance::with('equipment')->lazy();
         $filename = "laporan_pemeliharaan_alat_" . date('Y-m-d') . ".csv";
 
         $headers = array(

@@ -22,13 +22,23 @@ class DashboardController extends Controller
         $warningDateCal = Carbon::today()->addYears(1);
         $warningDateMnt = Carbon::today()->addMonths(1);
 
-        $nearCalibrationAlat = Calibration::whereBetween('tanggal_kalibrasi_berikutnya', [$today, $warningDateCal])
-                                    ->orWhere('tanggal_kalibrasi_berikutnya', '<', $today)
+        $latestCalibrationIds = Calibration::select(\Illuminate\Support\Facades\DB::raw('MAX(id)'))->groupBy('equipment_id');
+        $nearCalibrationAlat = Calibration::whereIn('id', $latestCalibrationIds)
+                                    ->whereHas('equipment.bed')
+                                    ->where(function($query) use ($today, $warningDateCal) {
+                                        $query->whereBetween('tanggal_kalibrasi_berikutnya', [$today, $warningDateCal])
+                                              ->orWhere('tanggal_kalibrasi_berikutnya', '<', $today);
+                                    })
                                     ->with('equipment')
                                     ->get();
 
-        $nearMaintenanceAlat = \App\Models\Maintenance::whereBetween('tanggal_jadwal_berikutnya', [$today, $warningDateMnt])
-                                    ->orWhere('tanggal_jadwal_berikutnya', '<', $today)
+        $latestMaintenanceIds = \App\Models\Maintenance::select(\Illuminate\Support\Facades\DB::raw('MAX(id)'))->groupBy('equipment_id');
+        $nearMaintenanceAlat = \App\Models\Maintenance::whereIn('id', $latestMaintenanceIds)
+                                    ->whereHas('equipment.bed')
+                                    ->where(function($query) use ($today, $warningDateMnt) {
+                                        $query->whereBetween('tanggal_jadwal_berikutnya', [$today, $warningDateMnt])
+                                              ->orWhere('tanggal_jadwal_berikutnya', '<', $today);
+                                    })
                                     ->with('equipment')
                                     ->get();
 

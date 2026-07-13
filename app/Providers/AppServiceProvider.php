@@ -26,17 +26,19 @@ class AppServiceProvider extends ServiceProvider
         Paginator::useBootstrapFive();
 
         if (\Illuminate\Support\Facades\Schema::hasTable('floors')) {
-            $globalFloors = \App\Models\Floor::with(['wings.rooms' => function($q) {
-                $q->withCount(['beds as occupied_beds_count' => function($bq) {
-                    $bq->where('status', 'terisi');
-                }])->orderBy('name', 'asc');
-            }, 'wings' => function($q) {
-                $q->orderBy('name', 'asc');
-            }])->get()->sortBy(function($floor) {
-                if (is_numeric($floor->name)) {
-                    return (int)$floor->name;
-                }
-                return 1000 + ord($floor->name[0] ?? '');
+            $globalFloors = \Illuminate\Support\Facades\Cache::remember('global_floors_list', 300, function () {
+                return \App\Models\Floor::with(['wings.rooms' => function($q) {
+                    $q->withCount(['beds as occupied_beds_count' => function($bq) {
+                        $bq->where('status', 'terisi');
+                    }])->orderBy('name', 'asc');
+                }, 'wings' => function($q) {
+                    $q->orderBy('name', 'asc');
+                }])->get()->sortBy(function($floor) {
+                    if (is_numeric($floor->name)) {
+                        return (int)$floor->name;
+                    }
+                    return 1000 + ord($floor->name[0] ?? '');
+                });
             });
 
             view()->share('globalFloors', $globalFloors);
