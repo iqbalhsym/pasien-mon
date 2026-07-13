@@ -12,6 +12,10 @@ class AfyaRegistrationService
     protected $username;
     protected $password;
 
+    // Static flags to instantly fail-fast within the same request execution thread
+    protected static $authFailed = false;
+    protected static $apiFailed = false;
+
     public function __construct()
     {
         $this->baseUrl  = env('AFYA_API_URL', 'http://152.118.52.27:8081');
@@ -20,31 +24,50 @@ class AfyaRegistrationService
     }
 
     /**
-     * Get login token (cached for 30 minutes)
+     * Get login token (cached for 30 minutes, or fail-fast for 1 minute on error)
      */
     protected function getToken(): ?string
     {
-        return Cache::remember('afya_token', 1800, function () {
-            try {
-                $response = Http::withHeaders([
-                    'Content-Type' => 'application/json',
-                    'User-Agent'   => 'insomnia/12.4.0',
-                ])
-                ->withoutVerifying()
-                ->timeout(10)
-                ->post($this->baseUrl . '/api/v2/auth/login', [
-                    'username' => $this->username,
-                    'password' => $this->password,
-                ]);
-
-                if ($response->json('metadata.code') == 200 || $response->json('metadata.code') == 202) {
-                    return $response->json('results.0.tokenKey');
-                }
-            } catch (\Exception $e) {
-                Log::error('Afya login token error: ' . $e->getMessage());
-            }
+        // Fail fast if auth has already failed in this thread or in cache (last 60s)
+        if (self::$authFailed || Cache::has('afya_token_failed')) {
             return null;
-        });
+        }
+
+        // Return token from cache if available
+        if (Cache::has('afya_token')) {
+            $token = Cache::get('afya_token');
+            if ($token) {
+                return $token;
+            }
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+                'User-Agent'   => 'insomnia/12.4.0',
+            ])
+            ->withoutVerifying()
+            ->timeout(5) // Reduced timeout to fail faster
+            ->post($this->baseUrl . '/api/v2/auth/login', [
+                'username' => $this->username,
+                'password' => $this->password,
+            ]);
+
+            if ($response->successful() && ($response->json('metadata.code') == 200 || $response->json('metadata.code') == 202)) {
+                $token = $response->json('results.0.tokenKey');
+                if ($token) {
+                    Cache::put('afya_token', $token, 1800); // Cache for 30 minutes
+                    return $token;
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Afya login token error: ' . $e->getMessage());
+        }
+
+        // Mark as failed to avoid multiple repeated connection attempts
+        self::$authFailed = true;
+        Cache::put('afya_token_failed', true, 60); // Cache failure for 1 minute
+        return null;
     }
 
     /**
@@ -52,6 +75,11 @@ class AfyaRegistrationService
      */
     public function getRegistrationDetails(string $noRm): ?array
     {
+        // Fail fast if API calls have failed in this thread or in cache (last 60s)
+        if (self::$apiFailed || Cache::has('afya_api_failed')) {
+            return null;
+        }
+
         $token = $this->getToken();
         if (!$token) {
             return null;
@@ -72,7 +100,7 @@ class AfyaRegistrationService
                     'User-Agent'   => 'insomnia/12.4.0',
                 ])
                 ->withoutVerifying()
-                ->timeout(15)
+                ->timeout(8) // Reduced timeout to prevent long blocking states
                 ->post($this->baseUrl . '/api/v8/transaction/registration/list', [
                     'PageNumber'          => 1,
                     'PageSize'            => 1, // Only need the latest active registration
@@ -116,6 +144,11 @@ class AfyaRegistrationService
                 }
             } catch (\Exception $e) {
                 Log::error("Failed to fetch registration details for RM: $noRm in range {$range[0]} - {$range[1]}. Error: " . $e->getMessage());
+                
+                // If a connection/timeout exception happens, mark as api failed to stop subsequent calls
+                self::$apiFailed = true;
+                Cache::put('afya_api_failed', true, 60);
+                return null;
             }
         }
 
