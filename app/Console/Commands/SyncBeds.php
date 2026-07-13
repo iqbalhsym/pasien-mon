@@ -35,15 +35,17 @@ class SyncBeds extends Command
     public function handle()
     {
         $this->info('Starting bed synchronization...');
+        DB::disableQueryLog();
 
-        $apiUrl = 'https://bed-monitoring.rs.ui.ac.id/api/external/beds-occupancy';
+        $apiUrl = 'https://10.121.1.115/api/external/beds-occupancy';
         $apiKey = 'rsui_bed_mon_secret_key_2026';
 
         try {
             $response = Http::withHeaders([
                 'X-API-Key' => $apiKey,
-                'Content-Type' => 'application/json'
-            ])->timeout(30)->get($apiUrl);
+                'Content-Type' => 'application/json',
+                'Host' => 'bed-monitoring.rs.ui.ac.id'
+            ])->withoutVerifying()->timeout(10)->get($apiUrl);
 
             if (!$response->successful()) {
                 $this->error('Failed to fetch data from API. HTTP Status: ' . $response->status());
@@ -106,7 +108,8 @@ class SyncBeds extends Command
                             $cacheData = [
                                 'fetched' => true,
                                 'registered_date' => $regInfo['registered_date'] ?? null,
-                                'dpjp_utama' => $regInfo['dpjp_utama'] ?? null
+                                'dpjp_utama' => $regInfo['dpjp_utama'] ?? null,
+                                'tanggal_lahir' => $regInfo['tanggal_lahir'] ?? null
                             ];
                             \Illuminate\Support\Facades\Cache::put($cacheKey, $cacheData, 300); // 5 minutes
                             $patientRegDetails[$noRm] = $cacheData;
@@ -122,7 +125,8 @@ class SyncBeds extends Command
                                 $cacheData = [
                                     'fetched' => true,
                                     'registered_date' => $regInfo['registered_date'] ?? null,
-                                    'dpjp_utama' => $regInfo['dpjp_utama'] ?? null
+                                    'dpjp_utama' => $regInfo['dpjp_utama'] ?? null,
+                                    'tanggal_lahir' => $regInfo['tanggal_lahir'] ?? null
                                 ];
                                 \Illuminate\Support\Facades\Cache::put($cacheKey, $cacheData, 300); // 5 minutes
                                 $patientRegDetails[$noRm] = $cacheData;
@@ -231,9 +235,11 @@ class SyncBeds extends Command
                                 // Read registration details from the pre-fetched local associative array
                                 $apiRegDate = null;
                                 $apiDpjp = null;
+                                $apiTanggalLahir = null;
                                 if (strpos($noRm, 'BOOKING-') !== 0 && isset($patientRegDetails[$noRm])) {
                                     $apiRegDate = $patientRegDetails[$noRm]['registered_date'] ?? null;
                                     $apiDpjp = $patientRegDetails[$noRm]['dpjp_utama'] ?? null;
+                                    $apiTanggalLahir = $patientRegDetails[$noRm]['tanggal_lahir'] ?? null;
                                 }
 
                                 $apiRencanaPulang = $patientData['rencana_pulang'] ?? $patientData['estimasi_pulang'] ?? $patientData['estimated_discharge'] ?? $patientData['discharge_date'] ?? $patientData['tgl_pulang'] ?? null;
@@ -258,6 +264,9 @@ class SyncBeds extends Command
                                     }
                                     if ($apiDpjp) {
                                         $updateData['dpjp_utama'] = $apiDpjp;
+                                    }
+                                    if ($apiTanggalLahir) {
+                                        $updateData['tanggal_lahir'] = $apiTanggalLahir;
                                     }
                                     $equipment->update($updateData);
 
@@ -285,11 +294,11 @@ class SyncBeds extends Command
                                         'merk' => $patientName,
                                         'type' => $diagnosa,
                                         'serial_number' => $noRm,
-                                        'tanggal_lahir' => $estimatedBirthdate,
+                                        'tanggal_lahir' => $apiTanggalLahir ?: $estimatedBirthdate,
                                         'lokasi' => $newLocation,
                                         'lantai' => $formattedFloor,
                                         'kondisi' => 'Stabil EWS',
-                                        'spesifikasi' => 'Terdaftar via sinkronisasi bed monitoring.',
+                                        'spesifikasi' => null,
                                         'tanggal_pengadaan' => now()->format('Y-m-d'),
                                         'jam' => now()->format('H:i'),
                                         'status_kepemilikan' => $statusKepemilikan,

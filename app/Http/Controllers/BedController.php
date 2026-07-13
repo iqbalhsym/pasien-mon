@@ -92,6 +92,7 @@ class BedController extends Controller
                 }, 'rooms.beds' => function ($q) {
                     $q->orderBy('bed_number', 'asc');
                 }, 'rooms.beds.equipment'])
+                ->orderByRaw("CASE WHEN UPPER(name) = 'WIJAYA KUSUMA' THEN 0 WHEN UPPER(name) = 'TAPAK DARA' THEN 1 ELSE 2 END")
                 ->orderBy('name', 'asc')
                 ->get();
         }

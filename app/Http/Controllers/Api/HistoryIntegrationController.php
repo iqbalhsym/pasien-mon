@@ -18,6 +18,7 @@ class HistoryIntegrationController extends Controller
             'no_rm'         => 'required|string',
             'detail_obat'   => 'required|string',
             'tanggal_ambil' => 'nullable|string', // Datetime string, e.g. Y-m-d H:i:s
+            'tanggal_lahir' => 'nullable|date',
         ]);
 
         try {
@@ -61,10 +62,15 @@ class HistoryIntegrationController extends Controller
                 $updatedHistory = rtrim($currentHistory) . "\n" . $newEntry;
             }
 
-            // Update riw_obat pasien
-            $patient->update([
+            // Update riw_obat and optional tanggal_lahir
+            $updateData = [
                 'riw_obat' => $updatedHistory
-            ]);
+            ];
+            if ($request->filled('tanggal_lahir')) {
+                $updateData['tanggal_lahir'] = $request->input('tanggal_lahir');
+            }
+
+            $patient->update($updateData);
 
             return response()->json([
                 'status'  => 'success',

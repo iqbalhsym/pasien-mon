@@ -13,12 +13,13 @@ class MaintenanceController extends Controller
     {
         return \Illuminate\Support\Facades\Cache::remember('api_patients_map', 300, function () {
             try {
-                $apiUrl = 'https://bed-monitoring.rs.ui.ac.id/api/external/beds-occupancy';
+                $apiUrl = 'https://10.121.1.115/api/external/beds-occupancy';
                 $apiKey = 'rsui_bed_mon_secret_key_2026';
                 $response = \Illuminate\Support\Facades\Http::withHeaders([
                     'X-API-Key' => $apiKey,
-                    'Content-Type: application/json'
-                ])->timeout(10)->get($apiUrl);
+                    'Content-Type' => 'application/json',
+                    'Host' => 'bed-monitoring.rs.ui.ac.id'
+                ])->withoutVerifying()->timeout(10)->get($apiUrl);
 
                 if ($response->successful()) {
                     $body = $response->json();
