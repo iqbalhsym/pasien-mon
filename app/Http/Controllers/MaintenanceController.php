@@ -119,7 +119,7 @@ class MaintenanceController extends Controller
             $query->where(function($q) use ($wingVal) {
                 $q->whereHas('bed.room.wing', function($wq) use ($wingVal) {
                     $wq->where('name', $wingVal);
-                })->orWhere('lokasi', 'like', $wingVal . ' - %');
+                })->orWhere('lokasi', 'ilike', $wingVal . ' - %');
             });
         }
 
@@ -128,15 +128,15 @@ class MaintenanceController extends Controller
             $query->where(function($q) use ($roomVal) {
                 $q->whereHas('bed.room', function($rq) use ($roomVal) {
                     $rq->where('name', $roomVal);
-                })->orWhere('lokasi', 'like', '% - ' . $roomVal . ' (%');
+                })->orWhere('lokasi', 'ilike', '% - ' . $roomVal . ' (%');
             });
         }
 
         if ($request->filled('filter_ruangan')) {
             $ruanganVal = $request->input('filter_ruangan');
             $query->where(function($q) use ($ruanganVal) {
-                $q->where('lokasi', 'like', "%{$ruanganVal}%")
-                  ->orWhere('lantai', 'like', "%{$ruanganVal}%");
+                $q->where('lokasi', 'ilike', "%{$ruanganVal}%")
+                  ->orWhere('lantai', 'ilike', "%{$ruanganVal}%");
             });
         }
 
@@ -146,10 +146,10 @@ class MaintenanceController extends Controller
 
         if ($search) {
             $query->where(function($q) use ($search) {
-                $q->where('merk', 'like', "%{$search}%")
-                  ->orWhere('type', 'like', "%{$search}%")
-                  ->orWhere('serial_number', 'like', "%{$search}%")
-                  ->orWhere('lokasi', 'like', "%{$search}%");
+                $q->where('merk', 'ilike', "%{$search}%")
+                  ->orWhere('type', 'ilike', "%{$search}%")
+                  ->orWhere('serial_number', 'ilike', "%{$search}%")
+                  ->orWhere('lokasi', 'ilike', "%{$search}%");
             });
         }
 
@@ -330,6 +330,7 @@ class MaintenanceController extends Controller
             'ners_malam' => 'nullable|string',
             'diagnosis_lokal' => 'nullable|string',
             'rencana_pulang' => 'nullable|string',
+            'tanggal_lahir' => 'nullable|date',
         ]);
 
         $data = [];
@@ -453,7 +454,7 @@ class MaintenanceController extends Controller
         }
 
         // Direct database fields
-        foreach (['npja', 'ews', 'tingkat_ketergantungan', 'ners_bertugas', 'alkes_invasif', 'tindakan_detail', 'type', 'kategori_pasien', 'target_los', 'notes_num', 'notes_case_manager', 'riw_lab', 'riw_rad', 'riw_obat', 'rencana_prosedur', 'rencana_diagnostik', 'rencana_konsul', 'ners_pagi', 'ners_siang', 'ners_malam', 'diagnosis_lokal', 'rencana_pulang'] as $field) {
+        foreach (['npja', 'ews', 'tingkat_ketergantungan', 'ners_bertugas', 'alkes_invasif', 'tindakan_detail', 'type', 'kategori_pasien', 'target_los', 'notes_num', 'notes_case_manager', 'riw_lab', 'riw_rad', 'riw_obat', 'rencana_prosedur', 'rencana_diagnostik', 'rencana_konsul', 'ners_pagi', 'ners_siang', 'ners_malam', 'diagnosis_lokal', 'rencana_pulang', 'tanggal_lahir'] as $field) {
             if ($request->has($field)) {
                 $data[$field] = $request->input($field);
             }
@@ -508,22 +509,31 @@ class MaintenanceController extends Controller
     {
         $equipment = Equipment::where('serial_number', $serial_number)->firstOrFail();
         
-        if ($equipment->tanggal_lahir) {
+        // Only require DOB verification if we have a CONFIRMED (non-estimated) birthdate.
+        // Estimated birthdates end with '-01-01' and should NOT gate access.
+        $hasConfirmedDob = $equipment->tanggal_lahir
+            && !str_ends_with($equipment->tanggal_lahir, '-01-01');
+
+        if ($hasConfirmedDob) {
             $sessionKey = 'verified_patient_' . $equipment->id;
-            
+
             if ($request->isMethod('post')) {
                 $request->validate([
                     'tanggal_lahir' => 'required|date'
                 ]);
-                
-                if ($request->tanggal_lahir === $equipment->tanggal_lahir) {
+
+                // Normalize both dates to Y-m-d format for reliable comparison
+                $inputDob  = date('Y-m-d', strtotime($request->tanggal_lahir));
+                $storedDob = date('Y-m-d', strtotime($equipment->tanggal_lahir));
+
+                if ($inputDob === $storedDob) {
                     session([$sessionKey => true]);
                     return redirect()->route('alat.public', $serial_number);
                 }
-                
-                return back()->withErrors(['tanggal_lahir' => 'Tanggal lahir salah. Akses ditolak!']);
+
+                return back()->withErrors(['tanggal_lahir' => 'Tanggal lahir tidak sesuai. Akses ditolak!']);
             }
-            
+
             if (!session($sessionKey)) {
                 return view('maintenances.verify', compact('equipment'));
             }
@@ -531,7 +541,7 @@ class MaintenanceController extends Controller
         
         $maintenances = Maintenance::where('equipment_id', $equipment->id)
             ->latest('tanggal_pelaksanaan')
-            ->get(); // Tanpa paginasi untuk tampilan publik yang simpel jika diinginkan, atau pakai paginate.
+            ->get();
             
         return view('maintenances.public', compact('equipment', 'maintenances'));
     }
@@ -677,10 +687,10 @@ class MaintenanceController extends Controller
 
         if ($search) {
             $query->where(function($q) use ($search) {
-                $q->where('merk', 'like', "%{$search}%")
-                  ->orWhere('type', 'like', "%{$search}%")
-                  ->orWhere('serial_number', 'like', "%{$search}%")
-                  ->orWhere('lokasi', 'like', "%{$search}%");
+                $q->where('merk', 'ilike', "%{$search}%")
+                  ->orWhere('type', 'ilike', "%{$search}%")
+                  ->orWhere('serial_number', 'ilike', "%{$search}%")
+                  ->orWhere('lokasi', 'ilike', "%{$search}%");
             });
         }
 

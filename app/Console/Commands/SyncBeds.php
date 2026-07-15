@@ -191,6 +191,7 @@ class SyncBeds extends Command
                             $bedStatus = $bedData['status'] ?? 'kosong';
                             $isActive = $bedData['is_active'] ?? true;
                             $patientData = $bedData['patient'] ?? null;
+                            $futurePatients = $bedData['future_patients'] ?? null;
 
                             if (empty($bedId) || empty($bedNumber)) {
                                 continue;
@@ -240,6 +241,13 @@ class SyncBeds extends Command
                                     $apiRegDate = $patientRegDetails[$noRm]['registered_date'] ?? null;
                                     $apiDpjp = $patientRegDetails[$noRm]['dpjp_utama'] ?? null;
                                     $apiTanggalLahir = $patientRegDetails[$noRm]['tanggal_lahir'] ?? null;
+                                }
+
+                                // Prioritize the direct date_of_birth from the bed-monitoring API payload
+                                if (!empty($patientData['date_of_birth'])) {
+                                    try {
+                                        $apiTanggalLahir = date('Y-m-d', strtotime($patientData['date_of_birth']));
+                                    } catch (\Exception $e) {}
                                 }
 
                                 $apiRencanaPulang = $patientData['rencana_pulang'] ?? $patientData['estimasi_pulang'] ?? $patientData['estimated_discharge'] ?? $patientData['discharge_date'] ?? $patientData['tgl_pulang'] ?? null;
@@ -320,16 +328,17 @@ class SyncBeds extends Command
                             }
 
                             // Update or create Bed
-                            Bed::updateOrCreate(
-                                ['id' => $bedId],
-                                [
-                                    'room_id' => $room->id,
-                                    'bed_number' => $bedNumber,
-                                    'status' => $bedStatus,
-                                    'is_active' => $isActive,
-                                    'equipment_id' => $equipmentId
-                                ]
-                            );
+                             Bed::updateOrCreate(
+                                 ['id' => $bedId],
+                                 [
+                                     'room_id' => $room->id,
+                                     'bed_number' => $bedNumber,
+                                     'status' => $bedStatus,
+                                     'is_active' => $isActive,
+                                     'equipment_id' => $equipmentId,
+                                     'future_patients' => $futurePatients
+                                 ]
+                             );
                         }
                     }
                 }

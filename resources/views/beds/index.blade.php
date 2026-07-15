@@ -438,6 +438,42 @@
                                                                 </div>
                                                             </div>
                                                         @endif
+
+                                                        @if(!empty($bed->future_patients) && is_array($bed->future_patients) && count($bed->future_patients) > 0)
+                                                            <div class="mt-2 pt-2 border-top border-secondary border-opacity-10" style="font-size: 0.8rem;">
+                                                                <div class="text-warning fw-bold mb-1.5" style="font-size: 0.72rem; letter-spacing: 0.3px;">
+                                                                    <i class="mdi mdi-calendar-check text-warning me-0.5"></i> BOOKING INCOMING:
+                                                                </div>
+                                                                @foreach($bed->future_patients as $future)
+                                                                    <div class="p-1.5 rounded bg-warning bg-opacity-10 border border-warning border-opacity-20 mb-1" style="line-height: 1.3;">
+                                                                        <div class="fw-bold text-dark text-uppercase" style="font-size: 0.82rem;">
+                                                                            {{ $future['name'] ?? '-' }}
+                                                                        </div>
+                                                                        <div class="text-muted" style="font-size: 0.75rem;">
+                                                                            RM: <b>{{ $future['no_rm'] ?? '-' }}</b>
+                                                                            @if(!empty($future['asal_booking']))
+                                                                                <span class="badge bg-light text-dark border ms-1 fw-bold" style="font-size: 0.65rem;">Asal: {{ $future['asal_booking'] }}</span>
+                                                                            @endif
+                                                                        </div>
+                                                                        @if(!empty($future['book_date']))
+                                                                            <div class="text-muted" style="font-size: 0.75rem;">
+                                                                                Tgl: {{ date('d-m-Y', strtotime($future['book_date'])) }}
+                                                                            </div>
+                                                                        @endif
+                                                                        @if(!empty($future['dpjp']))
+                                                                            <div class="text-muted text-truncate" style="font-size: 0.75rem; max-width: 170px;" title="DPJP: {{ $future['dpjp'] }}">
+                                                                                Dr: {{ $future['dpjp'] }}
+                                                                            </div>
+                                                                        @endif
+                                                                        @if(!empty($future['note']))
+                                                                            <div class="text-muted small text-truncate" style="font-size: 0.72rem; max-width: 170px; font-style: italic;" title="Catatan: {{ $future['note'] }}">
+                                                                                "{{ $future['note'] }}"
+                                                                            </div>
+                                                                        @endif
+                                                                    </div>
+                                                                @endforeach
+                                                            </div>
+                                                        @endif
                                                     </div>
                                                 </div>
 

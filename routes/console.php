@@ -9,7 +9,7 @@ Artisan::command('inspire', function () {
 
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command('sync:beds')->everyMinute()->withoutOverlapping();
+Schedule::command('sync:beds')->everyFiveMinutes()->withoutOverlapping();
 
 Artisan::command('visit:reset', function () {
     \App\Models\Equipment::where('visit_dpjp', 'Sudah')->update(['visit_dpjp' => 'Belum']);

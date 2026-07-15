@@ -256,15 +256,21 @@
                                 <h5 class="fw-bold text-danger mb-3"><i class="mdi mdi-medical-bag text-danger me-1"></i> MEDIS KLINIS & PEMANTAUAN</h5>
                                 
                                 <div class="row g-2 mb-2">
-                                    <div class="col-4">
+                                    <div class="col-6">
                                         <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-calendar text-primary me-0.5"></i> Masuk RS (Auto)</label>
                                         <input type="text" class="form-control form-control-sm bg-light text-muted" value="{{ $displayTglMasuk }}" readonly style="cursor: not-allowed; font-size: 0.8rem;">
                                     </div>
-                                    <div class="col-4">
+                                    <div class="col-6">
+                                        <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-calendar-account text-danger me-0.5"></i> Tanggal Lahir</label>
+                                        <input type="date" name="tanggal_lahir" class="form-control form-control-sm" value="{{ $equipment->tanggal_lahir }}" style="font-size: 0.8rem;">
+                                    </div>
+                                </div>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-6">
                                         <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-clock-outline text-primary me-0.5"></i> LOS (Auto)</label>
                                         <input type="text" class="form-control form-control-sm bg-light text-muted" value="{{ $dynamicLos }}" readonly style="cursor: not-allowed; font-size: 0.8rem;">
                                     </div>
-                                    <div class="col-4">
+                                    <div class="col-6">
                                         <label class="form-label text-dark fw-bold small mb-0.5" style="font-size: 0.75rem;"><i class="mdi mdi-calendar-range text-info me-0.5"></i> Target LOS</label>
                                         <input type="number" name="target_los" class="form-control form-control-sm" value="{{ $equipment->target_los }}" placeholder="Hari" style="font-size: 0.8rem;">
                                     </div>

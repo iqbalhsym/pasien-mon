@@ -544,11 +544,14 @@
                                         </form>
                                     </div>
                                     <div class="text-muted mb-1 d-flex align-items-center flex-wrap gap-1.5" style="font-size: 0.85rem; font-weight: 500;">
-                                        <span>RM. {{ $eq->serial_number }}</span>
-                                        @if($eq->guarantor)
-                                            <span class="badge bg-light text-dark border py-0.5 px-1.5 fw-bold" style="font-size: 0.72rem; letter-spacing: 0.2px;">{{ $eq->guarantor }}</span>
-                                        @endif
-                                    </div>
+                                         <span>RM. {{ $eq->serial_number }}</span>
+                                         @if($eq->hak_kelas)
+                                             <span class="badge bg-info text-white border py-0.5 px-1.5 fw-bold" style="font-size: 0.72rem; letter-spacing: 0.2px;">Kelas: {{ $eq->hak_kelas }}</span>
+                                         @endif
+                                         @if($eq->guarantor)
+                                             <span class="badge bg-light text-dark border py-0.5 px-1.5 fw-bold" style="font-size: 0.72rem; letter-spacing: 0.2px;">{{ $eq->guarantor }}</span>
+                                         @endif
+                                     </div>
                                     <div class="mb-1" style="font-size: 0.85rem; font-weight: 600; color: #dc3545;">
                                         <i class="mdi {{ in_array(strtolower($eq->gender), ['laki-laki', 'male', 'l']) ? 'mdi-gender-male' : 'mdi-gender-female' }} me-1"></i>
                                         {{ in_array(strtolower($eq->gender), ['laki-laki', 'male', 'l']) ? 'Laki-laki' : 'Perempuan' }} | {{ $eq->tanggal_lahir ? \Carbon\Carbon::parse($eq->tanggal_lahir)->age : '-' }} Th

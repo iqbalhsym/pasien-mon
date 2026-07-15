@@ -24,10 +24,10 @@ class CalibrationController extends Controller
 
         if ($search) {
             $query->whereHas('equipment', function($q) use ($search) {
-                $q->where('merk', 'like', "%{$search}%")
-                  ->orWhere('type', 'like', "%{$search}%")
-                  ->orWhere('serial_number', 'like', "%{$search}%")
-                  ->orWhere('lokasi', 'like', "%{$search}%");
+                $q->where('merk', 'ilike', "%{$search}%")
+                  ->orWhere('type', 'ilike', "%{$search}%")
+                  ->orWhere('serial_number', 'ilike', "%{$search}%")
+                  ->orWhere('lokasi', 'ilike', "%{$search}%");
             });
         }
 

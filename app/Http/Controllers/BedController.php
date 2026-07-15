@@ -144,20 +144,29 @@ class BedController extends Controller
             ]);
         }
 
-        try {
-            \Illuminate\Support\Facades\Cache::put($cacheKey, true, 30);
-            Artisan::call('sync:beds', ['--force' => true]);
-            return response()->json([
-                'success' => true,
-                'message' => 'Sinkronisasi data tempat tidur berhasil diselesaikan!'
-            ]);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Cache::forget($cacheKey);
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal melakukan sinkronisasi: ' . $e->getMessage()
-            ], 500);
-        }
+        // Tandai cache SEBELUM menjalankan proses, agar request berikutnya skip
+        \Illuminate\Support\Facades\Cache::put($cacheKey, true, 60);
+
+        // Jalankan sync:beds di background process yang terpisah dari HTTP worker ini.
+        // Dengan ini, worker PHP-FPM langsung bebas dan tidak memblokir request lain.
+        $phpBinary  = PHP_BINARY;
+        $artisanPath = base_path('artisan');
+        $logPath     = storage_path('logs/sync-beds-bg.log');
+
+        $cmd = sprintf(
+            '%s %s sync:beds --force >> %s 2>&1 &',
+            escapeshellarg($phpBinary),
+            escapeshellarg($artisanPath),
+            escapeshellarg($logPath)
+        );
+
+        // exec dengan & agar proses terpisah dan tidak ditunggu
+        exec($cmd);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Sinkronisasi data tempat tidur sedang diproses di background.'
+        ]);
     }
 
     public function updateNurses(\Illuminate\Http\Request $request, $equipmentId)
