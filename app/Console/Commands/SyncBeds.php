@@ -64,6 +64,7 @@ class SyncBeds extends Command
 
             // Get already cached/populated patient details from the local database
             $existingMrnMap = [];
+            $currentlyOccupiedRms = [];
             if (!$force) {
                 $existingMrnMap = Equipment::whereNotNull('registered_date')
                     ->where('registered_date', '!=', '')
@@ -72,6 +73,12 @@ class SyncBeds extends Command
                     ->pluck('serial_number')
                     ->toArray();
                 $existingMrnMap = array_flip($existingMrnMap);
+
+                // Get patients currently occupying beds in local database
+                $currentlyOccupiedRms = Equipment::whereHas('bed')
+                    ->pluck('serial_number')
+                    ->toArray();
+                $currentlyOccupiedRms = array_flip($currentlyOccupiedRms);
             }
 
             // 1. Collect all unique patient MRNs to pre-fetch outside database transaction
@@ -84,8 +91,12 @@ class SyncBeds extends Command
                             if (!empty($patientData) && !empty($patientData['no_rm'])) {
                                 $noRm = trim($patientData['no_rm']);
                                 if (strtoupper($noRm) !== 'TERDAFTAR' && strpos($noRm, 'BOOKING-') !== 0) {
-                                    if ($force || !isset($existingMrnMap[$noRm])) {
+                                    $isNewAdmission = !$force && !isset($currentlyOccupiedRms[$noRm]);
+                                    if ($force || !isset($existingMrnMap[$noRm]) || $isNewAdmission) {
                                         $patientRmList[] = $noRm;
+                                        if ($isNewAdmission) {
+                                            \Illuminate\Support\Facades\Cache::forget('afya_reg_details_' . $noRm);
+                                        }
                                     }
                                 }
                             }

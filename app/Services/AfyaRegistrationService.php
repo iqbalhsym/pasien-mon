@@ -85,45 +85,46 @@ class AfyaRegistrationService
             return null;
         }
 
-        // We will try querying the last 30 days first.
-        // If not found, we will query the prior 30 days (30-60 days ago).
-        $ranges = [
-            [now()->subDays(30)->format('Y-m-d'), now()->format('Y-m-d')],
-            [now()->subDays(60)->format('Y-m-d'), now()->subDays(30)->format('Y-m-d')]
-        ];
+        // We will query with MRN filter and no date range for maximum speed and accuracy.
+        try {
+            $response = Http::withHeaders([
+                'token'        => $token,
+                'Content-Type' => 'application/json',
+                'User-Agent'   => 'insomnia/12.4.0',
+            ])
+            ->withoutVerifying()
+            ->timeout(15) // Reduced timeout to prevent long blocking states
+            ->post($this->baseUrl . '/api/v8/transaction/registration/list', [
+                'PageNumber'          => 1,
+                'PageSize'            => 1, // Only need the latest active registration
+                'OrderBy'             => 'NoBilling DESC',
+                'PartnerKeyInsurance' => null,
+                'NoBilling'           => '',
+                'MRN'                 => $noRm, // Fixed MRN filter key!
+                'Nama'                => '',
+                'RegDateFrom'         => null,  // No date limit needed since MRN filter works!
+                'RegDateTo'           => null,
+                'Gender'              => null,
+                'IdLokasi'            => null,
+                'DokterKey'           => null,
+                'TipePerawatanKey'    => null,
+                'PoliKey'             => null,
+                'IsDischarge'         => null   // Get open or closed registration
+            ]);
 
-        foreach ($ranges as $range) {
-            try {
-                $response = Http::withHeaders([
-                    'token'        => $token,
-                    'Content-Type' => 'application/json',
-                    'User-Agent'   => 'insomnia/12.4.0',
-                ])
-                ->withoutVerifying()
-                ->timeout(8) // Reduced timeout to prevent long blocking states
-                ->post($this->baseUrl . '/api/v8/transaction/registration/list', [
-                    'PageNumber'          => 1,
-                    'PageSize'            => 1, // Only need the latest active registration
-                    'OrderBy'             => 'NoBilling DESC',
-                    'PartnerKeyInsurance' => null,
-                    'NoBilling'           => '',
-                    'MedicalRecord'       => $noRm,
-                    'Nama'                => '',
-                    'RegDateFrom'         => $range[0],
-                    'RegDateTo'           => $range[1],
-                    'Gender'              => null,
-                    'IdLokasi'            => null,
-                    'DokterKey'           => null,
-                    'TipePerawatanKey'    => null,
-                    'PoliKey'             => null,
-                    'IsDischarge'         => 0    // Only active (Open) registrations
-                ]);
+            if ($response->successful()) {
+                $results = $response->json('results');
+                if (!empty($results)) {
+                    // Double check matching MRN to be 100% safe
+                    $reg = null;
+                    foreach ($results as $item) {
+                        if (isset($item['MedicalRecordNumber']) && trim($item['MedicalRecordNumber']) === $noRm) {
+                            $reg = $item;
+                            break;
+                        }
+                    }
 
-                if ($response->successful()) {
-                    $results = $response->json('results');
-                    if (!empty($results)) {
-                        $reg = $results[0];
-
+                    if ($reg) {
                         $birthDate = null;
                         if (!empty($reg['DateofBirth'])) {
                             $birthDate = date('Y-m-d', strtotime($reg['DateofBirth']));
@@ -135,21 +136,36 @@ class AfyaRegistrationService
                             }
                         }
 
+                        $regDate = null;
+                        if (!empty($reg['TanggalMasuk'])) {
+                            $regDate = date('Y-m-d', strtotime($reg['TanggalMasuk']));
+                        } elseif (!empty($reg['TglMasuk'])) {
+                            try {
+                                $regDate = \Carbon\Carbon::createFromFormat('d/m/Y', $reg['TglMasuk'])->format('Y-m-d');
+                            } catch (\Exception $ex) {
+                                $regDate = date('Y-m-d', strtotime($reg['TglMasuk']));
+                            }
+                        } elseif (!empty($reg['RegDate'])) {
+                            $regDate = date('Y-m-d', strtotime($reg['RegDate']));
+                        }
+
+                        $dpjp = $reg['Dokter'] ?? $reg['NamaDokter'] ?? $reg['DoctorName'] ?? null;
+
                         return [
-                            'registered_date' => isset($reg['RegDate']) ? date('Y-m-d', strtotime($reg['RegDate'])) : null,
-                            'dpjp_utama'      => $reg['NamaDokter'] ?? $reg['DoctorName'] ?? null,
+                            'registered_date' => $regDate,
+                            'dpjp_utama'      => $dpjp,
                             'tanggal_lahir'   => $birthDate,
                         ];
                     }
                 }
-            } catch (\Exception $e) {
-                Log::error("Failed to fetch registration details for RM: $noRm in range {$range[0]} - {$range[1]}. Error: " . $e->getMessage());
-                
-                // If a connection/timeout exception happens, mark as api failed to stop subsequent calls
-                self::$apiFailed = true;
-                Cache::put('afya_api_failed', true, 60);
-                return null;
             }
+        } catch (\Exception $e) {
+            Log::error("Failed to fetch registration details for RM: $noRm. Error: " . $e->getMessage());
+            
+            // If a connection/timeout exception happens, mark as api failed to stop subsequent calls
+            self::$apiFailed = true;
+            Cache::put('afya_api_failed', true, 60);
+            return null;
         }
 
         return null;

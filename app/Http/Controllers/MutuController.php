@@ -21,21 +21,26 @@ class MutuController extends Controller
         $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
         $dateTo = $request->input('date_to', now()->toDateString());
 
-        // 1. Ambil data pasien aktif (yang ada di ruangan)
-        $patientsQuery = Equipment::whereHas('bed')->whereNotNull('lokasi')->where('lokasi', '!=', '');
-
-        // Date Range filter
-        if ($dateFrom && $dateTo) {
-            $patientsQuery->where(function($q) use ($dateFrom, $dateTo) {
-                $q->whereBetween('registered_date', [$dateFrom, $dateTo])
-                  ->orWhereBetween('tanggal_pengadaan', [$dateFrom, $dateTo]);
-            });
+        // Default selected_date to today, but restrict it within the range if specified
+        $selectedDate = $request->input('selected_date', now()->toDateString());
+        if ($selectedDate < $dateFrom) {
+            $selectedDate = $dateFrom;
+        } elseif ($selectedDate > $dateTo) {
+            $selectedDate = $dateTo;
         }
 
+        // --- 1. PROSES REKAPAN HARIAN (dari dateFrom s/d dateTo) ---
+        $dailyRecap = [];
+        $tempDate = Carbon::parse($dateFrom);
+        $endDate = Carbon::parse($dateTo);
+
+        // Ambil semua pasien yang berpotensi aktif di rentang tanggal tersebut
+        $allPatientsQuery = Equipment::whereHas('bed')->whereNotNull('lokasi')->where('lokasi', '!=', '');
+        
         // Filter by floor
         if ($selectedFloor) {
             $cleanFloor = trim(str_ireplace('Lantai', '', $selectedFloor));
-            $patientsQuery->where(function($q) use ($selectedFloor, $cleanFloor) {
+            $allPatientsQuery->where(function($q) use ($selectedFloor, $cleanFloor) {
                 $q->where('lantai', $selectedFloor)
                   ->orWhere('lantai', $cleanFloor)
                   ->orWhere('lantai', 'like', '%' . $cleanFloor . '%');
@@ -44,7 +49,7 @@ class MutuController extends Controller
 
         // Spesialis filter (filter by dpjp suffix)
         if ($selectedSpesialis) {
-            $patientsQuery->where(function($q) use ($selectedSpesialis) {
+            $allPatientsQuery->where(function($q) use ($selectedSpesialis) {
                 if ($selectedSpesialis === 'Penyakit Dalam') {
                     $q->where('dpjp_utama', 'like', '%Sp.PD%');
                 } elseif ($selectedSpesialis === 'Obstetri & Ginekologi') {
@@ -61,29 +66,71 @@ class MutuController extends Controller
             });
         }
 
-        $patients = $patientsQuery->get();
+        $allPatients = $allPatientsQuery->get();
 
-        $totalPasien = $patients->count();
+        while ($tempDate->lte($endDate)) {
+            $currentDateStr = $tempDate->toDateString();
+            $activeCount = 0;
+            $visitCount = 0;
+
+            foreach ($allPatients as $p) {
+                $tglMasuk = $p->registered_date ?: $p->tanggal_pengadaan;
+                if ($tglMasuk && $tglMasuk <= $currentDateStr) {
+                    $activeCount++;
+                    
+                    $isVisited = false;
+                    if ($p->visit_history) {
+                        $history = json_decode($p->visit_history, true) ?: [];
+                        foreach ($history as $timestamp) {
+                            if (date('Y-m-d', strtotime($timestamp)) === $currentDateStr) {
+                                $isVisited = true;
+                                break;
+                            }
+                        }
+                    }
+                    if ($isVisited) {
+                        $visitCount++;
+                    }
+                }
+            }
+
+            $dailyRecap[] = [
+                'date' => $currentDateStr,
+                'display_date' => $tempDate->format('d/m/Y'),
+                'total_patients' => $activeCount,
+                'sudah_visit' => $visitCount,
+                'belum_visit' => $activeCount - $visitCount,
+                'kepatuhan' => $activeCount > 0 ? round(($visitCount / $activeCount) * 100, 1) : 0
+            ];
+
+            $tempDate->addDay();
+        }
+
+        // --- 2. DETAIL UNTUK TANGGAL LAPORAN TERPILIH (selectedDate) ---
+        $patientsForSelectedDate = $allPatients->filter(function($p) use ($selectedDate) {
+            $tglMasuk = $p->registered_date ?: $p->tanggal_pengadaan;
+            return $tglMasuk && $tglMasuk <= $selectedDate;
+        });
+
+        $totalPasien = $patientsForSelectedDate->count();
         $sudahVisit = 0;
         $belumVisit = 0;
-        $daftarBelumVisit = [];
-        
+        $daftarPasien = [];
         $dpjpStats = [];
 
-        foreach ($patients as $p) {
+        foreach ($patientsForSelectedDate as $p) {
             $dpjp = $p->dpjp_utama ?: 'Tidak Diketahui';
             
             // Inisialisasi statistik DPJP
             if (!isset($dpjpStats[$dpjp])) {
                 $dpjpStats[$dpjp] = [
                     'dpjp' => $dpjp,
-                    'spesialis' => 'Umum', // Dummy spesialis
+                    'spesialis' => 'Umum',
                     'jumlah_pasien' => 0,
                     'sudah_visit' => 0,
                     'belum_visit' => 0,
                 ];
                 
-                // Tambahkan mapping spesialis sederhana (hanya simulasi)
                 if (stripos($dpjp, 'Sp.PD') !== false) $dpjpStats[$dpjp]['spesialis'] = 'Penyakit Dalam';
                 elseif (stripos($dpjp, 'Sp.OG') !== false) $dpjpStats[$dpjp]['spesialis'] = 'Obstetri & Ginekologi';
                 elseif (stripos($dpjp, 'Sp.B') !== false) $dpjpStats[$dpjp]['spesialis'] = 'Bedah';
@@ -94,29 +141,22 @@ class MutuController extends Controller
 
             $dpjpStats[$dpjp]['jumlah_pasien']++;
 
-            // Logika visit hari ini atau dalam range tanggal (berdasarkan visit_history)
             $isVisited = false;
             if ($p->visit_history) {
                 $history = json_decode($p->visit_history, true) ?: [];
                 foreach ($history as $timestamp) {
-                    $time = strtotime($timestamp);
-                    if ($time >= strtotime($dateFrom . ' 00:00:00') && $time <= strtotime($dateTo . ' 23:59:59')) {
+                    if (date('Y-m-d', strtotime($timestamp)) === $selectedDate) {
                         $isVisited = true;
                         break;
                     }
                 }
-            } else {
-                if ($p->visit_dpjp == 'Sudah') {
-                    $isVisited = true;
-                }
             }
 
-            // Hitung LOS aktual
             $tglMasuk = $p->registered_date ?: $p->tanggal_pengadaan;
             $losHari = 0;
             if ($tglMasuk) {
                 try {
-                    $losHari = Carbon::parse($tglMasuk)->diffInDays(now()->startOfDay());
+                    $losHari = Carbon::parse($tglMasuk)->diffInDays(Carbon::parse($selectedDate)->startOfDay());
                 } catch (\Exception $e) {}
             }
 
@@ -126,49 +166,99 @@ class MutuController extends Controller
             } else {
                 $belumVisit++;
                 $dpjpStats[$dpjp]['belum_visit']++;
-                
-                // Masukkan ke daftar pasien belum visit
-                $daftarBelumVisit[] = [
-                    'no_rm' => $p->serial_number,
-                    'nama' => $p->merk,
-                    'ruangan' => $p->lokasi,
-                    'dpjp' => $dpjp,
-                    'tanggal_masuk' => $tglMasuk ? Carbon::parse($tglMasuk)->format('d/m/Y') : '-',
-                    'los' => $losHari,
-                    'hari_tanpa_visit' => $losHari > 0 ? $losHari : 1, // Simulasi hari tanpa visit
-                    'keterangan' => 'Belum ada catatan visite',
-                ];
             }
+
+            $daftarPasien[] = [
+                'id' => $p->id,
+                'no_rm' => $p->serial_number,
+                'nama' => $p->merk,
+                'ruangan' => $p->lokasi,
+                'dpjp' => $dpjp,
+                'tanggal_masuk' => $tglMasuk ? Carbon::parse($tglMasuk)->format('d/m/Y') : '-',
+                'los' => $losHari,
+                'hari_tanpa_visit' => $isVisited ? 0 : ($losHari > 0 ? $losHari : 1),
+                'visit_status' => $isVisited ? 'Sudah' : 'Belum'
+            ];
         }
 
-        // Kalkulasi Kepatuhan Keseluruhan
+        // Kalkulasi Kepatuhan Keseluruhan untuk selectedDate
         $persentaseKepatuhan = $totalPasien > 0 ? round(($sudahVisit / $totalPasien) * 100, 1) : 0;
 
-        // Kalkulasi Kepatuhan per DPJP
+        // Kalkulasi Kepatuhan per DPJP untuk selectedDate
         foreach ($dpjpStats as $key => $stat) {
             $dpjpStats[$key]['kepatuhan'] = $stat['jumlah_pasien'] > 0 
                 ? round(($stat['sudah_visit'] / $stat['jumlah_pasien']) * 100, 1) 
                 : 0;
             
-            // Simulasi Trend
             $rand = rand(1, 3);
             $dpjpStats[$key]['trend'] = $rand == 1 ? 'up' : ($rand == 2 ? 'down' : 'flat');
         }
 
-        // Urutkan berdasarkan kepatuhan descending
+        // Urutkan DPJP berdasarkan kepatuhan descending
         usort($dpjpStats, function($a, $b) {
             return $b['kepatuhan'] <=> $a['kepatuhan'];
         });
 
-        // Simulasi grafik chart js (hanya untuk tampilan visual, ambil top 6)
-        $chartLabels = array_column(array_slice($dpjpStats, 0, 6), 'dpjp');
-        $chartData = array_column(array_slice($dpjpStats, 0, 6), 'kepatuhan');
+        // Data untuk Line Chart Tren Kepatuhan Harian
+        $chartLabels = array_column($dailyRecap, 'display_date');
+        $chartData = array_column($dailyRecap, 'kepatuhan');
 
         return view('mutu.kepatuhan_visit', compact(
             'totalPasien', 'sudahVisit', 'belumVisit', 'persentaseKepatuhan', 
-            'dpjpStats', 'daftarBelumVisit', 'chartLabels', 'chartData',
-            'floors', 'selectedFloor', 'selectedSpesialis', 'dateFrom', 'dateTo'
+            'dpjpStats', 'daftarPasien', 'chartLabels', 'chartData',
+            'floors', 'selectedFloor', 'selectedSpesialis', 'dateFrom', 'dateTo',
+            'selectedDate', 'dailyRecap'
         ));
+    }
+
+    public function toggleVisit(Request $request)
+    {
+        $request->validate([
+            'equipment_id' => 'required|exists:equipments,id',
+            'date'         => 'required|date',
+            'status'       => 'required|in:0,1'
+        ]);
+
+        $equipment = Equipment::findOrFail($request->input('equipment_id'));
+        $dateStr = $request->input('date');
+        $status = (int) $request->input('status');
+
+        $history = [];
+        if ($equipment->visit_history) {
+            $history = json_decode($equipment->visit_history, true) ?: [];
+        }
+
+        if ($status === 1) {
+            $hasDate = false;
+            foreach ($history as $timestamp) {
+                if (date('Y-m-d', strtotime($timestamp)) === $dateStr) {
+                    $hasDate = true;
+                    break;
+                }
+            }
+            if (!$hasDate) {
+                $history[] = $dateStr . ' ' . now()->format('H:i:s');
+            }
+        } else {
+            $history = array_filter($history, function($timestamp) use ($dateStr) {
+                return date('Y-m-d', strtotime($timestamp)) !== $dateStr;
+            });
+            $history = array_values($history);
+        }
+
+        $equipment->visit_history = json_encode($history);
+
+        if ($dateStr === now()->toDateString()) {
+            $equipment->visit_dpjp = ($status === 1) ? 'Sudah' : 'Belum';
+        }
+
+        $equipment->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status visit berhasil diperbarui.',
+            'history' => $history
+        ]);
     }
 
     public function responKonsul(Request $request)

@@ -836,6 +836,13 @@
                 <span class="menu-title">Manajemen Data Ners</span>
               </a>
             </li>
+
+            <li class="nav-item {{ request()->routeIs('doctors.*') ? 'active' : '' }}">
+              <a class="nav-link text-decoration-none" href="{{ route('doctors.index') }}">
+                <i class="mdi mdi-doctor"></i>
+                <span class="menu-title">Manajemen Data Dokter</span>
+              </a>
+            </li>
           @endif
         </ul>
       </nav>

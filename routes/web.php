@@ -49,6 +49,7 @@ Route::middleware(['auth'])->group(function () {
     // Mutu Dashboards
     Route::prefix('mutu')->name('mutu.')->group(function() {
         Route::get('/kepatuhan-visit', [\App\Http\Controllers\MutuController::class, 'kepatuhanVisit'])->name('kepatuhan-visit');
+        Route::post('/kepatuhan-visit/toggle', [\App\Http\Controllers\MutuController::class, 'toggleVisit'])->name('kepatuhan-visit.toggle');
         Route::get('/respon-konsul', [\App\Http\Controllers\MutuController::class, 'responKonsul'])->name('respon-konsul');
         Route::get('/distribusi-dpjp', [\App\Http\Controllers\MutuController::class, 'distribusiDpjp'])->name('distribusi-dpjp');
         Route::get('/jadwal-ners', [\App\Http\Controllers\MutuController::class, 'jadwalNers'])->name('jadwal-ners');
@@ -94,5 +95,13 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/', [\App\Http\Controllers\NurseController::class, 'store'])->name('store');
         Route::put('/{nurse}', [\App\Http\Controllers\NurseController::class, 'update'])->name('update');
         Route::delete('/{nurse}', [\App\Http\Controllers\NurseController::class, 'destroy'])->name('destroy');
+    });
+
+    // --- MANAJEMEN DATA DOKTER: Admin & Editor (user) ---
+    Route::middleware(['role:admin,user'])->prefix('doctors')->name('doctors.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\DoctorController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\DoctorController::class, 'store'])->name('store');
+        Route::put('/{doctor}', [\App\Http\Controllers\DoctorController::class, 'update'])->name('update');
+        Route::delete('/{doctor}', [\App\Http\Controllers\DoctorController::class, 'destroy'])->name('destroy');
     });
 });
