@@ -677,6 +677,19 @@ class MaintenanceController extends Controller
             $query->where('lantai', $userFloor);
         }
 
+        if ($request->filled('lantai')) {
+            $lantaiVal = $request->input('lantai');
+            if (preg_match('/Lantai\s+(\d+)/i', $lantaiVal, $matches)) {
+                $lantaiVal = $matches[1];
+            }
+            $query->where('lantai', $lantaiVal);
+        }
+
+        if ($request->filled('wing')) {
+            $wingVal = $request->input('wing');
+            $query->where('lokasi', 'ilike', $wingVal . ' - %');
+        }
+
         if ($sort === 'alphabetical') {
             $query->orderBy('merk', 'asc');
         } elseif ($sort === 'alphabetical_desc') {

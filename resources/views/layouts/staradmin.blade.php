@@ -178,45 +178,96 @@
 
     .sidebar .nav .nav-item {
       padding: 0 1rem;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.25rem;
     }
 
     .sidebar .nav .nav-item .nav-link {
       display: flex;
       align-items: center;
-      padding: 0.8rem 1rem;
+      padding: 0.75rem 1rem;
       color: #6c7383;
       border-radius: 8px;
       font-weight: 600;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       transition: all 0.2s ease;
       white-space: nowrap;
+      cursor: pointer;
     }
 
     .sidebar .nav .nav-item .nav-link i.mdi {
-      font-size: 1.25rem;
-      margin-right: 15px;
+      font-size: 1.2rem;
+      margin-right: 12px;
       color: #b9b9b9;
       flex-shrink: 0;
     }
 
-    .sidebar .nav .nav-item.active .nav-link,
-    .sidebar .nav .nav-item .nav-link:hover {
+    /* Only top-level active nav-item gets the blue background */
+    .sidebar .nav > .nav-item.active > .nav-link {
       background: #1F3BB3;
       color: #ffffff;
     }
-
-    .sidebar .nav .nav-item.active .nav-link i.mdi,
-    .sidebar .nav .nav-item .nav-link:hover i.mdi {
+    .sidebar .nav > .nav-item.active > .nav-link i.mdi {
       color: #ffffff;
     }
 
+    /* Hover on any nav-link (not inside sub-menu) */
+    .sidebar .nav > .nav-item > .nav-link:hover {
+      background: #1F3BB3;
+      color: #ffffff;
+    }
+    .sidebar .nav > .nav-item > .nav-link:hover i.mdi {
+      color: #ffffff;
+    }
+
+    /* Sub-menu styling */
+    .sidebar .sub-menu {
+      padding: 0.25rem 0 0.5rem 0;
+      list-style: none;
+    }
+
+    .sidebar .sub-menu .nav-item {
+      padding: 0;
+      margin-bottom: 0.1rem;
+    }
+
+    .sidebar .sub-menu .nav-item .nav-link {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #6c7383;
+      border-radius: 6px;
+      background: transparent;
+      white-space: normal;
+    }
+
+    .sidebar .sub-menu .nav-item .nav-link:hover {
+      background: rgba(31, 59, 179, 0.08);
+      color: #1F3BB3;
+    }
+
+    .sidebar .sub-menu .nav-item .nav-link.active,
+    .sidebar .sub-menu .nav-item .nav-link.text-primary.fw-bold {
+      background: rgba(31, 59, 179, 0.12);
+      color: #1F3BB3 !important;
+      font-weight: 700;
+    }
+
+    /* Collapsible parent trigger arrow rotation */
+    .nav-link[aria-expanded="true"] .menu-arrow {
+      transform: rotate(180deg);
+    }
+    .menu-arrow {
+      transition: transform 0.25s ease;
+      margin-right: 0 !important;
+      font-size: 1rem !important;
+    }
+
     .sidebar .category-heading {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 700;
       text-transform: uppercase;
       color: #8D94A5;
-      margin: 1.5rem 1.5rem 0.5rem;
+      margin: 1.25rem 1.5rem 0.35rem;
       letter-spacing: 0.5px;
     }
 
@@ -613,72 +664,113 @@
             </a>
           </li>
 
-          <div class="category-heading">Dashboard Mutu</div>
-          <li class="nav-item {{ request()->routeIs('mutu.kepatuhan-visit') ? 'active' : '' }}">
-            <a class="nav-link text-decoration-none" href="{{ route('mutu.kepatuhan-visit') }}">
-              <i class="mdi mdi-chart-box-outline"></i>
-              <span class="menu-title">Kepatuhan Visit DPJP</span>
+          <li class="nav-item {{ request()->routeIs('mutu.*') ? 'active' : '' }}">
+            <a class="nav-link text-decoration-none" data-bs-toggle="collapse" href="#mutu-menu" aria-expanded="{{ request()->routeIs('mutu.*') ? 'true' : 'false' }}" aria-controls="mutu-menu">
+              <i class="mdi mdi-chart-areaspline"></i>
+              <span class="menu-title">Dashboard Mutu</span>
+              <i class="menu-arrow mdi mdi-chevron-down ms-auto"></i>
             </a>
-          </li>
-          <li class="nav-item {{ request()->routeIs('mutu.respon-konsul') ? 'active' : '' }}">
-            <a class="nav-link text-decoration-none" href="{{ route('mutu.respon-konsul') }}">
-              <i class="mdi mdi-message-text-clock-outline"></i>
-              <span class="menu-title">Respon e-Konsul DPJP</span>
-            </a>
-          </li>
-          <li class="nav-item {{ request()->routeIs('mutu.distribusi-dpjp') ? 'active' : '' }}">
-            <a class="nav-link text-decoration-none" href="{{ route('mutu.distribusi-dpjp') }}">
-              <i class="mdi mdi-account-group-outline"></i>
-              <span class="menu-title">Distribusi DPJP & Lantai</span>
-            </a>
-          </li>
-          <li class="nav-item {{ request()->routeIs('mutu.jadwal-ners') ? 'active' : '' }}">
-            <a class="nav-link text-decoration-none" href="{{ route('mutu.jadwal-ners') }}">
-              <i class="mdi mdi-calendar-clock"></i>
-              <span class="menu-title">Laporan Shift Ners</span>
-            </a>
+            <div class="collapse {{ request()->routeIs('mutu.*') ? 'show' : '' }}" id="mutu-menu">
+              <ul class="nav flex-column sub-menu ms-3">
+                <li class="nav-item">
+                  <a class="nav-link {{ request()->routeIs('mutu.kepatuhan-visit') ? 'active' : 'text-decoration-none' }}" href="{{ route('mutu.kepatuhan-visit') }}">Kepatuhan Visit DPJP</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link {{ request()->routeIs('mutu.respon-konsul') ? 'active' : 'text-decoration-none' }}" href="{{ route('mutu.respon-konsul') }}">Respon e-Konsul DPJP</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link {{ request()->routeIs('mutu.distribusi-dpjp') ? 'active' : 'text-decoration-none' }}" href="{{ route('mutu.distribusi-dpjp') }}">Distribusi DPJP & Lantai</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link {{ request()->routeIs('mutu.jadwal-ners') ? 'active' : 'text-decoration-none' }}" href="{{ route('mutu.jadwal-ners') }}">Laporan Shift Ners</a>
+                </li>
+              </ul>
+            </div>
           </li>
 
-          <div class="category-heading">Manajemen Pasien</div>
-
-          <li class="nav-item {{ request()->routeIs('beds.*') ? 'active' : '' }}">
-            <a class="nav-link text-decoration-none" href="{{ route('beds.index') }}">
-              <i class="mdi mdi-bed-outline"></i>
-              <span class="menu-title">Monitoring Bed & Kamar</span>
+          <li class="nav-item {{ request()->routeIs('adru.*') ? 'active' : '' }}">
+            <a class="nav-link text-decoration-none" data-bs-toggle="collapse" href="#adru-menu" aria-expanded="{{ request()->routeIs('adru.*') ? 'true' : 'false' }}" aria-controls="adru-menu">
+              <i class="mdi mdi-monitor-dashboard"></i>
+              <span class="menu-title">Dashboard Adru</span>
+              <i class="menu-arrow mdi mdi-chevron-down ms-auto"></i>
             </a>
+            <div class="collapse {{ request()->routeIs('adru.*') ? 'show' : '' }}" id="adru-menu">
+              <ul class="nav flex-column sub-menu ms-3">
+                <li class="nav-item">
+                  <a class="nav-link {{ request()->routeIs('adru.dashboard') ? 'active text-primary fw-bold' : 'text-decoration-none' }}" href="{{ route('adru.dashboard') }}">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link {{ request()->routeIs('adru.billing') ? 'active text-primary fw-bold' : 'text-decoration-none' }}" href="{{ route('adru.billing') }}">Monitoring Billing</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link {{ request()->routeIs('adru.gantungan') ? 'active text-primary fw-bold' : 'text-decoration-none' }}" href="{{ route('adru.gantungan') }}">Transaksi Gantungan</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link {{ request()->routeIs('adru.manual') ? 'active text-primary fw-bold' : 'text-decoration-none' }}" href="{{ route('adru.manual') }}">Entri Data Manual</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link {{ request()->routeIs('adru.import_export') ? 'active text-primary fw-bold' : 'text-decoration-none' }}" href="{{ route('adru.import_export') }}">Import & Export</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link {{ request()->routeIs('adru.laporan') ? 'active text-primary fw-bold' : 'text-decoration-none' }}" href="{{ route('adru.laporan') }}">Laporan & Grafik</a>
+                </li>
+              </ul>
+            </div>
           </li>
-
-          <li class="nav-item {{ request()->routeIs('maintenances.index') || request()->routeIs('maintenances.patient_detail') || request()->routeIs('maintenances.history') ? 'active' : '' }}">
-            <a class="nav-link text-decoration-none" href="{{ route('maintenances.index') }}">
-              <i class="mdi mdi-account-clock"></i>
-              <span class="menu-title">Riwayat Pasien</span>
+          <li class="nav-item {{ request()->routeIs('beds.*') || request()->routeIs('maintenances.*') ? 'active' : '' }}">
+            <a class="nav-link text-decoration-none" data-bs-toggle="collapse" href="#manajemen-pasien-menu" aria-expanded="{{ request()->routeIs('beds.*') || request()->routeIs('maintenances.*') ? 'true' : 'false' }}" aria-controls="manajemen-pasien-menu">
+              <i class="mdi mdi-account-group"></i>
+              <span class="menu-title">Manajemen Pasien</span>
+              <i class="menu-arrow mdi mdi-chevron-down ms-auto"></i>
             </a>
-          </li>
-
-          <li class="nav-item {{ request()->routeIs('maintenances.pulang') ? 'active' : '' }}">
-            <a class="nav-link text-decoration-none" href="{{ route('maintenances.pulang') }}">
-              <i class="mdi mdi-account-off"></i>
-              <span class="menu-title">Pasien Sudah Pulang</span>
-            </a>
+            <div class="collapse {{ request()->routeIs('beds.*') || request()->routeIs('maintenances.*') ? 'show' : '' }}" id="manajemen-pasien-menu">
+              <ul class="nav flex-column sub-menu ms-3">
+                <li class="nav-item">
+                  <a class="nav-link {{ request()->routeIs('beds.*') ? 'active text-primary fw-bold' : 'text-decoration-none' }}" href="{{ route('beds.index') }}">Monitoring Bed & Kamar</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link {{ request()->routeIs('maintenances.index') || request()->routeIs('maintenances.patient_detail') || request()->routeIs('maintenances.history') ? 'active text-primary fw-bold' : 'text-decoration-none' }}" href="{{ route('maintenances.index') }}">Riwayat Pasien</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link {{ request()->routeIs('maintenances.pulang') ? 'active text-primary fw-bold' : 'text-decoration-none' }}" href="{{ route('maintenances.pulang') }}">Pasien Sudah Pulang</a>
+                </li>
+              </ul>
+            </div>
           </li>
 
           @php
-              $currentRoute = request()->routeIs('beds.*') ? 'beds.index' : 'maintenances.index';
-              $queryParam = request()->routeIs('beds.*') ? 'floor' : 'lantai';
+              if (request()->routeIs('beds.*')) {
+                  $currentRoute = 'beds.index';
+                  $queryParam = 'floor';
+              } elseif (request()->routeIs('maintenances.pulang')) {
+                  $currentRoute = 'maintenances.pulang';
+                  $queryParam = 'lantai';
+              } else {
+                  $currentRoute = 'maintenances.index';
+                  $queryParam = 'lantai';
+              }
+              $isZonaActive = request()->routeIs('beds.*') || request()->routeIs('maintenances.*');
           @endphp
-          <div class="category-heading">ZONA RAWAT INAP</div>
-          
-          <!-- All Floors Option -->
-          <li class="nav-item mb-1">
-            <a class="nav-link text-decoration-none d-flex align-items-center py-2 px-3 {{ !request($queryParam) ? 'active' : '' }}" 
-               href="{{ route($currentRoute, request()->except([$queryParam, 'wing', 'room'])) }}"
-               style="border-radius: 8px; font-weight: 600; font-size: 0.92rem; color: {{ !request($queryParam) ? '#ffffff' : '#6c7383' }}; background: {{ !request($queryParam) ? '#1F3BB3' : 'transparent' }};">
-              <i class="mdi mdi-layers-outline me-2 fs-5" style="color: {{ !request($queryParam) ? '#ffffff' : '#b9b9b9' }};"></i>
-              <span>Semua Lantai</span>
+          <li class="nav-item {{ $isZonaActive ? 'active' : '' }}">
+            <a class="nav-link text-decoration-none" data-bs-toggle="collapse" href="#zona-menu" aria-expanded="{{ $isZonaActive ? 'true' : 'false' }}" aria-controls="zona-menu">
+              <i class="mdi mdi-hospital-building"></i>
+              <span class="menu-title">Zona Rawat Inap</span>
+              <i class="menu-arrow mdi mdi-chevron-down ms-auto"></i>
             </a>
-          </li>
+            <div class="collapse {{ $isZonaActive ? 'show' : '' }}" id="zona-menu">
+              <ul class="nav flex-column mt-1" style="padding: 0; list-style: none;">
 
-          @foreach($globalFloors as $fl)
+              <!-- All Floors Option -->
+              <li class="nav-item mb-1">
+                <a class="nav-link text-decoration-none d-flex align-items-center py-2 px-3 {{ !request($queryParam) ? 'active' : '' }}"
+                   href="{{ route($currentRoute, request()->except([$queryParam, 'wing', 'room'])) }}"
+                   style="border-radius: 8px; font-weight: 600; font-size: 0.92rem; color: {{ !request($queryParam) ? '#ffffff' : '#6c7383' }}; background: {{ !request($queryParam) ? '#1F3BB3' : 'transparent' }};">
+                  <i class="mdi mdi-layers-outline me-2 fs-5" style="color: {{ !request($queryParam) ? '#ffffff' : '#b9b9b9' }};"></i>
+                  <span>Semua Lantai</span>
+                </a>
+              </li>
+
+              @foreach($globalFloors as $fl)
             @php
                 $flName = $fl->name;
                 $displayFl = is_numeric($flName) ? 'Lantai ' . $flName : $flName;
@@ -787,31 +879,33 @@
               </div>
             </li>
           @endforeach
+              </ul>
+            </div>
+          </li>
 
           <script>
-            // Simple JS helper to rotate chevrons when Bootstrap collapse toggles
+            // Rotate chevrons on any sidebar collapse toggle (floors, wings, menu groups)
             document.addEventListener('DOMContentLoaded', function () {
-              const accordion = document.getElementById('sidebarRoomsAccordion');
-              if (accordion) {
-                accordion.addEventListener('show.bs.collapse', function (e) {
-                  const toggler = document.querySelector(`[href="#${e.target.id}"]`);
-                  if (toggler) {
-                    const chevron = toggler.querySelector('.toggle-icon');
-                    if (chevron) {
-                      chevron.style.transform = 'rotate(180deg)';
-                    }
+              document.addEventListener('show.bs.collapse', function (e) {
+                if (!e.target.closest('#sidebar')) return;
+                const toggler = document.querySelector(`[href="#${e.target.id}"]`);
+                if (toggler) {
+                  const chevron = toggler.querySelector('.toggle-icon');
+                  if (chevron) {
+                    chevron.style.transform = 'rotate(180deg)';
                   }
-                });
-                accordion.addEventListener('hide.bs.collapse', function (e) {
-                  const toggler = document.querySelector(`[href="#${e.target.id}"]`);
-                  if (toggler) {
-                    const chevron = toggler.querySelector('.toggle-icon');
-                    if (chevron) {
-                      chevron.style.transform = 'rotate(0deg)';
-                    }
+                }
+              });
+              document.addEventListener('hide.bs.collapse', function (e) {
+                if (!e.target.closest('#sidebar')) return;
+                const toggler = document.querySelector(`[href="#${e.target.id}"]`);
+                if (toggler) {
+                  const chevron = toggler.querySelector('.toggle-icon');
+                  if (chevron) {
+                    chevron.style.transform = 'rotate(0deg)';
                   }
-                });
-              }
+                }
+              });
             });
           </script>
 
@@ -819,29 +913,30 @@
 
           {{-- Menu Pengaturan --}}
           @if(auth()->check() && (auth()->user()->isAdmin() || auth()->user()->role === 'user'))
-            <div class="category-heading">Pengaturan</div>
-
-            @if(auth()->user()->isAdmin())
-              <li class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
-                <a class="nav-link text-decoration-none" href="{{ route('users.index') }}">
-                  <i class="mdi mdi-account-cog"></i>
-                  <span class="menu-title">Manajemen Akun</span>
-                </a>
-              </li>
-            @endif
-
-            <li class="nav-item {{ request()->routeIs('nurses.*') ? 'active' : '' }}">
-              <a class="nav-link text-decoration-none" href="{{ route('nurses.index') }}">
-                <i class="mdi mdi-account-group"></i>
-                <span class="menu-title">Manajemen Data Ners</span>
+            @php
+              $isPengaturanActive = request()->routeIs('users.*') || request()->routeIs('nurses.*') || request()->routeIs('doctors.*');
+            @endphp
+            <li class="nav-item {{ $isPengaturanActive ? 'active' : '' }}">
+              <a class="nav-link text-decoration-none" data-bs-toggle="collapse" href="#pengaturan-menu" aria-expanded="{{ $isPengaturanActive ? 'true' : 'false' }}" aria-controls="pengaturan-menu">
+                <i class="mdi mdi-cog-outline"></i>
+                <span class="menu-title">Pengaturan</span>
+                <i class="menu-arrow mdi mdi-chevron-down ms-auto"></i>
               </a>
-            </li>
-
-            <li class="nav-item {{ request()->routeIs('doctors.*') ? 'active' : '' }}">
-              <a class="nav-link text-decoration-none" href="{{ route('doctors.index') }}">
-                <i class="mdi mdi-doctor"></i>
-                <span class="menu-title">Manajemen Data Dokter</span>
-              </a>
+              <div class="collapse {{ $isPengaturanActive ? 'show' : '' }}" id="pengaturan-menu">
+                <ul class="nav flex-column sub-menu ms-3">
+                  @if(auth()->user()->isAdmin())
+                  <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('users.*') ? 'active text-primary fw-bold' : 'text-decoration-none' }}" href="{{ route('users.index') }}">Manajemen Akun</a>
+                  </li>
+                  @endif
+                  <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('nurses.*') ? 'active text-primary fw-bold' : 'text-decoration-none' }}" href="{{ route('nurses.index') }}">Manajemen Data Ners</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('doctors.*') ? 'active text-primary fw-bold' : 'text-decoration-none' }}" href="{{ route('doctors.index') }}">Manajemen Data Dokter</a>
+                  </li>
+                </ul>
+              </div>
             </li>
           @endif
         </ul>
@@ -983,6 +1078,7 @@
       @endauth
     });
   </script>
+  @yield('js')
 </body>
 
 </html>

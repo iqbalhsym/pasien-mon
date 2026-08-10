@@ -29,6 +29,10 @@ Route::middleware(['auth'])->group(function () {
     // --- DASHBOARD ---
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
+    // Patient integration endpoints
+    Route::get('/patient/check-by-mrn', [\App\Http\Controllers\PatientController::class, 'checkPatientByMrn'])->name('patient.check');
+    Route::get('/api/bed-mon/floors-rooms', [\App\Http\Controllers\PatientController::class, 'getFloorsRooms'])->name('bed-mon.floors-rooms');
+
     // --- RUTE HANYA BACA (Semua role boleh akses) ---
     Route::get('/pasien', [EquipmentController::class, 'index'])->name('equipments.index');
     Route::get('/pasien/export', [EquipmentController::class, 'exportCsv'])->name('equipments.export');
@@ -53,6 +57,31 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/respon-konsul', [\App\Http\Controllers\MutuController::class, 'responKonsul'])->name('respon-konsul');
         Route::get('/distribusi-dpjp', [\App\Http\Controllers\MutuController::class, 'distribusiDpjp'])->name('distribusi-dpjp');
         Route::get('/jadwal-ners', [\App\Http\Controllers\MutuController::class, 'jadwalNers'])->name('jadwal-ners');
+    });
+
+    // Dashboard Adru
+    Route::prefix('adru')->name('adru.')->group(function() {
+        Route::get('/dashboard', [\App\Http\Controllers\DashboardAdruController::class, 'dashboard'])->name('dashboard');
+        Route::get('/billing', [\App\Http\Controllers\DashboardAdruController::class, 'billing'])->name('billing');
+        Route::get('/gantungan', [\App\Http\Controllers\DashboardAdruController::class, 'gantungan'])->name('gantungan');
+        Route::get('/manual', [\App\Http\Controllers\DashboardAdruController::class, 'manual'])->name('manual');
+        Route::get('/import-export', [\App\Http\Controllers\DashboardAdruController::class, 'importExport'])->name('import_export');
+        Route::get('/laporan', [\App\Http\Controllers\DashboardAdruController::class, 'laporan'])->name('laporan');
+        
+        // Form endpoints
+        Route::post('/checklist/{id}', [\App\Http\Controllers\DashboardAdruController::class, 'updateChecklistStep'])->name('updateChecklist');
+        Route::post('/outstanding/{id}/resolve', [\App\Http\Controllers\DashboardAdruController::class, 'resolveOutstandingItem'])->name('resolveOutstanding');
+        Route::post('/bypass/{id}', [\App\Http\Controllers\DashboardAdruController::class, 'bypassObstacle'])->name('bypass');
+        Route::post('/patients/{id}/complete-billing', [\App\Http\Controllers\DashboardAdruController::class, 'completeBilling'])->name('complete-billing');
+        Route::post('/patients/store-ranap', [\App\Http\Controllers\DashboardAdruController::class, 'storeRanap'])->name('patients.store-ranap');
+        Route::post('/patients/store-icu', [\App\Http\Controllers\DashboardAdruController::class, 'storeIcu'])->name('patients.store-icu');
+        Route::post('/patients/store-cot', [\App\Http\Controllers\DashboardAdruController::class, 'storeCot'])->name('patients.store-cot');
+        Route::post('/outstanding/store', [\App\Http\Controllers\DashboardAdruController::class, 'storeOutstanding'])->name('outstanding.store');
+        
+        // Import/Export Template
+        Route::get('/import/template/{type}', [\App\Http\Controllers\DashboardAdruController::class, 'downloadTemplate'])->name('template');
+        Route::get('/export/{type}', [\App\Http\Controllers\DashboardAdruController::class, 'exportData'])->name('export');
+        Route::post('/import', [\App\Http\Controllers\DashboardAdruController::class, 'importData'])->name('import');
     });
 
     // --- RUTE EDIT/HAPUS/TAMBAH (Admin & User biasa) ---

@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    'afya' => [
+        'url' => env('AFYA_API_URL', 'https://api-lb.rs.ui.ac.id/rest'),
+        'username' => env('AFYA_API_USER'),
+        'password' => env('AFYA_API_PASS'),
+    ],
+
+    'bed_mon' => [
+        'url' => env('BED_MON_API_URL', 'https://bed-monitoring.rs.ui.ac.id'),
+        'api_key' => env('EXTERNAL_API_KEY', 'rsui_bed_mon_secret_key_2026'),
+    ],
+
 ];

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(php -l app/Http/Controllers/MaintenanceController.php)",
+      "Bash(php -l resources/views/maintenances/pulang.blade.php)"
+    ]
+  }
+}

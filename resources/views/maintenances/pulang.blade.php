@@ -24,6 +24,25 @@
                 <input type="text" name="search" class="form-control border-start-0 ps-0 bg-white fw-bold text-dark" placeholder="Cari nama / No. RM / DPJP" value="{{ $search }}" style="font-size: 0.92rem;">
             </div>
 
+            <!-- Filter Lantai -->
+            <div class="input-group shadow-sm" style="width: auto;">
+                <span class="input-group-text bg-white border-end-0 py-0" style="font-size: 0.85rem;"><i class="mdi mdi-office-building-outline text-muted"></i></span>
+                <select name="lantai" class="form-select border-start-0 ps-0 bg-white fw-bold text-dark" style="font-size: 0.88rem;" onchange="document.getElementById('pulangFilterForm').submit();">
+                    <option value="">Semua Lantai</option>
+                    @foreach($globalFloors as $fl)
+                        @php
+                            $flName = $fl->name;
+                            $paramFloor = $flName;
+                            if (preg_match('/Lantai\s+(\d+)/i', $flName, $matches)) {
+                                $paramFloor = $matches[1];
+                            }
+                            $displayFl = is_numeric($flName) ? 'Lantai ' . $flName : $flName;
+                        @endphp
+                        <option value="{{ $paramFloor }}" {{ request('lantai') == $paramFloor ? 'selected' : '' }}>{{ $displayFl }}</option>
+                    @endforeach
+                </select>
+            </div>
+
             <!-- Sort Buttons -->
             <div class="btn-group shadow-sm" role="group">
                 <a href="{{ route('maintenances.pulang', array_merge(request()->except(['sort', 'page']), ['sort' => 'terbaru'])) }}"
@@ -190,6 +209,11 @@
                                 <!-- Status Bed -->
                                 <td class="text-center fw-bold text-muted bg-light-subtle">
                                     <span class="badge bg-secondary px-3 py-1.5 fw-bold" style="font-size: 0.82rem; border-radius: 6px;">Sudah Pulang</span>
+                                    @if($eq->lantai)
+                                        <div class="text-muted fw-bold mt-1.5" style="font-size: 0.75rem;">
+                                            {{ str_contains(strtolower($eq->lantai), 'lantai') ? $eq->lantai : 'Lantai ' . $eq->lantai }}
+                                        </div>
+                                    @endif
                                 </td>
                                 
                                 <!-- Nama Pasien -->
