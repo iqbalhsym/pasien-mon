@@ -99,6 +99,7 @@
                                 <th class="py-3 fw-bold" style="width: 240px; font-size: 0.88rem; color: #4B5563;">Planning Selama Perawatan<br><span class="text-muted fw-normal" style="font-size: 0.75rem;">Lab | Radiologi | Konsul | Tindakan | Dll</span></th>
                                 <th class="py-3 fw-bold" style="width: 180px; font-size: 0.88rem; color: #4B5563;">Barrier</th>
                                 <th class="py-3 fw-bold" style="width: 140px; font-size: 0.88rem; color: #4B5563;">Rencana Pulang</th>
+                                <th class="py-3 fw-bold" style="width: 150px; font-size: 0.88rem; color: #4B5563;">Jam Pulang<br><span class="text-muted fw-normal" style="font-size: 0.75rem;">Aktual</span></th>
                                 <th class="py-3 fw-bold text-center" style="width: 120px; font-size: 0.88rem; color: #4B5563;">Aksi</th>
                             </tr>
                         </thead>
@@ -335,6 +336,21 @@
                                     </span>
                                 </td>
 
+                                <!-- Jam Pulang (Aktual) -->
+                                <td>
+                                    @if($eq->waktu_pulang)
+                                        <div class="d-flex align-items-center text-dark" style="font-size: 0.88rem; font-weight: 500;">
+                                            <i class="mdi mdi-clock-check-outline text-success me-1.5 fs-5"></i>
+                                            <div>
+                                                {{ $eq->waktu_pulang->format('d/m/Y') }}<br>
+                                                <span class="text-muted small">{{ $eq->waktu_pulang->format('H:i') }} WIB</span>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <span class="text-muted small">Belum tercatat</span>
+                                    @endif
+                                </td>
+
                                 <!-- Aksi -->
                                 <td class="text-center">
                                     <div class="dropdown w-100">
@@ -358,7 +374,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="9" class="text-center py-5">
+                                <td colspan="10" class="text-center py-5">
                                     <i class="mdi mdi-text-box-search-outline text-muted" style="font-size: 4rem;"></i>
                                     <h4 class="mt-3 text-dark fw-bold">Tidak Ada Data Pasien Pulang</h4>
                                 </td>

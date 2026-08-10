@@ -21,7 +21,12 @@ class Equipment extends Model implements HasMedia
         'billing_aktual', 'pagu_budget', 'persentase_pagu', 'kategori_pasien',
         'target_los', 'notes_num', 'notes_case_manager', 'riw_lab', 'riw_rad',
         'riw_obat', 'rencana_prosedur', 'rencana_diagnostik', 'rencana_konsul',
-        'ners_pagi', 'ners_siang', 'ners_malam', 'visit_history', 'diagnosis_lokal', 'konsul_history'
+        'ners_pagi', 'ners_siang', 'ners_malam', 'visit_history', 'diagnosis_lokal', 'konsul_history',
+        'waktu_pulang'
+    ];
+
+    protected $casts = [
+        'waktu_pulang' => 'datetime',
     ];
 
     public function calibrations()

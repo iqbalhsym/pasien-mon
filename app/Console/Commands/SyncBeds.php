@@ -357,6 +357,18 @@ class SyncBeds extends Command
 
             // Remove patient associations from beds that are no longer in the current sync loop (if any)
             if (!empty($activeBedIds)) {
+                // Record discharge time for patients whose bed is being vacated right now
+                $dischargedEquipmentIds = Bed::whereNotIn('id', $activeBedIds)
+                    ->where('status', '!=', 'kosong')
+                    ->whereNotNull('equipment_id')
+                    ->pluck('equipment_id');
+
+                if ($dischargedEquipmentIds->isNotEmpty()) {
+                    Equipment::whereIn('id', $dischargedEquipmentIds)->update([
+                        'waktu_pulang' => now()
+                    ]);
+                }
+
                 Bed::whereNotIn('id', $activeBedIds)->update([
                     'status' => 'kosong',
                     'equipment_id' => null
