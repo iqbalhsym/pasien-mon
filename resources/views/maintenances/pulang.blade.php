@@ -43,6 +43,16 @@
                 </select>
             </div>
 
+            <!-- Filter Tanggal Pulang -->
+            <div class="input-group shadow-sm" style="width: auto;">
+                <span class="input-group-text bg-white border-end-0 py-0 text-muted fw-bold" style="font-size: 0.78rem;">Dari</span>
+                <input type="date" name="start_date" class="form-control border-start-0 bg-white fw-bold text-dark" value="{{ $startDate }}" style="font-size: 0.85rem; max-width: 155px;">
+            </div>
+            <div class="input-group shadow-sm" style="width: auto;">
+                <span class="input-group-text bg-white border-end-0 py-0 text-muted fw-bold" style="font-size: 0.78rem;">s/d</span>
+                <input type="date" name="end_date" class="form-control border-start-0 bg-white fw-bold text-dark" value="{{ $endDate }}" style="font-size: 0.85rem; max-width: 155px;">
+            </div>
+
             <!-- Sort Buttons -->
             <div class="btn-group shadow-sm" role="group">
                 <a href="{{ route('maintenances.pulang', array_merge(request()->except(['sort', 'page']), ['sort' => 'terbaru'])) }}"
@@ -83,6 +93,56 @@
 @stop
 
 @section('content')
+
+{{-- Ringkasan Jumlah Pasien Pulang per Lantai --}}
+<div class="row mb-3">
+    <div class="col-lg-12">
+        <div class="card shadow-sm border-0" style="border-radius: 16px;">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <h6 class="fw-bold text-dark mb-0" style="font-size: 0.92rem;">
+                        <i class="mdi mdi-chart-bar text-secondary me-1"></i> Ringkasan Jumlah Pasien Pulang per Lantai
+                    </h6>
+                    <span class="text-muted" style="font-size: 0.78rem;">
+                        @if($startDate || $endDate)
+                            Periode: {{ $startDate ? \Carbon\Carbon::parse($startDate)->format('d/m/Y') : 'Awal' }} &ndash; {{ $endDate ? \Carbon\Carbon::parse($endDate)->format('d/m/Y') : 'Sekarang' }}
+                        @else
+                            Semua waktu (sejak jam pulang mulai tercatat)
+                        @endif
+                    </span>
+                </div>
+                @if($floorSummary->isNotEmpty())
+                    <div class="d-flex flex-wrap gap-2">
+                        @if(request()->filled('lantai'))
+                            <a href="{{ route('maintenances.pulang', request()->except(['lantai', 'page'])) }}"
+                               class="d-flex align-items-center gap-2 border rounded px-3 py-2 text-decoration-none" style="border-radius: 10px; background: #ffffff;" title="Hapus filter lantai">
+                                <i class="mdi mdi-close-circle-outline text-muted"></i>
+                                <span class="fw-bold text-muted" style="font-size: 0.85rem;">Semua Lantai</span>
+                            </a>
+                        @endif
+                        @foreach($floorSummary as $row)
+                            @php
+                                $displayFl = is_numeric($row->lantai) ? 'Lantai ' . $row->lantai : $row->lantai;
+                                $isActiveFl = request('lantai') == $row->lantai;
+                            @endphp
+                            <a href="{{ route('maintenances.pulang', array_merge(request()->except(['page']), ['lantai' => $row->lantai])) }}"
+                               class="d-flex align-items-center gap-2 border rounded px-3 py-2 text-decoration-none {{ $isActiveFl ? 'shadow-sm' : '' }}"
+                               style="border-radius: 10px; {{ $isActiveFl ? 'background: #1F3BB3; border-color: #1F3BB3 !important;' : 'background: #f8f9fb;' }}"
+                               title="Lihat pasien pulang di {{ $displayFl }}">
+                                <i class="mdi mdi-office-building-outline" style="color: {{ $isActiveFl ? '#ffffff' : '#6c757d' }};"></i>
+                                <span class="fw-bold" style="font-size: 0.85rem; color: {{ $isActiveFl ? '#ffffff' : '#1F2937' }};">{{ $displayFl }}</span>
+                                <span class="badge rounded-pill fw-bold" style="font-size: 0.8rem; {{ $isActiveFl ? 'background: #ffffff; color: #1F3BB3;' : 'background: #6c757d; color: #ffffff;' }}">{{ $row->total }}</span>
+                            </a>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="text-muted mb-0" style="font-size: 0.85rem;">Tidak ada data pasien pulang pada periode ini.</p>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-lg-12 grid-margin stretch-card">
         <div class="card shadow-sm border-0" style="border-radius: 16px; overflow: hidden;">

@@ -664,6 +664,8 @@ class MaintenanceController extends Controller
     {
         $search = $request->input('search');
         $sort = $request->input('sort', 'terbaru');
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
 
         $userFloor = (auth()->check() && auth()->user()->floor && auth()->user()->role !== 'admin') ? auth()->user()->floor : null;
 
@@ -690,6 +692,13 @@ class MaintenanceController extends Controller
             $query->where('lokasi', 'ilike', $wingVal . ' - %');
         }
 
+        if ($startDate) {
+            $query->whereDate('waktu_pulang', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('waktu_pulang', '<=', $endDate);
+        }
+
         if ($sort === 'alphabetical') {
             $query->orderBy('merk', 'asc');
         } elseif ($sort === 'alphabetical_desc') {
@@ -710,8 +719,32 @@ class MaintenanceController extends Controller
         $perPage = $request->input('per_page', 10);
         $equipmentsPaginator = $query->paginate($perPage)->appends($request->all());
 
+        // Ringkasan jumlah pasien pulang per lantai (mengikuti filter tanggal & pencarian, terlepas dari filter lantai/wing)
+        $floorSummaryQuery = Equipment::whereDoesntHave('bed')->whereNotNull('lantai');
+        if ($userFloor) {
+            $floorSummaryQuery->where('lantai', $userFloor);
+        }
+        if ($startDate) {
+            $floorSummaryQuery->whereDate('waktu_pulang', '>=', $startDate);
+        }
+        if ($endDate) {
+            $floorSummaryQuery->whereDate('waktu_pulang', '<=', $endDate);
+        }
+        if ($search) {
+            $floorSummaryQuery->where(function($q) use ($search) {
+                $q->where('merk', 'ilike', "%{$search}%")
+                  ->orWhere('type', 'ilike', "%{$search}%")
+                  ->orWhere('serial_number', 'ilike', "%{$search}%")
+                  ->orWhere('lokasi', 'ilike', "%{$search}%");
+            });
+        }
+        $floorSummary = $floorSummaryQuery->selectRaw('lantai, count(*) as total')
+            ->groupBy('lantai')
+            ->orderByDesc('total')
+            ->get();
+
         return view('maintenances.pulang', compact(
-            'equipmentsPaginator', 'search', 'sort'
+            'equipmentsPaginator', 'search', 'sort', 'startDate', 'endDate', 'floorSummary'
         ));
     }
 }
