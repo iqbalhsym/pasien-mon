@@ -666,6 +666,8 @@ class MaintenanceController extends Controller
         $sort = $request->input('sort', 'terbaru');
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
+        $jamDari = $request->input('jam_dari');
+        $jamSampai = $request->input('jam_sampai');
 
         $userFloor = (auth()->check() && auth()->user()->floor && auth()->user()->role !== 'admin') ? auth()->user()->floor : null;
 
@@ -697,6 +699,16 @@ class MaintenanceController extends Controller
         }
         if ($endDate) {
             $query->whereDate('waktu_pulang', '<=', $endDate);
+        }
+
+        // Filter jam pulang (dari jam ini s/d sebelum jam ini — batas atas eksklusif, konsisten
+        // dengan pembagian bracket ringkasan di bawah supaya tidak ada pasien yang dobel-hitung
+        // atau bolong tepat di angka jam batasnya, misal 08:00, 10:00, dst).
+        if ($jamDari) {
+            $query->whereRaw('waktu_pulang::time >= ?', [$jamDari]);
+        }
+        if ($jamSampai) {
+            $query->whereRaw('waktu_pulang::time < ?', [$jamSampai]);
         }
 
         if ($sort === 'alphabetical') {
@@ -743,8 +755,55 @@ class MaintenanceController extends Controller
             ->orderByDesc('total')
             ->get();
 
+        // Ringkasan jumlah pasien pulang per rentang jam (mengikuti filter lantai/tanggal/pencarian
+        // yang aktif, terlepas dari filter jam itu sendiri — supaya bracket yang belum dipilih tetap
+        // menampilkan jumlah totalnya untuk bisa diklik).
+        $jamBuckets = [
+            ['label' => '< 08:00',        'dari' => null,    'sampai' => '08:00'],
+            ['label' => '08:00 - 10:00',  'dari' => '08:00', 'sampai' => '10:00'],
+            ['label' => '10:00 - 12:00',  'dari' => '10:00', 'sampai' => '12:00'],
+            ['label' => '12:00 - 18:00',  'dari' => '12:00', 'sampai' => '18:00'],
+            ['label' => '> 18:00',        'dari' => '18:00', 'sampai' => null],
+        ];
+        foreach ($jamBuckets as &$bucket) {
+            $bucketQuery = Equipment::whereDoesntHave('bed')->whereNotNull('waktu_pulang');
+            if ($userFloor) {
+                $bucketQuery->where('lantai', $userFloor);
+            }
+            if ($request->filled('lantai')) {
+                $lantaiVal = $request->input('lantai');
+                if (preg_match('/Lantai\s+(\d+)/i', $lantaiVal, $matches)) {
+                    $lantaiVal = $matches[1];
+                }
+                $bucketQuery->where('lantai', $lantaiVal);
+            }
+            if ($startDate) {
+                $bucketQuery->whereDate('waktu_pulang', '>=', $startDate);
+            }
+            if ($endDate) {
+                $bucketQuery->whereDate('waktu_pulang', '<=', $endDate);
+            }
+            if ($search) {
+                $bucketQuery->where(function($q) use ($search) {
+                    $q->where('merk', 'ilike', "%{$search}%")
+                      ->orWhere('type', 'ilike', "%{$search}%")
+                      ->orWhere('serial_number', 'ilike', "%{$search}%")
+                      ->orWhere('lokasi', 'ilike', "%{$search}%");
+                });
+            }
+            if ($bucket['dari']) {
+                $bucketQuery->whereRaw('waktu_pulang::time >= ?', [$bucket['dari']]);
+            }
+            if ($bucket['sampai']) {
+                $bucketQuery->whereRaw('waktu_pulang::time < ?', [$bucket['sampai']]);
+            }
+            $bucket['total'] = $bucketQuery->count();
+        }
+        unset($bucket);
+
         return view('maintenances.pulang', compact(
-            'equipmentsPaginator', 'search', 'sort', 'startDate', 'endDate', 'floorSummary'
+            'equipmentsPaginator', 'search', 'sort', 'startDate', 'endDate', 'floorSummary',
+            'jamBuckets', 'jamDari', 'jamSampai'
         ));
     }
 }

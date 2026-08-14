@@ -14,7 +14,17 @@ class AfyaRegistrationService
 
     // Static flags to instantly fail-fast within the same request execution thread
     protected static $authFailed = false;
-    protected static $apiFailed = false;
+
+    // Circuit breaker for getRegistrationDetails(): a single slow/timed-out patient (e.g. one with
+    // many historical registrations) must NOT poison lookups for every other patient in the same
+    // batch run. We only trip the breaker after several *consecutive* failures, which is a much
+    // stronger signal that the Afya API itself is down rather than one particular query being slow.
+    // The trip itself is expressed purely through the 60s 'afya_api_failed' cache entry (not a
+    // permanent static flag) so that a long-running bulk sync (--force, hundreds of patients) can
+    // self-heal and resume trying once the cooldown passes, instead of staying blind for the rest
+    // of a process that may run for tens of minutes.
+    protected static $consecutiveApiFailures = 0;
+    const API_FAILURE_THRESHOLD = 3;
 
     public function __construct()
     {
@@ -75,8 +85,9 @@ class AfyaRegistrationService
      */
     public function getRegistrationDetails(string $noRm): ?array
     {
-        // Fail fast if API calls have failed in this thread or in cache (last 60s)
-        if (self::$apiFailed || Cache::has('afya_api_failed')) {
+        // Fail fast if the circuit breaker tripped recently (cache-backed, self-expires after 60s —
+        // see the constructor-level comment above for why this is not also a permanent static flag).
+        if (Cache::has('afya_api_failed')) {
             return null;
         }
 
@@ -93,7 +104,9 @@ class AfyaRegistrationService
                 'User-Agent'   => 'insomnia/12.4.0',
             ])
             ->withoutVerifying()
-            ->timeout(15) // Reduced timeout to prevent long blocking states
+            ->timeout(45) // Raised from 15s: patients with many historical registrations (e.g. 12+ rows)
+                          // can take 30s+ for Afya to query/sort, and a premature timeout here was
+                          // falling back to stale cached data instead of the current registration.
             ->post($this->baseUrl . '/api/v8/transaction/registration/list', [
                 'PageNumber'          => 1,
                 'PageSize'            => 1, // Only need the latest active registration
@@ -109,7 +122,10 @@ class AfyaRegistrationService
                 'DokterKey'           => null,
                 'TipePerawatanKey'    => null,
                 'PoliKey'             => null,
-                'IsDischarge'         => null   // Get open or closed registration
+                'IsDischarge'         => 0      // Only active (Open) registrations — this is only called
+                                                 // for patients currently occupying a bed, so we must not
+                                                 // let an old, already-discharged visit win over the
+                                                 // current active one.
             ]);
 
             if ($response->successful()) {
@@ -125,28 +141,38 @@ class AfyaRegistrationService
                     }
 
                     if ($reg) {
+                        // A successful response proves the API is up, so clear any accumulated
+                        // failure count from earlier (slow/unlucky) patients in this same run.
+                        self::$consecutiveApiFailures = 0;
+
+                        // Helper function to remove UTC timezone indicator (Z or +00:00)
+                        // so that PHP strtotime treats it as local WIB time and avoids +7 timezone shifts.
+                        $stripTz = function($dateStr) {
+                            return preg_replace('/(Z|\.000Z|\+00:00)$/i', '', trim($dateStr));
+                        };
+
                         $birthDate = null;
                         if (!empty($reg['DateofBirth'])) {
-                            $birthDate = date('Y-m-d', strtotime($reg['DateofBirth']));
+                            $birthDate = date('Y-m-d', strtotime($stripTz($reg['DateofBirth'])));
                         } elseif (!empty($reg['TglLahir'])) {
                             try {
                                 $birthDate = \Carbon\Carbon::createFromFormat('d/m/Y', $reg['TglLahir'])->format('Y-m-d');
                             } catch (\Exception $ex) {
-                                $birthDate = date('Y-m-d', strtotime($reg['TglLahir']));
+                                $birthDate = date('Y-m-d', strtotime($stripTz($reg['TglLahir'])));
                             }
                         }
 
                         $regDate = null;
                         if (!empty($reg['TanggalMasuk'])) {
-                            $regDate = date('Y-m-d', strtotime($reg['TanggalMasuk']));
+                            $regDate = date('Y-m-d', strtotime($stripTz($reg['TanggalMasuk'])));
                         } elseif (!empty($reg['TglMasuk'])) {
                             try {
                                 $regDate = \Carbon\Carbon::createFromFormat('d/m/Y', $reg['TglMasuk'])->format('Y-m-d');
                             } catch (\Exception $ex) {
-                                $regDate = date('Y-m-d', strtotime($reg['TglMasuk']));
+                                $regDate = date('Y-m-d', strtotime($stripTz($reg['TglMasuk'])));
                             }
                         } elseif (!empty($reg['RegDate'])) {
-                            $regDate = date('Y-m-d', strtotime($reg['RegDate']));
+                            $regDate = date('Y-m-d', strtotime($stripTz($reg['RegDate'])));
                         }
 
                         $dpjp = $reg['Dokter'] ?? $reg['NamaDokter'] ?? $reg['DoctorName'] ?? null;
@@ -161,10 +187,16 @@ class AfyaRegistrationService
             }
         } catch (\Exception $e) {
             Log::error("Failed to fetch registration details for RM: $noRm. Error: " . $e->getMessage());
-            
-            // If a connection/timeout exception happens, mark as api failed to stop subsequent calls
-            self::$apiFailed = true;
-            Cache::put('afya_api_failed', true, 60);
+
+            // Only trip the circuit breaker after several consecutive failures — a lone timeout is
+            // most likely just one patient's query being slow (e.g. many historical registrations),
+            // not the whole Afya API being down. Tripping on the very first failure previously caused
+            // every other patient queued after an unlucky one to silently get skipped for 60s.
+            self::$consecutiveApiFailures++;
+            if (self::$consecutiveApiFailures >= self::API_FAILURE_THRESHOLD) {
+                Cache::put('afya_api_failed', true, 60);
+                self::$consecutiveApiFailures = 0; // give it a fresh count once the cooldown passes
+            }
             return null;
         }
 

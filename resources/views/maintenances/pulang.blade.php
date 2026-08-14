@@ -53,6 +53,16 @@
                 <input type="date" name="end_date" class="form-control border-start-0 bg-white fw-bold text-dark" value="{{ $endDate }}" style="font-size: 0.85rem; max-width: 155px;">
             </div>
 
+            <!-- Filter Jam Pulang -->
+            <div class="input-group shadow-sm" style="width: auto;">
+                <span class="input-group-text bg-white border-end-0 py-0 text-muted fw-bold" style="font-size: 0.78rem;">Jam</span>
+                <input type="time" name="jam_dari" class="form-control border-start-0 bg-white fw-bold text-dark" value="{{ $jamDari }}" style="font-size: 0.85rem; max-width: 105px;">
+            </div>
+            <div class="input-group shadow-sm" style="width: auto;">
+                <span class="input-group-text bg-white border-end-0 py-0 text-muted fw-bold" style="font-size: 0.78rem;">s/d</span>
+                <input type="time" name="jam_sampai" class="form-control border-start-0 bg-white fw-bold text-dark" value="{{ $jamSampai }}" style="font-size: 0.85rem; max-width: 105px;">
+            </div>
+
             <!-- Sort Buttons -->
             <div class="btn-group shadow-sm" role="group">
                 <a href="{{ route('maintenances.pulang', array_merge(request()->except(['sort', 'page']), ['sort' => 'terbaru'])) }}"
@@ -138,6 +148,42 @@
                 @else
                     <p class="text-muted mb-0" style="font-size: 0.85rem;">Tidak ada data pasien pulang pada periode ini.</p>
                 @endif
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Ringkasan Jumlah Pasien Pulang per Rentang Jam --}}
+<div class="row mb-3">
+    <div class="col-lg-12">
+        <div class="card shadow-sm border-0" style="border-radius: 16px;">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <h6 class="fw-bold text-dark mb-0" style="font-size: 0.92rem;">
+                        <i class="mdi mdi-clock-outline text-secondary me-1"></i> Ringkasan Jumlah Pasien Pulang per Jam
+                    </h6>
+                    @if($jamDari || $jamSampai)
+                        <a href="{{ route('maintenances.pulang', request()->except(['jam_dari', 'jam_sampai', 'page'])) }}"
+                           class="text-decoration-none fw-bold text-muted" style="font-size: 0.78rem;" title="Hapus filter jam">
+                            <i class="mdi mdi-close-circle-outline"></i> Hapus filter jam
+                        </a>
+                    @endif
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    @foreach($jamBuckets as $bucket)
+                        @php
+                            $isActiveJam = $jamDari == $bucket['dari'] && $jamSampai == $bucket['sampai'];
+                        @endphp
+                        <a href="{{ route('maintenances.pulang', array_merge(request()->except(['page']), ['jam_dari' => $bucket['dari'], 'jam_sampai' => $bucket['sampai']])) }}"
+                           class="d-flex align-items-center gap-2 border rounded px-3 py-2 text-decoration-none {{ $isActiveJam ? 'shadow-sm' : '' }}"
+                           style="border-radius: 10px; {{ $isActiveJam ? 'background: #1F3BB3; border-color: #1F3BB3 !important;' : 'background: #f8f9fb;' }}"
+                           title="Lihat pasien pulang {{ $bucket['label'] }}">
+                            <i class="mdi mdi-clock-time-four-outline" style="color: {{ $isActiveJam ? '#ffffff' : '#6c757d' }};"></i>
+                            <span class="fw-bold" style="font-size: 0.85rem; color: {{ $isActiveJam ? '#ffffff' : '#1F2937' }};">{{ $bucket['label'] }}</span>
+                            <span class="badge rounded-pill fw-bold" style="font-size: 0.8rem; {{ $isActiveJam ? 'background: #ffffff; color: #1F3BB3;' : 'background: #6c757d; color: #ffffff;' }}">{{ $bucket['total'] }}</span>
+                        </a>
+                    @endforeach
+                </div>
             </div>
         </div>
     </div>

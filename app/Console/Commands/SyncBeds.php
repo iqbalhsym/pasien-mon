@@ -62,6 +62,25 @@ class SyncBeds extends Command
 
             $force = $this->option('force');
 
+            // How often we re-check Afya for a patient who is already known and still occupying the
+            // same bed. Without this, a patient can get a brand new registration in Afya mid-stay
+            // (e.g. a procedure, class change, re-verification) without ever leaving their bed slot
+            // in the bed-monitoring source, and their registered_date/dpjp_utama would then stay
+            // frozen on the old value forever (only a new admission or --force would ever refresh it).
+            $refreshIntervalHours = (int) env('AFYA_REFRESH_INTERVAL_HOURS', 6);
+
+            // Cap how many "already known, just due for periodic refresh" patients this single
+            // (non-force) run will fetch. On a cold start (or right after deploying this feature)
+            // NONE of the currently occupied patients have the periodic marker yet, so without this
+            // cap every regular 5-minute cron run would try to refetch the entire occupied ward at
+            // once — hundreds of sequential Afya calls — turning the routine cron into a de facto
+            // --force run and starving it of time to promptly pick up genuinely new admissions.
+            // New admissions and never-yet-populated patients are NOT subject to this cap; only this
+            // periodic "catch up" refresh is throttled, and it naturally spreads across many cron
+            // cycles until every patient has a fresh marker.
+            $periodicRefreshBatchLimit = (int) env('AFYA_PERIODIC_REFRESH_BATCH', 15);
+            $periodicRefreshCount = 0;
+
             // Get already cached/populated patient details from the local database
             $existingMrnMap = [];
             $currentlyOccupiedRms = [];
@@ -92,10 +111,21 @@ class SyncBeds extends Command
                                 $noRm = trim($patientData['no_rm']);
                                 if (strtoupper($noRm) !== 'TERDAFTAR' && strpos($noRm, 'BOOKING-') !== 0) {
                                     $isNewAdmission = !$force && !isset($currentlyOccupiedRms[$noRm]);
-                                    if ($force || !isset($existingMrnMap[$noRm]) || $isNewAdmission) {
+                                    // Periodic refresh: even if already known and still in the same bed,
+                                    // re-check Afya once the periodic marker below has expired, so a new
+                                    // mid-stay registration doesn't stay stuck indefinitely. Throttled by
+                                    // $periodicRefreshBatchLimit — see comment above where it's defined.
+                                    $needsPeriodicRefresh = !$force && !$isNewAdmission
+                                        && isset($existingMrnMap[$noRm])
+                                        && $periodicRefreshCount < $periodicRefreshBatchLimit
+                                        && !\Illuminate\Support\Facades\Cache::has('afya_periodic_synced_' . $noRm);
+                                    if ($force || !isset($existingMrnMap[$noRm]) || $isNewAdmission || $needsPeriodicRefresh) {
                                         $patientRmList[] = $noRm;
                                         if ($isNewAdmission) {
                                             \Illuminate\Support\Facades\Cache::forget('afya_reg_details_' . $noRm);
+                                        }
+                                        if ($needsPeriodicRefresh) {
+                                            $periodicRefreshCount++;
                                         }
                                     }
                                 }
@@ -124,6 +154,12 @@ class SyncBeds extends Command
                             ];
                             \Illuminate\Support\Facades\Cache::put($cacheKey, $cacheData, 300); // 5 minutes
                             $patientRegDetails[$noRm] = $cacheData;
+                            if (!empty($cacheData['registered_date'])) {
+                                // Only mark as periodically synced on a genuinely successful fetch, so a
+                                // failed/timed-out attempt gets retried again on the very next cron cycle
+                                // instead of waiting out the full refresh interval.
+                                \Illuminate\Support\Facades\Cache::put('afya_periodic_synced_' . $noRm, true, now()->addHours($refreshIntervalHours));
+                            }
                         } catch (\Exception $e) {
                             \Illuminate\Support\Facades\Log::error("Error calling AfyaRegistrationService for RM: $noRm (forced): " . $e->getMessage());
                         }
@@ -141,6 +177,12 @@ class SyncBeds extends Command
                                 ];
                                 \Illuminate\Support\Facades\Cache::put($cacheKey, $cacheData, 300); // 5 minutes
                                 $patientRegDetails[$noRm] = $cacheData;
+                                if (!empty($cacheData['registered_date'])) {
+                                    // Only mark as periodically synced on a genuinely successful fetch, so a
+                                    // failed/timed-out attempt gets retried again on the very next cron cycle
+                                    // instead of waiting out the full refresh interval.
+                                    \Illuminate\Support\Facades\Cache::put('afya_periodic_synced_' . $noRm, true, now()->addHours($refreshIntervalHours));
+                                }
                             } catch (\Exception $e) {
                                 \Illuminate\Support\Facades\Log::error("Error calling AfyaRegistrationService for RM: $noRm: " . $e->getMessage());
                             }
@@ -358,15 +400,37 @@ class SyncBeds extends Command
             // Remove patient associations from beds that are no longer in the current sync loop (if any)
             if (!empty($activeBedIds)) {
                 // Record discharge time for patients whose bed is being vacated right now
-                $dischargedEquipmentIds = Bed::whereNotIn('id', $activeBedIds)
-                    ->where('status', '!=', 'kosong')
-                    ->whereNotNull('equipment_id')
-                    ->pluck('equipment_id');
+                $dischargedEquipment = Equipment::whereIn('id',
+                    Bed::whereNotIn('id', $activeBedIds)
+                        ->where('status', '!=', 'kosong')
+                        ->whereNotNull('equipment_id')
+                        ->pluck('equipment_id')
+                )->get(['id', 'serial_number']);
 
-                if ($dischargedEquipmentIds->isNotEmpty()) {
-                    Equipment::whereIn('id', $dischargedEquipmentIds)->update([
-                        'waktu_pulang' => now()
-                    ]);
+                // BOOKING-{bed_id} is a per-bed reservation placeholder, not a real patient (see where
+                // it's synthesized above, ~line 260) — it disappearing from the live feed means the
+                // booking was cancelled, or it was fulfilled and replaced by a real RM, never that
+                // someone was "discharged". Counting it as pulang inflates the discharged-patient list
+                // with phantom entries, so these are deleted outright instead of marked as pulang.
+                $bookingIds = $dischargedEquipment->filter(fn($e) => str_starts_with($e->serial_number, 'BOOKING-'))->pluck('id');
+                $realPatientIds = $dischargedEquipment->reject(fn($e) => str_starts_with($e->serial_number, 'BOOKING-'))->pluck('id');
+
+                if ($bookingIds->isNotEmpty()) {
+                    Equipment::whereIn('id', $bookingIds)->delete();
+                }
+
+                if ($realPatientIds->isNotEmpty()) {
+                    // Don't overwrite a waktu_pulang that's already set — sync:discharged-patients may
+                    // have already filled it in from the bed-monitoring discharged-patients API, which
+                    // carries the actual discharge time. That's more accurate than "now()" (merely the
+                    // moment this sync noticed the bed was no longer occupied), so once it's set, leave
+                    // it alone; only backfill it here as a fallback for patients that source doesn't
+                    // (yet) know about.
+                    Equipment::whereIn('id', $realPatientIds)
+                        ->whereNull('waktu_pulang') // waktu_pulang is a timestamp column — only NULL means "not set yet"
+                        ->update([
+                            'waktu_pulang' => now()
+                        ]);
                 }
 
                 Bed::whereNotIn('id', $activeBedIds)->update([

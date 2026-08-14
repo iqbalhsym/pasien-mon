@@ -4,7 +4,13 @@
       "Bash(node -e ' *)",
       "Bash(php -l app/Http/Controllers/MaintenanceController.php)",
       "Bash(php -l resources/views/maintenances/pulang.blade.php)",
-      "Bash(php -l app/Console/Commands/SyncBeds.php)"
+      "Bash(php -l app/Console/Commands/SyncBeds.php)",
+      "Bash(php artisan *)",
+      "Bash(php /tmp/claude-1000/-var-www-pasien-mon/5dced5b9-f102-4c31-8862-c7bd4b096f97/scratchpad/check_afya_order.php)",
+      "Bash(php artisan tinker '--execute= *)",
+      "Bash(php -l /var/www/pasien-mon/app/Services/AfyaRegistrationService.php)",
+      "Bash(php -l /var/www/pasien-mon/app/Console/Commands/SyncBeds.php)",
+      "Bash(ps -o pid,etimes,cmd -p 1638964)"
     ]
   }
 }
